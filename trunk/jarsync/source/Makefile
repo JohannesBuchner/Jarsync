@@ -5,7 +5,7 @@
 cc = jikes
 #ccopts = -O
 #ccopts = -g -source 1.4
-ccopts = -g
+ccopts = -g -classpath $$CLASSPATH:../lib/getopt.jar
 
 sources = org/metastatic/rsync/ChecksumPair.java \
   org/metastatic/rsync/Configuration.java \
@@ -16,6 +16,7 @@ sources = org/metastatic/rsync/ChecksumPair.java \
   org/metastatic/rsync/Matcher.java \
   org/metastatic/rsync/MessageDigest.java \
   org/metastatic/rsync/Offsets.java \
+  org/metastatic/rsync/Rdiff.java \
   org/metastatic/rsync/Rebuilder.java \
   org/metastatic/rsync/RollingChecksum.java \
   org/metastatic/rsync/RsyncConstants.java \
