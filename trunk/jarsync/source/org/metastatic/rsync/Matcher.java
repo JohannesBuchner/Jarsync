@@ -109,7 +109,7 @@ public final class Matcher implements RsyncConstants {
     * @param baseOffset The offset from whence <code>buf</code> came.
     * @return A collection of {@link Delta}s derived from this search.
     */
-   public Collection hashSearch(Collection sums, byte[] buf, int off,\
+   public Collection hashSearch(Collection sums, byte[] buf, int off,
                                 int len, long baseOffset)
    {
       return hashSearch(buildHashtable(sums), buf, off, len, baseOffset);
