@@ -1,47 +1,28 @@
-// vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
-// $Id$
-//
-// Sender -- File-sending methods.
-// Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
-//
-// This file is a part of Jarsync.
-//
-// Jarsync is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-//
-// Jarsync is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with Jarsync; if not, write to the
-//
-//    Free Software Foundation, Inc.,
-//    59 Temple Place, Suite 330,
-//    Boston, MA  02111-1307
-//    USA
-//
-// Linking this library statically or dynamically with other modules is
-// making a combined work based on this library.  Thus, the terms and
-// conditions of the GNU General Public License cover the whole
-// combination.
-//
-// As a special exception, the copyright holders of this library give
-// you permission to link this library with independent modules to
-// produce an executable, regardless of the license terms of these
-// independent modules, and to copy and distribute the resulting
-// executable under terms of your choice, provided that you also meet,
-// for each linked independent module, the terms and conditions of the
-// license of that module.  An independent module is a module which is
-// not derived from or based on this library.  If you modify this
-// library, you may extend this exception to your version of the
-// library, but you are not obligated to do so.  If you do not wish to
-// do so, delete this exception statement from your version.
-//
-// --------------------------------------------------------------------------
+/* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
+   $Id$
+
+   Sender -- File-sending methods.
+   Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
+
+   This file is a part of Jarsync.
+
+   Jarsync is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by the
+   Free Software Foundation; either version 2 of the License, or (at
+   your option) any later version.
+
+   Jarsync is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with Jarsync; if not, write to the
+
+      Free Software Foundation, Inc.,
+      59 Temple Place, Suite 330,
+      Boston, MA  02111-1307
+      USA  */
 
 /*
  * Based on rsync-2.5.5.
@@ -54,16 +35,18 @@
 
 package org.metastatic.rsync.v2;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import org.metastatic.org.*;
+import org.metastatic.rsync.*;
 
-import org.apache.log4j.*;
+import org.apache.log4j.Logger;
 
-public class Sender {
+public class Sender implements Constants {
 
    // Constants and variables.
    // -----------------------------------------------------------------------
@@ -91,7 +74,7 @@ public class Sender {
     * @param remoteVersion The remote protocol version.
     * @param amServer Should be true if we are the server.
     */
-   public Rsync(MultiplexedInputStream in, MultiplexedOutputStream out,
+   public Sender(MultiplexedInputStream in, MultiplexedOutputStream out,
                 Configuration config, int remoteVersion, boolean amServer)
    {
       this.in = in;
@@ -128,9 +111,9 @@ public class Sender {
 
          i = in.readInt();
          if (i == -1) {
-            if (phase == 0 && remote_version >= 13) {
+            if (phase == 0 && remoteVersion >= 13) {
                phase++;
-               config.setStrongSumLength(RsyncConstants.SUM_LENGTH);
+               config.strongSumLength = SUM_LENGTH;
                out.writeInt(-1);
                logger.info("sendFiles phase=" + phase);
                continue;
@@ -140,7 +123,7 @@ public class Sender {
 
          if (i < 0 || i >= files.size()) {
             String msg = "invalid file index " + i + " (count=" +
-               files.size() + ")");
+               files.size() + ")";
             logger.fatal(msg);
             throw new IOException(msg);
          }
@@ -177,12 +160,12 @@ public class Sender {
 
       if (count == 0) return null;
 
-      config.setBlockSize(n);
+      config.blockLength = n;
       List sums = new ArrayList(count);
 
       for (int i = 0; i < count; i++) {
          int weak = in.readInt();
-         byte[] strong = new byte[config.getStrongSumLength()];
+         byte[] strong = new byte[config.strongSumLength];
          in.read(strong);
          ChecksumPair pair = null;
 

@@ -2,7 +2,7 @@
 // $Id$
 //
 // SocketClient -- rsyncd client startup.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -24,23 +24,6 @@
 //    Boston, MA 02111-1307
 //    USA
 //
-// Linking this library statically or dynamically with other modules is
-// making a combined work based on this library.  Thus, the terms and
-// conditions of the GNU General Public License cover the whole
-// combination.
-//
-// As a special exception, the copyright holders of this library give
-// you permission to link this library with independent modules to
-// produce an executable, regardless of the license terms of these
-// independent modules, and to copy and distribute the resulting
-// executable under terms of your choice, provided that you also meet,
-// for each linked independent module, the terms and conditions of the
-// license of that module.  An independent module is a module which is
-// not derived from or based on this library.  If you modify this
-// library, you may extend this exception to your version of the
-// library, but you are not obligated to do so.  If you do not wish to
-// do so, delete this exception statement from your version.
-//
 // ---------------------------------------------------------------------------
 
 package org.metastatic.rsync.v2;
@@ -51,6 +34,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import java.net.Socket;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -283,7 +269,12 @@ public class SocketClient implements RsyncConstants {
     *    will be closed if this method returns false.
     */
    public boolean authenticate(String user, String pass) throws IOException {
-      MD4 hash = new MD4();
+      MessageDigest hash = null;
+      try {
+         MessageDigest.getInstance("BrokenMD4");
+      } catch (NoSuchAlgorithmException x) {
+         throw new Error(x);
+      }
       hash.update(new byte[4], 0, 4);
       try {
          hash.update(pass.getBytes("US-ASCII"), 0, pass.length());
@@ -328,7 +319,7 @@ public class SocketClient implements RsyncConstants {
     * communicate with the server.
     *
     * @param config The {@link Configuration} to use.
-    */
+    * /
    public Rsync startClient(Configuration config) throws IOException {
       if (remoteVersion >= 12) {
          byte[] seed = new byte[4];
@@ -344,5 +335,5 @@ public class SocketClient implements RsyncConstants {
       in = null;
       out = null;
       return c;
-   }
+   } */
 }

@@ -1,45 +1,28 @@
-// vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
-// $Id$
-//
-// Receiver -- File receiving methods.
-// Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the
-//
-//    Free Software Foundation, Inc.,
-//    59 Temple Place, Suite 330,
-//    Boston, MA  02111-1307
-//    USA
-//
-// Linking this library statically or dynamically with other modules is
-// making a combined work based on this library.  Thus, the terms and
-// conditions of the GNU General Public License cover the whole
-// combination.
-//
-// As a special exception, the copyright holders of this library give
-// you permission to link this library with independent modules to
-// produce an executable, regardless of the license terms of these
-// independent modules, and to copy and distribute the resulting
-// executable under terms of your choice, provided that you also meet,
-// for each linked independent module, the terms and conditions of the
-// license of that module.  An independent module is a module which is
-// not derived from or based on this library.  If you modify this
-// library, you may extend this exception to your version of the
-// library, but you are not obligated to do so.  If you do not wish to
-// do so, delete this exception statement from your version.
-//
-// --------------------------------------------------------------------------
+/* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
+   $Id$
+
+   Receiver: File receiving methods.
+   Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
+
+   This file is a part of Jarsync.
+
+   Jarsync is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by the
+   Free Software Foundation; either version 2 of the License, or (at
+   your option) any later version.
+
+   Jarsync is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with Jarsync; if not, write to the
+
+      Free Software Foundation, Inc.,
+      59 Temple Place, Suite 330,
+      Boston, MA  02111-1307
+      USA  */
 
 /*
  * Based on rsync-2.5.5.
@@ -54,10 +37,17 @@ package org.metastatic.rsync.v2;
 
 import org.metastatic.rsync.*;
 
-import org.apache.log4j.*;
+import org.apache.log4j.Logger;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -69,7 +59,7 @@ import java.util.List;
  *
  * @version $Revision$
  */
-public class Receiver imlements RsyncConstants
+public class Receiver implements Constants
 {
 
    // Constants and fields.
@@ -112,7 +102,7 @@ public class Receiver imlements RsyncConstants
       this.in = in;
       this.out = out;
       if (amServer)
-         logger.addAppender(new RsyncAppener(out));
+         logger.addAppender(new RsyncAppender(out));
       this.config = config;
       generator = new Generator(config);
       this.remoteVersion = remoteVersion;
@@ -159,14 +149,14 @@ public class Receiver imlements RsyncConstants
       for (int i = 0; i < retry.length; i++)
          retry[i] = -1;
 
-      for (int i = 0; i <= files.count; i++) {
+      for (int i = 0; i <= files.size(); i++) {
          sendSums((File) files.get(i), i);
       }
 
       genPhase++;
       out.writeInt(-1);
       logger.info("generateFiles phase=" + genPhase);
-      config.setStrongSumLength(SUM_LENGTH);
+      config.strongSumLength = SUM_LENGTH;
 
       if (remoteVersion >= 13) {
          while (recvPhase == 0) {
@@ -182,7 +172,7 @@ public class Receiver imlements RsyncConstants
          // another. Here, since we are running two threads with the
          // same object, we just use an array of integers.
          for (int i = 0; i < retryIndex && retry[i] != -1; i++) {
-            sendSums(files.get(retry[i]), retry[i]);
+            sendSums((File) files.get(retry[i]), retry[i]);
          }
          genPhase++;
          logger.info("generateFiles phase=" + genPhase);
@@ -227,7 +217,7 @@ public class Receiver imlements RsyncConstants
          stats.total_transferred_size += f.length();
 
          if (!receiveData(f)) {
-            if (config.getStrongSumLength() == SUM_LENGTH) {
+            if (config.strongSumLength == SUM_LENGTH) {
                logger.error("File corruption in " + f.getName()
                   + ". File changed during transfer?");
             } else {
@@ -255,32 +245,32 @@ public class Receiver imlements RsyncConstants
    private void sendSums(File f, int i) throws IOException
    {
       // XXX fiddle with permissions.
-      if (config.getBlockLength() == BLOCK_LENGTH) {
+      if (config.blockLength == BLOCK_LENGTH) {
          int l = (int) (f.length() / 10000) & ~15;
-         if (l < config.getBlockLength())
-            l = config.getBlockLength();
+         if (l < config.blockLength)
+            l = config.blockLength;
          if (l > CHUNK_SIZE / 2)
             l = CHUNK_SIZE / 2;
-         config.setBlockSize(l);
+         config.blockLength = l;
       }
-      int rem = (int) (f.length() % config.getBlockSize());
+      int rem = (int) (f.length() % config.blockLength);
       Collection sums = generator.generateSums(f);
 
       out.writeInt(i);
 
       if (f.exists()) {
          out.writeInt(sums.size());
-         out.writeInt(config.getBlockLength());
+         out.writeInt(config.blockLength);
          out.writeInt(rem);
 
          for (Iterator it = sums.iterator(); it.hasNext(); ) {
-            CheksumPair p = (ChecksumPair) it.next();
-            out.writeInt(p.getWeakSum());
-            out.write(p.getStrongSum());
+            ChecksumPair p = (ChecksumPair) it.next();
+            out.writeInt(p.getWeak());
+            out.write(p.getStrong());
          }
       } else {
          out.writeInt(0);
-         out.writeInt(config.getBlockLength());
+         out.writeInt(config.blockLength);
          out.writeInt(0);
       }
    }
@@ -338,9 +328,9 @@ public class Receiver imlements RsyncConstants
             md.update(data, 0, i);
          }
          file_sum1 = md.digest();
-         file_sum2 = new byte[file_sum2.length];
+         file_sum2 = new byte[file_sum1.length];
          in.read(file_sum2);
-         return Arrays.areEqual(file_sum1, file_sum2);
+         return Arrays.equals(file_sum1, file_sum2);
       }
 
       return true;

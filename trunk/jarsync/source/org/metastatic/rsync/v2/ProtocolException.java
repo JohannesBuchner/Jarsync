@@ -1,7 +1,7 @@
 /* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
    $Id$
 
-   MultiplexedIO: Basic multiplexed I/O interface.
+   ProtocolException: signals a protocol error.
    Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
 
    This file is a part of Jarsync.
@@ -26,10 +26,19 @@
 
 package org.metastatic.rsync.v2;
 
-public interface MultiplexedIO {
-   public static final int FNONE = 0;
-   public static final int FERROR = 1;
-   public static final int FINFO = 2;
-   public static final int FLOG = 3;
-   public static final int MPLEX_BASE = 7;
+/**
+ * Signals an error in the rsync protocol.
+ */
+public class ProtocolException extends java.io.IOException {
+
+   // Constructors.
+   // -----------------------------------------------------------------------
+
+   public ProtocolException() {
+      super();
+   }
+
+   public ProtocolException(String msg) {
+      super(msg);
+   }
 }
