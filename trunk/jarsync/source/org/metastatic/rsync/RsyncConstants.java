@@ -79,4 +79,11 @@ public interface RsyncConstants {
    public static final byte OP_LITERAL_N8 = 0x44;
 
    public static final byte OP_COPY_N4_N4 = 0x4f;
+
+   public static final int FNONE  = 0;
+   public static final int FERROR = 1;
+   public static final int FINFO  = 2;
+   public static final int FLOG   = 3;
+   public static final int MPLEX_BASE = 7;
+   public static final int OUTPUT_BUFFER_SIZE = 4092;
 }

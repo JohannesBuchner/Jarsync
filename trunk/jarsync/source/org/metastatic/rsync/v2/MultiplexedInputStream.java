@@ -1,7 +1,7 @@
 // vim:set tabstop=3 expandtab tw=72:
 // $Id$
 //
-// MultiplexedIO -- rsync-2.*.* style I/O.
+// MultiplexedInputStream -- Multiplexed input.
 // Copyright (C) 2002  Casey Marshall <rsdio@metastatic.org>
 //
 // This program is free software; you can redistribute it and/or modify
@@ -26,8 +26,8 @@
 
 package org.metastatic.rsync.v2;
 
+import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 import org.metastatic.rsync.*;
 
@@ -36,29 +36,14 @@ import org.metastatic.rsync.*;
  *
  * @version $Revision$
  */
-public class MultiplexedIO {
+public class
+MultiplexedInputStream extends InputStream implements RsyncConstants {
 
    // Constants and variables.
    // -----------------------------------------------------------------------
 
-   public static final int FNONE  = 0;
-   public static final int FERROR = 1;
-   public static final int FINFO  = 2;
-   public static final int FLOG   = 3;
-   public static final int MPLEX_BASE = 7;
-   public static final int OUTPUT_BUFFER_SIZE = 4092;
-
    /** The underlying input stream. */
    protected InputStream in;
-
-   /** The underlying output stream. */
-   protected OutputStream out;
-
-   /** Our output buffer. */
-   protected byte[] outputBuffer;
-
-   /** The number of bytes written to the buffer. */
-   protected int bufferCount;
 
    /** Whether or not to actually multiplex. */
    protected boolean multiplex;
@@ -66,18 +51,15 @@ public class MultiplexedIO {
    // Constructors.
    // -----------------------------------------------------------------------
 
-   public MultiplexedIO(InputStream in, OutputStream out, boolean multiplex) {
+   public MultiplexedInputStream(InputStream in, boolean multiplex) {
       this.in = in;
-      this.out = new OutputStream(out);
       this.multiplex = multiplex;
-      outputBuffer = new byte[OUTPUT_BUFFER_SIZE];
-      bufferPos = 0;
    }
 
-   // Input methods.
+   // Instance methods.
    // -----------------------------------------------------------------------
 
-   public byte read() throws IOException {
+   public int read() throws IOException {
       byte[] b = new byte[1];
       readFully(b);
       return b[0];
@@ -130,26 +112,30 @@ public class MultiplexedIO {
    }
 
    /**
-    * Read a big-endian ordered 32-bit integer.
+    * Read a little-endian ordered 32-bit integer.
     *
     * @return The integer read.
     */
    public int readInt() throws IOException {
       byte[] buf = new byte[4];
       readFully(buf);
-      return buf[0]<<24 | buf[1]<<16 | buf[2]<<8 | buf[4];
+      return buf[3]<<24 | buf[2]<<16 | buf[1]<<8 | buf[0];
    }
 
    /**
-    * Read a big-endian ordered 64-bit long integer.
+    * Read a little-endian ordered 64-bit long integer.
     *
     * @return The long integer read.
     */
    public long readLong() throws IOException {
+      int ret = readInt();
+      if (ret != 0xffffffff) {
+         return ret;
+      }
       byte[] buf = new byte[8];
       readFully(buf);
-      return buf[0]<<56 | buf[1]<<48 | buf[2]<<40 | buf[3]<<32 |
-             buf[4]<<24 | buf[5]<<16 | buf[6]<< 8 | buf[7];
+      return buf[7]<<56 | buf[6]<<48 | buf[5]<<40 | buf[4]<<32 |
+             buf[3]<<24 | buf[2]<<16 | buf[1]<< 8 | buf[0];
    }
 
    /**
@@ -162,7 +148,7 @@ public class MultiplexedIO {
     * @param len The number of bytes to attempt to read.
     * @return The number of bytes read.
     */
-   protected int read(byte[] buf, int off, int len) throws IOException {
+   public int read(byte[] buf, int off, int len) throws IOException {
       int remaining = 0, ret = 0;
       int tag;
       byte[] line = new byte[1024];
@@ -175,11 +161,20 @@ public class MultiplexedIO {
             remaining -= ret;
             continue;
          }
+         System.out.println("mio.read().ret=" + 0);
 
-         tag  = in.read();
-         remaining  = in.read() << 16;
-         remaining |= in.read() <<  8;
-         remaining |= in.read();
+         in.read(line, 0, 4);
+         for (int i = 0; i < 4; i++)
+            System.out.print(Integer.toHexString(line[i]));
+         System.out.println();
+
+         tag = line[3];
+         System.out.println("tag=" + tag);
+
+         remaining  = line[0];
+         remaining |= line[1] <<  8;
+         remaining |= line[2] << 16;
+         System.out.println("remaining=" + remaining);
 
          if (tag == MPLEX_BASE) {
             continue;
@@ -188,104 +183,17 @@ public class MultiplexedIO {
          tag -= MPLEX_BASE;
 
          if (tag != FERROR && tag != FINFO) {
-            throw new IOException("unexpedted tag " + tag);
+            throw new IOException("unexpected tag " + tag);
          }
 
          if (remaining > line.length - 1) {
             throw new IOException("multiplexing overflow " + remaining);
          }
 
+         in.read(line, 0, remaining);
          Logger.write(tag, line);
          remaining = 0;
       }
       return ret;
    }
-
-   // Output methods.
-   // -----------------------------------------------------------------------
-
-   /**
-    * Write a message to the multiplexed error stream.
-    *
-    * @param logcode The log code.
-    * @param message The message.
-    */
-   public void writeMessage(int logcode, String message) throws IOException {
-      if (!multiplex) return;
-      flushOut();
-      write(logcode, message.getBytes("US-ASCII"));
-   }
-
-   public void flushOut() throws IOException {
-      if (bufferCount == 0) return;
-      if (multiplex) {
-         write(FNONE, outputBuffer, 0, bufferCount);
-      } else {
-         out.write(outputBuffer, 0, bufferCount);
-      }
-      bufferCount = 0;
-   }
-
-   public void write(byte[] buf) throws IOException {
-      write(buf, 0, buf.length);
-   }
-
-   public void write(byte[] buf, int off, int len) throws IOException {
-      while (bufferCount + len >= outputBuffer.length) {
-         int count = Math.min(outputBuffer.length - bufferCount, len);
-         System.arraycopy(buf, off, outputBuffer, bufferCount, count);
-         flushOut();
-         off += count;
-         len -= count;
-         bufferCount = 0;
-      }
-      System.arraycopy(buf, off, outputBuffer, bufferCount, len);
-      if (bufferCount == outputBuffer.length) {
-         flushOut();
-      }
-   }
-
-   public void writeInt(int i) throws IOException {
-      byte[] b = new byte[4];
-      b[0] = (byte) (i >>> 24 & 0xff);
-      b[1] = (byte) (i >>> 16 & 0xff);
-      b[2] = (byte) (i >>>  8 & 0xff);
-      b[3] = (byte) (i & 0xff);
-      write(b);
-   }
-
-   public void writeLong(long l) throws IOException {
-      byte[] b = new byte[8];
-      b[0] = (byte) (l >>> 56 & 0xff);
-      b[1] = (byte) (l >>> 48 & 0xff);
-      b[2] = (byte) (l >>> 40 & 0xff);
-      b[3] = (byte) (l >>> 32 & 0xff);
-      b[4] = (byte) (l >>> 24 & 0xff);
-      b[5] = (byte) (l >>> 16 & 0xff);
-      b[6] = (byte) (l >>>  8 & 0xff);
-      b[7] = (byte) (l & 0xff);
-      write(b);
-   }
-
-   public void writeString(String s) throws IOException {
-      write(s.getBytes("US-ASCII"));
-   }
-
-   protected void write(int logcode, byte[] buf) throws IOException {
-      write(logcode, buf, 0, buf.length);
-   }
-
-   protected synchronized void
-   write(int logcode, byte[] buf, int off, int len) throws IOException {
-      byte[] code = new byte[4];
-      code[0] = (byte) (logcode + MPLEX_BASE & 0xff);
-      code[1] = (byte) (len >>> 16 & 0xff);
-      code[2] = (byte) (len >>>  8 & 0xff);
-      code[3] = (byte) (len & 0xff);
-
-      out.write(code, 0, 4);
-      out.write(buf, off, len);
-   }
-
-
 }

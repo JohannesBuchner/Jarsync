@@ -34,6 +34,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.ListIterator;
 
 import org.metastatic.rsync.*;
@@ -144,6 +145,8 @@ public class SocketClient implements RsyncConstants {
    public static SocketClient
    connect(String host, int port, String module) throws IOException {
       Socket s = new Socket(host, port);
+      s.setTcpNoDelay(true);
+      s.setKeepAlive(true);
       InputStream in = s.getInputStream();
       OutputStream out = s.getOutputStream();
 
@@ -237,6 +240,7 @@ public class SocketClient implements RsyncConstants {
     * modules.
     *
     * @return The server's messages, in order.
+    */
    public List getServerMessages() {
       return java.util.Collections.unmodifiableList(serverMessages);
    }
@@ -295,9 +299,9 @@ public class SocketClient implements RsyncConstants {
     */
    public void serverArgs(String[] sargv) throws IOException {
       for (int i = 0; i < sargv.length; i++) {
-         Util.writeASCII(out, sargv[i]);
+         out.write((sargv[i] + "\n").getBytes("US-ASCII"));
       }
-      out.write((byte)'\n');
+      //out.write((byte) '\n');
    }
 
    /**
@@ -305,16 +309,18 @@ public class SocketClient implements RsyncConstants {
     * communicate with the server.
     *
     * @param config The {@link Configuration} to use.
+    */
    public Rsync startClient(Configuration config) throws IOException {
       if (remoteVersion >= 12) {
          byte[] seed = new byte[4];
          in.read(seed);
          config.setChecksumSeed(seed);
+         System.out.println("Read seed=" + Util.toHexString(seed));
       }
       if (remoteVersion >= 14) {
          config.setStrongSumLength(2); // adaptive
       }
-      Rsync c = new Rsync(config, in, out);
+      Rsync c = new Rsync(in, out, config, remoteVersion, false);
       // Can't use these anymore.
       in = null;
       out = null;

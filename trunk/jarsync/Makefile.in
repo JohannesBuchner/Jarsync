@@ -26,6 +26,10 @@ SOURCES = \
   source/org/metastatic/rsync/TwoKeyMap.java \
   source/org/metastatic/rsync/Util.java \
   source/org/metastatic/rsync/v2/ConsoleClient.java \
+  source/org/metastatic/rsync/v2/Logger.java \
+  source/org/metastatic/rsync/v2/MultiplexedInputStream.java \
+  source/org/metastatic/rsync/v2/MultiplexedOutputStream.java \
+  source/org/metastatic/rsync/v2/Rsync.java \
   source/org/metastatic/rsync/v2/SocketClient.java
 
 TEST_SRC = test.java test2.java test3.java

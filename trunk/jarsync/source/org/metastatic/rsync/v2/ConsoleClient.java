@@ -28,7 +28,7 @@ package org.metastatic.rsync.v2;
 
 import java.util.Iterator;
 
-import org.metastatic.rsync.Util;
+import org.metastatic.rsync.*;
 
 public class ConsoleClient {
 
@@ -52,24 +52,31 @@ public class ConsoleClient {
          module = argv[1];
       }
       SocketClient c = SocketClient.connect(host, port, module);
-      System.out.print(c.getMOTD());
+
       if (c.authRequired()) {
          System.out.print("user: ");
-         String user = Util.readLine(System.in);
+         String username = Util.readLine(System.in);
          System.out.print("password: ");
-         String pass = Util.readLine(System.in);
-         if (!c.authenticate(user, pass)) {
-            System.out.println("Authentication failed.");
-            System.out.println(c.getError());
+         String password = Util.readLine(System.in);
+         if (!c.authenticate(username, password)) {
+            System.err.println("Authentication failed.");
+            System.exit(1);
          }
       }
 
-      if (module == null) {
-         System.out.println("Modules:");
-         for(Iterator modules = c.moduleList().iterator(); modules.hasNext(); )
-            System.out.println(modules.next());
-      } else if (c.connected()) {
-         c.exit();
+      for (Iterator i = c.getServerMessages().iterator(); i.hasNext(); ) {
+         System.out.println(i.next());
+      }
+
+      if (module != null && !module.equals("#list")) {
+         String[] sargv = new String[] {
+            "--server", "--sender", "-r", ".", module + "/", ""
+         };
+         c.serverArgs(sargv);
+         Rsync rs = c.startClient(new Configuration());
+         rs.sendExcludeList(java.util.Collections.singletonList("/*/*"));
+         //rs.sendExcludeList(null);
+         rs.readStuff();
       }
    }
 }

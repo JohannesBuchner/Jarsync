@@ -31,6 +31,8 @@ import java.io.OutputStream;
 import java.util.HashSet;
 import java.util.Iterator;
 
+import org.metastatic.rsync.RsyncConstants;
+
 /**
  * Static methods for sending informational and error messages to a
  * global list of output streams.
@@ -62,18 +64,18 @@ public final class Logger {
     * streams, depending on the value of <tt>logcode</tt>. Any I/O
     * exceptions are silently ignored.
     *
-    * @param logcode One of {@link MultiplexedIO#FINFO} or {@link
-    *    MultiplexedIO#FERROR}.
+    * @param logcode One of {@link RsyncConstants#FINFO} or {@link
+    *    RsyncConstants#FERROR}.
     * @param b The bytes to write.
     */
    public static synchronized void write(int logcode, byte[] b) {
-      if (logcode == MultiplexedIO.FINFO) {
+      if (logcode == RsyncConstants.FINFO) {
          for (Iterator i = infoStreams.iterator(); i.hasNext(); ) {
             try {
                ((OutputStream) i.next()).write(b);
             } catch (Exception e) { /* ignored; failures are ok. */ }
          }
-      } else if (logcode == MultiplexedIO.FERROR) {
+      } else if (logcode == RsyncConstants.FERROR) {
          for (Iterator i = errorStreams.iterator(); i.hasNext(); ) {
             try {
                ((OutputStream) i.next()).write(b);
@@ -124,7 +126,7 @@ public final class Logger {
     * @param err The output stream to remove.
     * @return true If the output stream was removed.
     */
-   public static boolean addErrorStream(OutputStream err) {
+   public static boolean removeErrorStream(OutputStream err) {
       return errorStreams.remove(err);
    }
 }

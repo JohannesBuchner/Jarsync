@@ -124,9 +124,19 @@ public final class Util {
     * @return A hexadecimal representation to <tt>b</tt>.
     */
    public static String toHexString(byte[] b) {
-      char[] buf = new char[b.length * 2];
-      for (int i = 0, j = 0, k; i < b.length; ) {
-         k = b[i++];
+      return toHexString(b, 0, b.length);
+   }
+ 
+   /**
+    * Convert a byte array to a big-endian ordered hexadecimal string.
+    *
+    * @param b The bytes to convert.
+    * @return A hexadecimal representation to <tt>b</tt>.
+    */
+   public static String toHexString(byte[] b, int off, int len) {
+      char[] buf = new char[len * 2];
+      for (int i = 0, j = 0, k; i < len; ) {
+         k = b[off + i++];
          buf[j++] = HEX_DIGITS[(k >>> 4) & 0x0F];
          buf[j++] = HEX_DIGITS[ k        & 0x0F];
       }
