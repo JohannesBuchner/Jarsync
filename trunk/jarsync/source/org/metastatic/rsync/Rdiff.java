@@ -44,9 +44,11 @@ public class Rdiff implements RsyncConstants {
    // Constants and variables.
    // -----------------------------------------------------------------
 
-   private static final String OPTSTRING = "b:I:i::S:sO:vVz::h";
+   /** The short options. */
+   protected static final String OPTSTRING = "b:I:i::S:sO:vVz::h";
 
-   private static final LongOpt[] LONGOPTS = new LongOpt[] {
+   /** The long options. */
+   protected static final LongOpt[] LONGOPTS = new LongOpt[] {
       new LongOpt("block-size", LongOpt.REQUIRED_ARGUMENT, null, 'b'),
       new LongOpt("bzip2", LongOpt.OPTIONAL_ARGUMENT, null, 'i'),
       new LongOpt("help", LongOpt.NO_ARGUMENT, null, 'h'),
@@ -60,38 +62,63 @@ public class Rdiff implements RsyncConstants {
       new LongOpt("version", LongOpt.NO_ARGUMENT, null, 'V')
    };
 
-   private static final String SIGNATURE = "signature";
-   private static final String DELTA = "delta";
-   private static final String PATCH = "patch";
-   private static final String PROGNAME = "rdiff";
+   /** The `signature' command. */
+   public static final String SIGNATURE = "signature";
 
-   private static boolean verbose = false;
+   /** The `delta' command. */
+   public static final String DELTA = "delta";
 
+   /** The `patch' command. */
+   public static final String PATCH = "patch";
+
+   /** The program name printed to the console. */
+   public static final String PROGNAME = "rdiff";
+
+   /** Whether or not to trace to System.err. */
+   protected static boolean verbose = false;
+
+   /**
+    * The length of blocks to checksum.
+    */
    protected int blockLength;
+
+   /**
+    * The effective strong signature length.
+    */
    protected int strongSumLength;
 
    // Constructors.
    // -----------------------------------------------------------------
 
-   public Rdiff(int blockLength, int strongSumLength) {
-      this.blockLength = blockLength;
-      this.strongSumLength = strongSumLength;
+   /**
+    * Create an Rdiff object.
+    */
+   public Rdiff() {
+      blockLength = RDIFF_BLOCK_LENGTH;
+      strongSumLength = RDIFF_STRONG_LENGTH;
    }
 
    // Main entry point.
    // -----------------------------------------------------------------
 
+   /**
+    * Main entry point for console use.
+    *
+    * @param argv The argument vector.
+    */
    public static void main(String[] argv) throws Throwable {
       Getopt g = new Getopt(PROGNAME, argv, OPTSTRING, LONGOPTS);
       int c;
-      int blockLength = RDIFF_BLOCK_LENGTH, sumLength = RDIFF_STRONG_LENGTH;
+      Rdiff rdiff = new Rdiff();
       boolean showStats = false;
+
+      // parse the command line
       while ((c = g.getopt()) != -1) {
          switch (c) {
             case 'b':
                try {
-                  blockLength = Integer.parseInt(g.getOptarg());
-                  if (blockLength < 1) {
+                  rdiff.blockLength = Integer.parseInt(g.getOptarg());
+                  if (rdiff.blockLength < 1) {
                      throw new NumberFormatException();
                   }
                } catch (NumberFormatException nfe) {
@@ -106,8 +133,8 @@ public class Rdiff implements RsyncConstants {
             case 'i': break;
             case 'S':
                try {
-                  sumLength = Integer.parseInt(g.getOptarg());
-                  if (sumLength > SUM_LENGTH) {
+                  rdiff.strongSumLength = Integer.parseInt(g.getOptarg());
+                  if (rdiff.strongSumLength > SUM_LENGTH) {
                      throw new NumberFormatException();
                   }
                } catch (NumberFormatException nfe) {
@@ -132,6 +159,7 @@ public class Rdiff implements RsyncConstants {
          }
       }
 
+      // Parse the command.
       String command = null;
       if (g.getOptind() < argv.length) {
          command = argv[g.getOptind()];
@@ -142,11 +170,14 @@ public class Rdiff implements RsyncConstants {
          System.exit(1);
       }
 
-      Rdiff rdiff = new Rdiff(blockLength, sumLength);
       if (verbose) {
-         System.err.println("bs=" + blockLength + " sl=" + sumLength);
+         System.err.println("bs=" + rdiff.blockLength + " sl="
+            + rdiff.strongSumLength);
       }
 
+      // The command is `signature'; generate signatures for the input
+      // file (or System.in) and write them to the output file (or
+      // System.out).
       if (SIGNATURE.startsWith(command)) {
          if (verbose) {
             System.err.println("Command is `signature'.");
@@ -196,10 +227,13 @@ public class Rdiff implements RsyncConstants {
          }
          if (showStats) {
             System.err.println(PROGNAME + ": signature statistics: " +
-               "signature[" + sums.size() + " blocks, " + blockLength +
+               "signature[" + sums.size() + " blocks, " + rdiff.blockLength +
                " bytes per block]");
          }
 
+      // Command is `delta'; read signatures from the given file,
+      // generate deltas for the input file (or System.in) and write the
+      // deltas to the output file (or System.out).
       } else if (DELTA.startsWith(command)) {
          if (verbose) {
             System.err.println("Command is `delta'.");
@@ -231,7 +265,7 @@ public class Rdiff implements RsyncConstants {
          sigsIn.close();
          if (showStats) {
             System.err.println(PROGNAME + ": loadsig statistics: " +
-               "signature[" + sigs.size() + " blocks, " + blockLength +
+               "signature[" + sigs.size() + " blocks, " + rdiff.blockLength +
                " bytes per block]");
          }
 
@@ -304,6 +338,10 @@ public class Rdiff implements RsyncConstants {
          if (out != System.out) {
             out.close();
          }
+
+      // Command is `patch'; read the given basis file, read deltas from
+      // the given file (or System.in), and reconstruct the file to the
+      // given location (or System.out).
       } else if (PATCH.startsWith(command)) {
          if (verbose) {
             System.err.println("Command is `patch'.");
@@ -418,6 +456,10 @@ public class Rdiff implements RsyncConstants {
 
    /**
     * Write the signatures to the specified output stream.
+    *
+    * @param sigs The signatures to write.
+    * @param out  The OutputStream to write to.
+    * @throws java.io.IOException If writing fails.
     */
    public void
    writeSignatures(Collection sigs, OutputStream out) throws IOException {
@@ -433,6 +475,10 @@ public class Rdiff implements RsyncConstants {
 
    /**
     * Make the signatures from data coming in through the input stream.
+    *
+    * @param in The input stream to generate signatures for.
+    * @return A Collection of signatures.
+    * @throws java.io.IOException If reading fails.
     */
    public Collection makeSignatures(InputStream in) throws IOException {
       int len = 0;
@@ -452,6 +498,10 @@ public class Rdiff implements RsyncConstants {
 
    /**
     * Read the signatures from the input stream.
+    *
+    * @param in The InputStream to read the signatures from.
+    * @return A collection of {@link ChecksumPair}s read.
+    * @throws java.io.IOException If the input stream is malformed.
     */
    public Collection readSignatures(InputStream in) throws IOException {
       Collection sigs = new LinkedList();
@@ -483,6 +533,10 @@ public class Rdiff implements RsyncConstants {
 
    /**
     * Write deltas to an output stream.
+    *
+    * @param deltas A collection of {@link Delta}s to write.
+    * @param out    The OutputStream to write to.
+    * @throws java.io.IOException If writing fails.
     */
    public void
    writeDeltas(Collection deltas, OutputStream out) throws IOException {
@@ -498,6 +552,17 @@ public class Rdiff implements RsyncConstants {
       out.write(0);
    }
 
+   /**
+    * Make a collection of {@link Delta}s from the given sums and
+    * InputStream.
+    *
+    * @param sums A collection of {@link ChecksumPair}s generated from
+    *    the "old" file.
+    * @param in   The InputStream for the "new" file.
+    * @return A collection of {@link Delta}s that will patch the old
+    *    file to the new.
+    * @throws java.io.IOException If reading fails.
+    */
    public Collection
    makeDeltas(Collection sums, InputStream in) throws IOException {
       Collection deltas = null;
@@ -518,6 +583,13 @@ public class Rdiff implements RsyncConstants {
       return deltas;
    }
 
+   /**
+    * Read a collection of {@link Delta}s from the InputStream.
+    *
+    * @param in The InputStream to read from.
+    * @return A collection of {@link Delta}s read.
+    * @throws java.io.IOException If the input stream is malformed.
+    */
    public Collection readDeltas(InputStream in) throws IOException {
       Collection deltas = new LinkedList();
       int header = readInt(in);
@@ -533,27 +605,27 @@ public class Rdiff implements RsyncConstants {
             case OP_END:
                return deltas;
             case OP_LITERAL_N1:
-               buf = new byte[readInt(1, in)];
+               buf = new byte[(int) readInt(1, in)];
                in.read(buf);
                deltas.add(new DataBlock(offset, buf));
                offset += buf.length;
                break;
             case OP_LITERAL_N2:
-               buf = new byte[readInt(2, in)];
+               buf = new byte[(int) readInt(2, in)];
                in.read(buf);
                deltas.add(new DataBlock(offset, buf));
                offset += buf.length;
                break;
             case OP_LITERAL_N4:
-               buf = new byte[readInt(4, in)];
+               buf = new byte[(int) readInt(4, in)];
                in.read(buf);
                deltas.add(new DataBlock(offset, buf));
                offset += buf.length;
                break;
             case OP_COPY_N4_N4:
-               int newOff = readInt(4, in);
-               int bs = readInt(4, in);
-               deltas.add(new Offsets(offset, newOff, bs));
+               int oldOff = (int) readInt(4, in);
+               int bs = (int) readInt(4, in);
+               deltas.add(new Offsets(oldOff, offset, bs));
                offset += bs;
                break;
             default:
@@ -564,6 +636,15 @@ public class Rdiff implements RsyncConstants {
       throw new IOException("Didn't recieve RS_OP_END.");
    }
 
+   /**
+    * Patch the file <code>basis</code> using <code>deltas</code>,
+    * writing the patched file to <code>out</code>.
+    *
+    * @param basis  The basis file.
+    * @param deltas The collection of {@link Delta}s to apply.
+    * @param out    The OutputStream to write the patched file to.
+    * @throws java.io.IOException If reading/writing fails.
+    */
    public void
    rebuildFile(File basis, Collection deltas, OutputStream out)
    throws IOException {
@@ -579,6 +660,11 @@ public class Rdiff implements RsyncConstants {
    // Own methods.
    // -----------------------------------------------------------------
 
+   /**
+    * Print a console usage message to <code>out</code>.
+    *
+    * @param out The PrintStream to write to.
+    */
    private static void usage(PrintStream out) {
       out.println("Usage: rdiff [OPTIONS] signature [BASIS [SIGNATURE]]");
       out.println("             [OPTIONS] delta SIGNATURE [NEWFILE [DELTA]]");
@@ -600,6 +686,11 @@ public class Rdiff implements RsyncConstants {
       out.println("* -i, --bzip2[=LEVEL]       bzip2-compress deltas");
    }
 
+   /**
+    * Print our version message to <code>out</code>.
+    *
+    * @param out The PrintStream to write to.
+    */
    private static void version(PrintStream out) {
       out.println(PROGNAME + " (Jarsync " + JARSYNC_VERSION + ")");
       out.println("Copyright (C) 2002 Casey Marshall.");
@@ -609,13 +700,27 @@ public class Rdiff implements RsyncConstants {
       out.println("General Public License.  See the file `COPYING' for details.");
    }
 
+   /**
+    * Write a "COPY" command to <code>out</code>.
+    *
+    * @param off The {@link Offsets} object to write as a COPY command.
+    * @param out The OutputStream to write to.
+    * @throws java.io.IOException if writing fails.
+    */
    private static void
    writeCopy(Offsets off, OutputStream out) throws IOException {
       out.write(OP_COPY_N4_N4);
-      writeInt(off.getNewOffset(), 4, out);
+      writeInt(off.getOldOffset(), 4, out);
       writeInt(off.getBlockLength(), out);
    }
 
+   /**
+    * Write a "LITERAL" command to <code>out</code>.
+    *
+    * @param d   The {@link DataBlock} to write as a LITERAL command.
+    * @param out The OutputStream to write to.
+    * @throws java.io.IOException if writing fails.
+    */
    private static void
    writeLiteral(DataBlock d, OutputStream out) throws IOException {
       byte cmd = 0;
@@ -638,6 +743,13 @@ public class Rdiff implements RsyncConstants {
       out.write(d.getData());
    }
 
+   /**
+    * Check if a long integer needs to be represented by 1, 2, 4 or 8
+    * bytes.
+    *
+    * @param l The long to test.
+    * @return The effective length, in bytes, of the argument.
+    */
    private static int integerLength(long l) {
       if ((l & ~0xffL) == 0) {
          return 1;
@@ -645,14 +757,22 @@ public class Rdiff implements RsyncConstants {
          return 2;
       } else if ((l & ~0xffffffffL) == 0) {
          return 4;
-      } else if ((1 & ~0xffffffffffffffffL) == 0) {
-         return 8;
       }
-      return 4;
+      return 8;
    }
 
-   private static int readInt(int len, InputStream in) throws IOException {
-      int i = 0;
+   /**
+    * Read a variable-length integer from the input stream. This method
+    * reads <code>len</code> bytes from <code>in</code>, interpolating
+    * them as composing a big-endian integer.
+    *
+    * @param len The number of bytes to read.
+    * @param in  The InputStream to read from.
+    * @return The integer.
+    * @throws java.io.IOException if reading fails.
+    */
+   private static long readInt(int len, InputStream in) throws IOException {
+      long i = 0;
       for (int j = len-1; j >= 0; j--) {
          int k = in.read();
          if (k == -1) throw new EOFException();
@@ -661,6 +781,13 @@ public class Rdiff implements RsyncConstants {
       return i;
    }
 
+   /**
+    * Read a four-byte big-endian integer from the InputStream.
+    *
+    * @param in The InputStream to read from.
+    * @return The integer read.
+    * @throws java.io.IOException if reading fails.
+    */
    private static int readInt(InputStream in) throws IOException {
       int i = 0;
       for (int j = 3; j >= 0; j--) {
@@ -671,13 +798,30 @@ public class Rdiff implements RsyncConstants {
       return i;
    }
 
+   /**
+    * Write the lowest <code>len</code> bytes of <code>l</code> to
+    * <code>out</code> in big-endian byte order.
+    *
+    * @param l   The integer to write.
+    * @param len The number of bytes to write.
+    * @param out The OutputStream to write to.
+    * @throws java.io.IOException If writing fails.
+    */
    private static void
    writeInt(long l, int len, OutputStream out) throws IOException {
       for (int i = len-1; i >= 0; i--) {
-         out.write((int) ((l >>> i*8) & 0xff));
+         out.write((int) (l >>> i*8) & 0xff);
       }
    }
 
+   /**
+    * Write a four-byte integer in big-endian byte order to
+    * <code>out</code>.
+    *
+    * @param i   The integer to write.
+    * @param out The OutputStream to write to.
+    * @throws java.io.IOException If writing fails.
+    */
    private static void writeInt(int i, OutputStream out) throws IOException {
       out.write((byte) ((i >>> 24) & 0xff));
       out.write((byte) ((i >>> 16) & 0xff));
