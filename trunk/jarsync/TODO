@@ -1,0 +1,29 @@
+Open tasks for jarsync, in order of importance:
+
+	* Finish implementing file-based methods.
+
+	* Implement the file reconstruction methods.
+
+	* Kill the last remaining bugs in the checksum search.
+
+	* General stress-testing and bug-fixing (once this is done the
+	  library should go to version 1.0).
+
+	* Implement a client and a server that are compatible with the
+	  current C implementation of rsync, and/or invent our own
+	  protocol to make things easier on ourselves.
+
+	* Rsync (the C program) uses UNIX-dependant file modes; how do
+	  we get around this in Java? Filesystem support in Java's
+	  standard library is lackluster at best, so what's to do?
+	  Fake it? Native implementations?
+
+	* Implement a mechanism for syncing remote Java Objects. This
+	  will probably make use of serialized data, but this depends
+	  upon how well the algorithm can be appied to serialized
+	  objects.
+
+	* Clean up and improve the code.
+
+=======================================================================
+  $Id$

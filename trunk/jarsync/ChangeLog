@@ -1,0 +1,55 @@
+ChangeLog for JARSYNC.
+
+$Id$
+
+2002-08-14 -- 0.0.7
+
+  - Not dead!
+
+  - Administrata changes: all the classes are now in the
+    org.metastatic.rsync package; MD4 is just a lone class and is not
+    a JCE implementation; seperation of generation and matching methods
+    into thier own respective classes; renamed 'Update' to 'Delta' --
+    sounds better.
+
+  - Some methods are slightly more comprehensible.
+
+  - RollingChecksum appears to work and appears compatible with rsync's
+    weak sum.
+
+  - Interest in a program/library such as this appears to be on the
+    rise; time to get going with developing this.
+
+  - Moved to GPL.
+
+2002-04-24 -- 0.0.6
+
+  - Simple speed improvements to MD4 (inlining instead of calling the
+    three functions FF, GG, and HH).
+
+  - The rolling checksum made probably faster, better. I was using two
+    long integers to store the two 16-bit parts of the checksum, not
+    realizing that since Java's integral arithmetic is based on two's
+    complement representations, that addition and subtraction act as
+    though the numbers are unsigned. Thus two short integers instead
+    (each half of the checksum is 16 bits) of long integers and doing
+    all arithmetic explicitly modulo 2^32.
+
+  - Removed logging statements from parts of Rsync.generateUpdates, to
+    see how fast it runs for real. I could get about 43kb/sec on a
+    Pentium 450 running Linux. This is not speedy, but hopefully given a
+    modern machine it is good enough.
+
+2002-04-08 -- 0.0.5
+
+  - Core algorithm methods in place, except for memory-mapped File
+    versions (if they are needed; it might be better to limit ourselves
+    to 1.2 in the final release (using 1.4 is ok for development, within
+    reason -- ie logging)). Tests over these methods appear to succeed.
+
+  - TwoKeyMap now a full, if strange, Collection.
+
+  - Checksums look almost compatible with the C implementation.
+
+  - Class org.metastatic.util.Debug is obsoleted. Using
+    java.util.logging classes for debug output now.
