@@ -1,0 +1,8 @@
+# -----------------------------------------------------------------------------
+# rdiff -- librsync binary signatures, deltas.
+#
+
+0	belong		0x72730136	Rdiff signature,
+>4	belong		x		block length = %d,
+>8	belong		x		strong sum length = %d.
+0	belong		0x72730236	Rdiff delta.
