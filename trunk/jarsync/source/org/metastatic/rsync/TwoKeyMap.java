@@ -69,7 +69,7 @@ import java.util.*;
  * @author Casey Marshall
  * @version $Revision$
  */
-public class TwoKeyMap implements java.io.Serializable {
+public class TwoKeyMap implements java.io.Serializable, Map {
 
    // Constants and variables.
    // -----------------------------------------------------------------
