@@ -67,16 +67,26 @@ public final class Matcher implements RsyncConstants {
       return m;
    }
 
+   /**
+    * Create a collection of deltas derived from the given file.
+    */
    public Collection hashSearch(TwoKeyMap m, File f)
    throws IOException
    {
       return hashSearch(m, new RandomAccessFile(f, "r"));
    }
 
+   /**
+    * Create a collection of deltas derived from the given byte array.
+    */
    public Collection hashSearch(TwoKeyMap m, byte[] buf, long baseOffset) {
       return hashSearch(m, buf, 0, buf.length, baseOffset);
    }
 
+   /**
+    * Create a collection of deltas derived from a portion of the given
+    * byte array.
+    */
    public Collection
    hashSearch(TwoKeyMap m, byte[] buf, int off, int len, long baseOffset) {
       LinkedList deltas = new LinkedList();
@@ -128,6 +138,10 @@ public final class Matcher implements RsyncConstants {
 
    // own methods
 
+   /**
+    * Search if a portion of the given byte array is in the map,
+    * returning its original offset if it is.
+    */
    protected Long
    hashSearch(Integer weakSum, byte[] block, int off, int len, TwoKeyMap m) {
       if (m.containsKey(weakSum.intValue())) {
@@ -145,6 +159,34 @@ public final class Matcher implements RsyncConstants {
       return null;
    }
 
+   /**
+    * Search if a portion of the given file is in the map, returning its
+    * original offset if it is.
+    */
+   protected Long hashSearch(Integer weakSum, RandomAccessFile f, long off,
+      int len, TwoKeyMap m) throws IOException
+   {
+      if (m.containsKey(weakSum.intValue())) {
+         System.err.println("first test succeeds; weak=" +
+            Integer.toHexString(weakSum.intValue() & 0xffff));
+         if (m.containsKey(weakSum)) {
+            byte[] buf = new byte[len];
+            f.seek(off);
+            int l = f.read(buf);
+            config.strongSum.reset();
+            config.strongSum.update(buf, 0, l);
+            byte[] digest = config.strongSum.digest();
+            ChecksumPair pair = new ChecksumPair(weakSum, digest);
+            System.err.println("second test succeeds; sums=" + pair);
+            return (Long) m.get(new ChecksumPair(weakSum, digest));
+         }
+      }
+      return null;
+   }
+
+   /**
+    * Create a collection of deltas from the given RandomAccessFile.
+    */
    protected Collection
    hashSearch(TwoKeyMap m, RandomAccessFile f) throws IOException {
       LinkedList deltas = new LinkedList();
@@ -162,7 +204,7 @@ public final class Matcher implements RsyncConstants {
 
       while (i < len) {
          weak = new Integer(weakSum.getValue());
-         oldOffset = hashSearch(weak, buf, 0, n, m);
+         oldOffset = hashSearch(weak, f, i, n, m);
          if (oldOffset != null) {
             System.err.println("third test succeeds; off=" + oldOffset);
             if (j == i && !deltas.isEmpty()) {
@@ -174,7 +216,7 @@ public final class Matcher implements RsyncConstants {
                f.read(b, 0, b.length);
                deltas.add(new DataBlock(j, b));
                deltas.add(new Offsets(oldOffset.longValue(), i, n));
-               f.seek(i+n);
+               //f.seek(i+n);
             } else {
                deltas.add(new Offsets(oldOffset.longValue(), i, n));
             }
