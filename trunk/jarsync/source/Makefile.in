@@ -1,8 +1,8 @@
 # Makefile for Jarsync.
 # $Id$
 
-COMPILER = @COMPILER@
-CFLAGS = @CFLAGS@
+JAVAC = @JAVAC@
+JAVACFLAGS = @JAVACFLAGS@
 
 sources = \
   org/metastatic/rsync/BrokenMD4.java \
@@ -24,14 +24,35 @@ sources = \
   org/metastatic/rsync/Util.java \
   org/metastatic/rsync/version.java
 
+client_sources = \
+  org/metastatic/rsync/v2/ConsoleClient.java \
+  org/metastatic/rsync/v2/FileList.java \
+  org/metastatic/rsync/v2/Logger.java \
+  org/metastatic/rsync/v2/MultiplexedIO.java \
+  org/metastatic/rsync/v2/MultiplexedInputStream.java \
+  org/metastatic/rsync/v2/MultiplexedOutputStream.java \
+  org/metastatic/rsync/v2/Receiver.java \
+  org/metastatic/rsync/v2/Rsync.java \
+  org/metastatic/rsync/v2/RsyncAppender.java \
+  org/metastatic/rsync/v2/Sender.java \
+  org/metastatic/rsync/v2/SocketClient.java \
+  org/metastatic/rsync/v2/Statistics.java \
+  org/metastatic/rsync/v2/UnixFile.java
+
 classes = $(patsubst %.java,../classes/%.class,$(sources))
+client_classes = $(patsubst %.java,../classes/%.class,$(client_sources))
 
 all: compile
 
 compile: $(classes)
 
+client: $(client_classes)
+
 $(classes): ../classes/%.class: %.java
-	$(COMPILER) $(CFLAGS) $<
+	$(JAVAC) $(JAVACFLAGS) $<
+
+$(client_classes): ../classes/%.class: %.java
+	$(JAVAC) $(JAVACFLAGS) $<
 
 clean:
-	rm -f $(classes)
+	rm -f $(classes) $(client_classes)

@@ -2,8 +2,7 @@
 # $Id$
 
 @SET_MAKE@
-COMPILER = @COMPILER@
-CFLAGS = @TEST_CFLAGS@
+JAVAC = @JAVAC@
 JAR = @JAR@
 
 COMPRESS = @COMPRESS@
@@ -57,7 +56,7 @@ package = @PACKAGE_NAME@
 
 distdir = $(package)-$(version)
 
-all: lib/jarsync.jar
+all: lib/jarsync.jar @MAKE_CLIENT@
 
 lib/jarsync.jar: $(SOURCES)
 	-mkdir lib
@@ -70,6 +69,9 @@ test: lib/jarsync.jar $(TEST_PROG)
 
 check: lib/jarsync.jar
 	$(MAKE) -C test check
+
+client:
+	$(MAKE) -C source client
 
 dist: $(distdir)
 	tar cf $(distdir).tar $(distdir)
@@ -96,3 +98,5 @@ clean:
 
 spotless: clean
 	rm -f lib/jarsync.jar
+
+.DUMMY:

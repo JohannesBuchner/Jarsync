@@ -1,9 +1,10 @@
 # Makefile for Jarsync test suite.
 # $Id$
 
-COMPILER = @COMPILER@
-CFLAGS = @CFLAGS@
+JAVAC = @JAVAC@
+JAVACFLAGS = @JAVACFLAGS@
 JAVA = @JAVA@
+JAVAFLAGS = @JAVAFLAGS@
 SHELL = @SHELL@
 
 mauve_sources = \
@@ -25,7 +26,7 @@ test_classes = $(patsubst %.java,../classes/%.class,$(test_sources))
 all: check
 
 check: $(mauve_classes) $(test_classes) test_classes
-	$(JAVA) -cp ../classes/ gnu.testlet.SimpleTestHarness -verbose < test_classes
+	$(JAVA) $(JAVAFLAGS) gnu.testlet.SimpleTestHarness -verbose < test_classes
 
 test_classes: FORCE
 	$(SHELL) ./choose-classes . JARSYNC
@@ -33,10 +34,10 @@ test_classes: FORCE
 FORCE:
 
 $(mauve_classes): ../classes/%.class: %.java
-	$(COMPILER) $(CFLAGS) $<
+	$(JAVAC) $(JAVACFLAGS) $<
 
 $(test_classes): ../classes/%.class: %.java
-	$(COMPILER) $(CFLAGS) $<
+	$(JAVAC) $(JAVACFLAGS) $<
 
 clean:
 	rm -f $(mauve_classes) $(test_classes)
