@@ -30,8 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
-import java.util.Collection;
-import java.util.Iterator;
+import java.util.*;
 
 public class Rebuilder {
 
@@ -85,5 +84,173 @@ public class Rebuilder {
 
       in.close();
       out.close();
+   }
+
+   public static void rebuildFileInPlace(File file, Collection deltas)
+   throws IOException {
+      RandomAccessFile f = new RandomAccessFile(file, "rw");
+      List offsets = new LinkedList();
+      List dataBlocks = new LinkedList();
+      List conflicts = new LinkedList();
+      TreeMap digraph = new TreeMap(new OffsetComparator());
+      long newFileLength = 0;
+
+      for (Iterator i = deltas.iterator(); i.hasNext(); ) {
+         Object o = i.next();
+         if (o instanceof Offsets) {
+            offsets.add(o);
+            digraph.put(o, new HashSet());
+            newFileLength = Math.max(newFileLength,
+               ((Offsets) o).getNewOffset()+((Offsets) o).getBlockLength());
+         } else if (o instanceof DataBlock) {
+            dataBlocks.add(o);
+            newFileLength = Math.max(newFileLength,
+               ((DataBlock) o).getOffset()+((DataBlock) o).getBlockLength());
+         }
+      }
+
+      // build the digraph
+      for (Iterator i = offsets.iterator(); i.hasNext(); ) {
+         Offsets o1 = (Offsets) i.next();
+         Set adj = (Set) digraph.get(o1);
+         for (Iterator j = offsets.iterator(); j.hasNext(); ) {
+            Offsets o2 = (Offsets) j.next();
+            if (o1 == o2) continue;
+            if (conflict(o1, o2)) {
+               System.err.println("These conflict: " + o1 + " and " + o2);
+               adj.add(o2);
+            }
+         }
+      }
+
+      // Sort the digraph topologically, removing nodes that cause cycles.
+      TopologicalSorter ts = new TopologicalSorter(digraph);
+      ts.sort();
+
+      for (Iterator i = ts.getCycleNodes().iterator(); i.hasNext(); ) {
+         Offsets o = (Offsets) i.next();
+         System.err.println(">RFIP: conflicting offsets: " + o);
+         byte[] buf = new byte[o.getBlockLength()];
+         f.seek(o.getOldOffset());
+         f.read(buf);
+         dataBlocks.add(new DataBlock(o.getNewOffset(), buf));
+      }
+
+      for (Iterator i = ts.getFinished().iterator(); i.hasNext(); ) {
+         Offsets o = (Offsets) i.next();
+         System.err.println(">RFIP: offsets: " + o);
+         byte[] buf = new byte[o.getBlockLength()];
+         f.seek(o.getOldOffset());
+         f.read(buf);
+         f.seek(o.getNewOffset());
+         f.write(buf);
+      }
+
+      for (Iterator i = dataBlocks.iterator(); i.hasNext(); ) {
+         DataBlock db = (DataBlock) i.next();
+         System.err.println(">RFIP: data block: " + db);
+         f.seek(db.getOffset());
+         f.write(db.getData());
+      }
+      if (f.length() > newFileLength) {
+         f.setLength(newFileLength);
+      }
+
+      f.close();
+   }
+
+   private static boolean conflict(Offsets o1, Offsets o2) {
+      return (o1.getNewOffset() >= o2.getOldOffset()
+           && o1.getNewOffset() <= o2.getOldOffset()+o2.getBlockLength())
+         ||  (o1.getNewOffset()+o1.getBlockLength() >= o2.getOldOffset()
+           && o1.getNewOffset()+o1.getBlockLength() <= o2.getOldOffset()
+               + o2.getBlockLength());
+   }
+
+ // Inner classes.
+   // -----------------------------------------------------------------------
+
+   private static class TopologicalSorter {
+
+      // Constants and variables.
+
+      private static final String WHITE = "white";
+      private static final String GRAY  = "gray";
+      private static final String BLACK = "black";
+
+      private Map graph;
+      private Map colors;
+      private List finished;
+      private List cycleNodes;
+
+      // Constructor.
+      
+      TopologicalSorter(Map graph) {
+         this.graph = graph;
+         colors = new HashMap();
+         finished = new LinkedList();
+         cycleNodes = new LinkedList();
+      }
+
+      // Instance methods.
+
+      void sort() {
+         DFS();
+      }
+
+      List getFinished() {
+         return finished;
+      }
+
+      List getCycleNodes() {
+         return cycleNodes;
+      }
+
+      // Own methods.
+
+      private void DFS() {
+         for (Iterator i = graph.keySet().iterator(); i.hasNext(); ) {
+            colors.put(i.next(), WHITE);
+         }
+         for (Iterator i = graph.keySet().iterator(); i.hasNext(); ) {
+            Object u = i.next();
+            if (colors.get(u).equals(WHITE)) {
+               System.err.println(">>DFS: visiting " + u);
+               DFSVisit(u);
+            }
+         }
+      }
+
+      private void DFSVisit(Object u) {
+         colors.put(u, GRAY);
+         for (Iterator i = ((Set) graph.get(u)).iterator(); i.hasNext(); ) {
+            Object v = i.next();
+            if (colors.get(v).equals(WHITE)) {
+               DFSVisit(v);
+            } else if (colors.get(v).equals(GRAY)) {
+               cycleNodes.add(u);
+            }
+         }
+         colors.put(u, BLACK);
+         if (!cycleNodes.contains(u)) {
+            finished.add(u);
+         }
+      }
+   }
+
+   /**
+    * Sort Offsets objects by increasing write offset.
+    */
+   private static class OffsetComparator implements Comparator {
+      public OffsetComparator() { }
+
+      public int compare(Object o1, Object o2) {
+         return (int) (((Offsets) o1).getNewOffset() -
+            ((Offsets) o2).getNewOffset());
+      }
+
+      public boolean equals(Object o) {
+         return (o instanceof OffsetComparator);
+      }
    }
 }
