@@ -23,11 +23,11 @@ sources = org/metastatic/rsync/ChecksumPair.java \
 classes = $(patsubst %.java,%.class,$(sources))
 inner = org/metastatic/rsync/Rebuilder\$$OffsetComparator.class \
   org/metastatic/rsync/Rebuilder\$$TopologicalSorter.class \
-  org/metastatic/rsync/TwoKeyMap\$$1\$$c.class \
+  org/metastatic/rsync/TwoKeyMap\$$1\$$EntrySet.class \
   org/metastatic/rsync/TwoKeyMap\$$1.class \
-  org/metastatic/rsync/TwoKeyMap\$$2\$$c.class \
+  org/metastatic/rsync/TwoKeyMap\$$1\$$KeySet.class \
   org/metastatic/rsync/TwoKeyMap\$$2.class \
-  org/metastatic/rsync/TwoKeyMap\$$3\$$c.class \
+  org/metastatic/rsync/TwoKeyMap\$$1\$$Values.class \
   org/metastatic/rsync/TwoKeyMap\$$3.class \
   org/metastatic/rsync/TwoKeyMap\$$StrongKey.class \
   org/metastatic/rsync/TwoKeyMap\$$SubTable.class
