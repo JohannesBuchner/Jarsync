@@ -26,7 +26,9 @@ mkdir classes
 
 AC_OUTPUT([
   Makefile
+  bin/Makefile
   bin/vwdiff.sh
+  etc/Makefile
   source/Makefile
   source/org/metastatic/vwdiff/version.java
 ])

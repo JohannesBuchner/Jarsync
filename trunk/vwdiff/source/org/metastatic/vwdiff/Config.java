@@ -32,6 +32,7 @@ import java.awt.Color;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -55,16 +56,27 @@ class Config implements ParameterListener {
    // Fields.
    // -----------------------------------------------------------------------
 
+   public static final String STYLESHEET =
+      "body { background-color: white; color: black; }\n" +
+      "tr.header { background-color: #eee; }" +
+      "p.footer { font-size: smaller; }\n" +
+      "th.detail { background-color: #eee; font-size: larger; }\n" +
+      "td.image { vertical-align: top; }\n" +
+      "td.info { vertical-align: top; }\n" +
+      "td.a { background-color: white; }\n" +
+      "td.b { background-color: #eee; }\n";
+
    int port;
    String bindAddress;
    AuthFile passwdFile;
    String logfile;
+   int logsize;
    String datafile;
-   URL stylesheet;
+   String stylesheet = STYLESHEET;
    boolean debug;
 
    LinkedHashMap targets;
-   private Target current;
+   Target current;
 
    // Constructor.
    // -----------------------------------------------------------------------
@@ -74,6 +86,7 @@ class Config implements ParameterListener {
       debug = false;
       targets = new LinkedHashMap();
       datafile = "vwdiff.dat.gz";
+      logsize = 512;
    }
 
    // ParameterListener methods.
@@ -110,14 +123,31 @@ class Config implements ParameterListener {
             }
          } else if (name.equalsIgnoreCase("log file")) {
             logfile = value;
+         } else if (name.equalsIgnoreCase("memory log size")) {
+            try {
+               logsize = Integer.parseInt(value);
+               if (logsize < 0) {
+                  logsize = 0;
+                  throw new IllegalArgumentException("bad log size");
+               }
+            } catch (NumberFormatException nfe) {
+               throw new IllegalArgumentException("bad log size");
+            }
          } else if (name.equalsIgnoreCase("data file")) {
             datafile = value;
          } else if (name.equalsIgnoreCase("stylesheet")) {
             try {
-               stylesheet = new URL(value);
-            } catch (MalformedURLException mue) {
-               throw new IllegalArgumentException("bad stylesheet URL: " +
-                                                  mue.getMessage());
+               FileReader fr = new FileReader(value);
+               char[] buf = new char[512];
+               StringBuffer sbuf = new StringBuffer();
+               int len = 0;
+               while ((len = fr.read(buf)) != -1) {
+                  sbuf.append(buf, 0, len);
+               }
+               stylesheet = sbuf.toString();
+            } catch (IOException ioe) {
+               throw new IllegalArgumentException("bad stylesheet: " +
+                                                  ioe.getMessage());
             }
          } else if (name.equalsIgnoreCase("debug")) {
             debug = value.equalsIgnoreCase("true")
@@ -254,10 +284,7 @@ class Config implements ParameterListener {
                                                + name);
          }
       } else {
-         Color c = Color.getColor(name);
-         if (c == null)
-            throw new IllegalArgumentException("no such color: " + name);
-         return c;
+         throw new IllegalArgumentException("bad color spec: " + name);
       }
    }
 }

@@ -72,16 +72,6 @@ public class Server implements Runnable {
       "<link rel=\"stylesheet\" href=\"/styles.css\" type=\"text/css\"/>\n" +
       "</head>\n\n";
 
-   public static final String STYLESHEET =
-      "body { background-color: white; color: black; }\n" +
-      "tr.header { background-color: #eee; }" +
-      "p.footer { font-size: smaller; }\n" +
-      "th.detail { background-color: #eee; font-size: larger; }\n" +
-      "td.image { vertical-align: top; }\n" +
-      "td.info { vertical-align: top; }\n" +
-      "td.a { background-color: white; }\n" +
-      "td.b { background-color: #eee; }\n";
-
    private SimpleDateFormat fmt =
       new SimpleDateFormat("EEEE, dd MMMM yyyy, HH:mm:ss z");
    private MessageDigest md5;
@@ -150,6 +140,10 @@ public class Server implements Runnable {
                detail(client.getOutputStream(), req);
             } else if (uri.getPath().equalsIgnoreCase("/update")) {
                update(client.getOutputStream(), req);
+            } else if (uri.getPath().equalsIgnoreCase("/refresh")) {
+               refresh(client.getOutputStream(), req);
+            } else if (uri.getPath().equalsIgnoreCase("/log")) {
+               showLog(client.getOutputStream(), req);
             } else {
                notFound(client.getOutputStream(), req);
             }
@@ -204,9 +198,11 @@ public class Server implements Runnable {
          resp.writeBody
          (
             HEAD + "<body><h1>VWDIFF @ " + server.getInetAddress() +
-            "</h1><p><a href=\"/detail\">Detailed View (all pages)</a>" +
-            " | <a href=\"/update\">Update all pages</a>" +
-            " | <a href=\"/about\">About Vwdiff</a></p>\n" +
+            "</h1><p><a href=\"/detail\">Detailed View (all pages)</a> | " +
+            "<a href=\"/update\">Update All Pages</a> | " +
+            "<a href=\"/refresh\">Refresh Configuration</a> | " +
+            "<a href=\"/log\">View Log</a> | " +
+            "<a href=\"/about\">About Vwdiff</a></p>\n" +
             "<table><tr class=\"header\">\n" +
             "<th></th><th colspan=2>URL</th><th>% new</th><th>% moved</th>" +
             "<th></th></tr>\n"
@@ -315,7 +311,10 @@ public class Server implements Runnable {
          resp.writeBody(
             "<body><h1>VWDIFF @ " + server.getInetAddress() + "</h1>\n");
          resp.writeBody("<p><a href=\"/\">Brief View</a> | " +
-                        "<a href=\"/update\">Update all pages</a> | " +
+                        "<a href=\"/detail\">Detailed View (all pages)</a> | "+
+                        "<a href=\"/update\">Update All Pages</a> | " +
+                        "<a href=\"/refresh\">Refresh Configuration</a> | " +
+                        "<a href=\"/log\">View Log</a> | " +
                         "<a href=\"/about\">About Vwdiff</a></p>\n");
          for (Iterator it = toShow.iterator(); it.hasNext(); ) {
             Target t = (Target) conf.targets.get(it.next());
@@ -370,19 +369,26 @@ public class Server implements Runnable {
    private void stylesheet(OutputStream out, HTTPRequest req)
       throws IOException
    {
-      if (conf.stylesheet != null) {
-         HTTPResponse resp = new HTTPResponse(200, "HTTP/1.1");
-         resp.setHeader("Server", SERVER);
-         resp.setHeader("Location", conf.stylesheet.toString());
-         resp.setHeader("Connection", "close");
-         resp.write(out);
-      } else {
-         HTTPResponse resp = new HTTPResponse(200, "HTTP/1.1");
-         resp.setHeader("Server", SERVER);
-         resp.setHeader("Content-Type", "text/css; charset=utf-8");
-         resp.setHeader("Connection", "close");
-         resp.writeBody(STYLESHEET);
-         resp.write(out);
+      HTTPResponse resp = new HTTPResponse(200, "HTTP/1.1");
+      resp.setHeader("Server", SERVER);
+      resp.setHeader("Content-Type", "text/css; charset=utf-8");
+      resp.setHeader("Connection", "close");
+      resp.writeBody(conf.stylesheet);
+      resp.write(out);
+   }
+   private void refresh(OutputStream out, HTTPRequest req)
+      throws IOException
+   {
+      HTTPResponse resp = new HTTPResponse(302, "HTTP/1.1");
+      resp.setHeader("Server", SERVER);
+      resp.setHeader("Location", req.getHeader("Referer") != null ?
+                     req.getHeader("Referer") : "/");
+      resp.setHeader("Connection", "close");
+      resp.write(out);
+      try {
+         Main.loadConfig(conf);
+      } catch (IOException ioe) {
+         logger.warn("could not refresh config: " + ioe.getMessage());
       }
    }
 
@@ -407,13 +413,37 @@ public class Server implements Runnable {
       resp.setHeader("Connection", "close");
       resp.write(out);
       for (Iterator it = toUpdate.iterator(); it.hasNext(); ) {
-         ((Target) conf.targets.get(it.next())).update(true);
+         ((Target) conf.targets.get(it.next())).update(true, false);
       }
       try {
          conf.store();
       } catch (IOException ioe) {
          logger.warn("could not store data: " + ioe.getMessage());
       }
+   }
+
+   private void showLog(OutputStream out, HTTPRequest req)
+      throws IOException
+   {
+      MemoryAppender app = Main.memoryAppender;
+      HTTPResponse resp = new HTTPResponse(200, "HTTP/1.1");
+      resp.setHeader("Server", SERVER);
+      resp.setHeader("Content-Type", "text/html; charset=utf-8");
+      resp.setHeader("Connection", "close");
+      resp.writeBody(HEAD);
+      resp.writeBody("<body>");
+      resp.writeBody("<p><a href=\"/\">Brief View</a> | " +
+                     "<a href=\"/detail\">Detailed View (all pages)</a> | "+
+                     "<a href=\"/update\">Update All Pages</a> | " +
+                     "<a href=\"/refresh\">Refresh Configuration</a> | " +
+                     "<a href=\"/about\">About Vwdiff</a></p>\n");
+      resp.writeBody("<pre>\n");
+      for (Iterator it = app.getLog().iterator(); it.hasNext(); ) {
+         resp.writeBody((String) it.next());
+      }
+      resp.writeBody("</pre>\n");
+      resp.writeBody(footer);
+      resp.write(out);
    }
 
    private void notFound(OutputStream out, HTTPRequest req)

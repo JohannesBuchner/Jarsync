@@ -1,1 +1,1 @@
-SUBDIRS = source
+SUBDIRS = bin etc source

@@ -5,4 +5,4 @@ JAVAFLAGS=@JAVAFLAGS@
 prefix=@prefix@
 datadir=@datadir@
 
-exec ${JAVA} ${JAVAFLAGS} -Xbootclasspath/a:${CLASSPATH} -jar ${datadir}/vwdiff.jar "$@"
+exec ${JAVA} ${JAVAFLAGS} -Djava.awt.headless=true -Xbootclasspath/a:${CLASSPATH} -jar ${datadir}/vwdiff.jar "$@"

@@ -48,6 +48,11 @@ public final class Main {
    private static final Logger logger =
       Logger.getLogger("org.metastatic.vwdiff");
 
+   private static String conffile;
+   private static boolean virgin = true;
+
+   static MemoryAppender memoryAppender;
+
    // Class methods.
    // -----------------------------------------------------------------------
 
@@ -59,7 +64,7 @@ public final class Main {
       };
       Getopt g = new Getopt("vwdiff", argv, "c:hv", longopts);
       int c;
-      String conffile = "vwdiff.conf";
+      conffile = "vwdiff.conf";
 
       while ((c = g.getopt()) != -1) switch (c) {
          case 'c':
@@ -77,27 +82,14 @@ public final class Main {
       }
 
       Config conf = new Config();
-      Parameters p = new Parameters(conf);
       try {
-         p.begin(conffile);
-         while (true) {
-            try {
-               p.parse();
-               break;
-            } catch (ParameterException pe) {
-               System.err.println("WARNING: bad configuration file: " +
-                  pe.getMessage());
-            } catch (IllegalArgumentException iae) {
-               System.err.println("WARNING: bad configuration file: " +
-                  iae.getMessage());
-            }
-         }
+         loadConfig(conf);
       } catch (IOException ioe) {
          System.err.println("Could not load config file " + conffile
             + ": " + ioe.getMessage());
          System.exit(1);
       }
-      p = null;
+      virgin = false; // w00t!!
 
       try {
          PatternLayout layout = new PatternLayout("%d: %m%n");
@@ -107,6 +99,8 @@ public final class Main {
             logger.addAppender(new WriterAppender(layout,
                new FileWriter(conf.logfile)));
          }
+         memoryAppender = new MemoryAppender(conf.logsize, layout);
+         logger.addAppender(memoryAppender);
       } catch (IOException ioe) {
          System.err.println("Error creating logger: " + ioe.getMessage());
          System.exit(1);
@@ -131,7 +125,7 @@ public final class Main {
          long now = System.currentTimeMillis();
          for (Iterator i = conf.targets.values().iterator(); i.hasNext(); ) {
             Target t = (Target) i.next();
-            t.update(false);
+            t.update(false, false);
          }
          try {
             conf.store();
@@ -141,11 +135,33 @@ public final class Main {
          try {
             long elapsed = System.currentTimeMillis() - now;
             logger.info("ended run; elapsed time=" + (elapsed / 1000) + " seconds");
-            if (elapsed < 3600000)
-               Thread.sleep(3600000 - elapsed);
+            if (elapsed < 300000)
+               Thread.sleep(300000 - elapsed);
          } catch (InterruptedException ie) {
          }
       }
+   }
+
+   static void loadConfig(Config conf) throws IOException {
+      Parameters p = new Parameters(conf);
+      p.begin(conffile);
+      while (true) {
+         try {
+            p.parse();
+            break;
+         } catch (ParameterException pe) {
+            if (virgin) {
+               System.err.println("WARNING: bad configuration file: " +
+                                  pe.getMessage());
+            }
+         } catch (IllegalArgumentException iae) {
+            if (virgin) {
+               System.err.println("WARNING: bad configuration file: " +
+                                  iae.getMessage());
+            }
+         }
+      }
+      conf.current = null;
    }
 
    private static void usage() {

@@ -31,6 +31,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
@@ -78,6 +79,8 @@ public class Target implements java.io.Serializable {
 
    private static final long serialVersionUID = -4218732007574903639L;
 
+   private final transient Object lock = new Object();
+
    private final String name;
    private String user;
    private char[] password;
@@ -117,7 +120,7 @@ public class Target implements java.io.Serializable {
    // Instance methods.
    // -----------------------------------------------------------------------
 
-   public synchronized void access() {
+   public void access() {
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       byte[] buf = new byte[512];
       try {
@@ -132,14 +135,17 @@ public class Target implements java.io.Serializable {
          logger.warn(ioe.toString());
          return;
       }
-      basis = out.toByteArray();
-      lastAccess = System.currentTimeMillis();
+      synchronized (lock) {
+         basis = out.toByteArray();
+         lastAccess = System.currentTimeMillis();
+      }
+      update(true, true);
    }
 
-   public synchronized void update(boolean force) {
+   public void update(boolean force, boolean basisOnly) {
       try {
          logger.info("updating [" + name + "] with URL " + url);
-         if (!force && lastUpdate + frequency > System.currentTimeMillis()) {
+         if (!force && System.currentTimeMillis() - lastUpdate < frequency) {
             logger.info("[" + name + "] not ready for update");
             return;
          }
@@ -147,11 +153,17 @@ public class Target implements java.io.Serializable {
          List sums = Collections.EMPTY_LIST;
          if (basis != null)
             sums = gen.generateSums(basis);
-         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-         conn.setRequestProperty("User-Agent", USER_AGENT);
+         InputStream in = null;
          Matcher match = new Matcher(config);
-         conn.connect();
-         List deltas = match.hashSearch(sums, conn.getInputStream());
+         if (!basisOnly) {
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestProperty("User-Agent", USER_AGENT);
+            conn.connect();
+            in = conn.getInputStream();
+         } else {
+            in = new ByteArrayInputStream(basis);
+         }
+         List deltas = match.hashSearch(sums, in);
          bytes = newBytes = movedBytes = 0;
          for (Iterator it = deltas.iterator(); it.hasNext(); ) {
             Delta d = (Delta) it.next();
@@ -163,10 +175,12 @@ public class Target implements java.io.Serializable {
                newBytes += d.getBlockLength();
             }
          }
-         image = createImage(bytes, deltas);
-         lastUpdate = System.currentTimeMillis();
-         logger.info("created " + deltas.size() + " deltas, read "
-                     + bytes + " bytes");
+         synchronized (lock) {
+            image = createImage(bytes, deltas);
+            lastUpdate = System.currentTimeMillis();
+            logger.info("created " + deltas.size() + " deltas, read "
+                        + bytes + " bytes");
+         }
       } catch (IOException ioe) {
          logger.error(ioe.getMessage());
       }
