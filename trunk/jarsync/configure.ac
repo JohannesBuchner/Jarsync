@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl $Id$
 
 AC_INIT(jarsync, 0.2, rsdio@metastatic.org)
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE(dist-zip)
 AC_CONFIG_SRCDIR(source/org/metastatic/rsync/Configuration.java)
 
 dnl Checks for programs.
@@ -15,7 +15,7 @@ AC_CHECK_CLASSPATH
 AC_CHECK_PATH_SEPARATOR
 AC_CHECK_FILE_SEPARATOR
 
-PRE_VERSION='pre1'
+PRE_VERSION=
 AC_SUBST(PRE_VERSION)
 
 AC_SUBST(JAVAFLAGS)
@@ -32,9 +32,9 @@ AC_SUBST(JAVADOC)
 AC_SUBST(MAKE_CLIENT)
 
 dnl --with and --enable arguments
-AC_ARG_ENABLE([client-server], AC_HELP_STRING([--enable-client-server],
-	[Build rsync-compatible client/server]),
-	[make_v2=yes], [make_v2=no])
+dnl AC_ARG_ENABLE([client-server], AC_HELP_STRING([--enable-client-server],
+dnl	[Build rsync-compatible client/server]),
+dnl	[make_v2=yes], [make_v2=no])
 AC_ARG_WITH(log4j-jar, AC_HELP_STRING([--with-log4j-jar=PATH],
 	[Specify the location of log4j jar]),
 	[log4j_jar=$withval], [log4j_jar=no])

@@ -29,7 +29,7 @@ package org.metastatic.rsync.v2;
 import java.net.InetAddress;
 import java.util.StringTokenizer;
 
-public class Module {
+public class Module implements Comparable {
 
    // Constants and fields.
    // -----------------------------------------------------------------------
@@ -57,6 +57,7 @@ public class Module {
    public int timeout;
    public String refuseOptions = "";
    public String dontCompress;
+   public int totalConnections = 0;
    public int maxConnections = 0;
    public int connections = 0;
 
@@ -100,6 +101,10 @@ public class Module {
 
       // and allow hosts in neither list.
       return true;
+   }
+
+   public int compareTo(Object o) {
+      return name.compareTo(((Module) o).name);
    }
 
    // Own methods.

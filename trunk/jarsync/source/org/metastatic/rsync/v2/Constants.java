@@ -92,14 +92,15 @@ public interface Constants {
    public static final int STATE_SETUP_PROTOCOL  = 0xFF;
    public static final int STATE_RECEIVE_EXCLUDE = 0x01;
    public static final int STATE_SEND_FLIST      = 0x10;
-   public static final int STATE_SENDER          = 0x22;
-   public static final int STATE_SENDER_INPUT    = 0x02;
+   public static final int STATE_RECEIVE_FLIST   = 0x02;
+   public static final int STATE_SENDER          = 0x23;
+   public static final int STATE_SENDER_INPUT    = 0x03;
    public static final int STATE_SENDER_OUTPUT   = 0x20;
-   public static final int STATE_RECEIVER        = 0x33;
-   public static final int STATE_RECEIVER_INPUT  = 0x03;
+   public static final int STATE_RECEIVER        = 0x34;
+   public static final int STATE_RECEIVER_INPUT  = 0x04;
    public static final int STATE_RECEIVER_OUTPUT = 0x30;
-   public static final int STATE_DONE            = 0x44;
-   public static final int STATE_INPUT_DONE      = 0x04;
+   public static final int STATE_DONE            = 0x45;
+   public static final int STATE_INPUT_DONE      = 0x05;
    public static final int STATE_OUTPUT_DONE     = 0x40;
 
    // Protocol setup.

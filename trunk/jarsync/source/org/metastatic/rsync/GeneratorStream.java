@@ -81,7 +81,7 @@ public class GeneratorStream {
    // -----------------------------------------------------------------------
 
    public GeneratorStream(Configuration config) {
-      this.config = (Configuration) config.clone();
+      this.config = config;
       this.listeners = new LinkedList();
       buffer = new byte[config.blockLength];
       reset();

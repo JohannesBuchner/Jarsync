@@ -64,6 +64,30 @@ public class BufferUtil {
    }
 
    /**
+    * Read a short string from the buffer.
+    *
+    * @param in        The input buffer.
+    * @param maxLength The maximum number of bytes to read, or 0 if not
+    *    limited.
+    * @return The string.
+    * @throws BufferUnderflowException If there are not enough
+    *   bytes available in the buffer.
+    */
+   public static String getShortString(ByteBuffer in) {
+      int l = in.get() & 0xFF;
+      byte[] b = new byte[l];
+      try {
+         in.get(b);
+         return new String(b, "ISO-8859-1");
+      } catch (BufferUnderflowException bue) {
+         in.position(in.position() - 1);
+         throw bue;
+      } catch (java.io.UnsupportedEncodingException shouldNotHappen) {
+      }
+      return null;
+   }
+
+   /**
     * Get a long integer from the byte buffer. The semantics of the
     * integer read are as follows:
     *

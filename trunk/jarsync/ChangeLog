@@ -2,6 +2,9 @@ ChangeLog for JARSYNC.
 
 $Id$
 
+2003-04-05 -- Casey Marshall <rsdio@metastatic.org>
+  + Added streaming API for Generator and Rebuilder.
+
 2003-03-30 -- Casey Marshall <rsdio@metastatic.org>
   + Switched to automake.
   + Added new "streaming" matcher API
@@ -9,7 +12,6 @@ $Id$
     than the previous version (and works better).
   + Added parser for Samba-like config files.
   + Added 'chunkSize' field to Configuration.
-  + All classes that take a Configuration now copy thier argument.
   + Added cloneing support to Configuration.
   + Fixed (hopefully once and for all) the rolling checksum.
   + RsyncConstants obsolete.

@@ -64,8 +64,6 @@
 
    <property name="version.major" value="0"/>
    <property name="version.minor" value="2"/>
-   <property name="dist.dir"
-      value="jarsync-${version.major}.${version.minor}"/>
 
    <property name="main.jar" value="${lib.dir}/jarsync.jar"/>
 
@@ -82,6 +80,13 @@
       <jar jarfile="${main.jar}" basedir="${classes.dir}"/>
    </target>
 
+   <target name="client-server" depends="compile-v2">
+      <copy todir="${classes.dir}/gnu/getopt">
+         <fileset dir="${getopt.src.dir}/gnu/getopt" includes="*.properties" />
+      </copy>
+      <jar jarfile="${main.jar}" basedir="${classes.dir}"/>
+   </target>
+
    <target name="compile" depends="configure">
       <javac destdir="${classes.dir}" debug="${debug}"
          optimize="${optimize}" srcdir="${getopt.src.dir}"
@@ -92,23 +97,11 @@
 	 classpath="${classes.dir}" />
    </target>
 
-   <target name="dist" depends="${dist.dir}">
-      <tar tarfile="${dist.dir}.tar" includes="${dist.dir}" basedir="."/>
-      <bzip2 src="${dist.dir}.tar" zipfile="${dist.dir}.tar.bz2"/>
-   </target>
-
-   <target name="${dist.dir}">
-      <mkdir dir="${dist.dir}"/>
-      <copy todir="${dist.dir}">
-         <fileset dir=".">
-            <include name="AUTHORS"/>
-            <include name="COPYING"/>
-            <include name="README"/>
-            <include name="TODO"/>
-            <include name="build.xml"/>
-            <include name="source/**"/>
-         </fileset>
-      </copy>
+   <target name="compile-v2" depends="compile">
+      <javac destdir="${classes.dir}" debug="${debug}"
+         optimize="${optimize}" srcdir="${src.dir}"
+         includes="org/metastatic/rsync/v2/*.java" fork="yes"
+	 classpath="${classes.dir}" />
    </target>
 
 </project>

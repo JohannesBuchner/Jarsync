@@ -187,7 +187,8 @@ public class BlockingDaemon implements Runnable, Constants {
             clientArgs.add(arg);
          logger.info("got args " + clientArgs);
          try {
-            options = Options.parseArguments("jarsyncd", 
+            options = new Options();
+            options.parseArguments("jarsyncd", 
                (String[]) clientArgs.toArray(new String[0]), null);
          } catch (Exception e) { }
 

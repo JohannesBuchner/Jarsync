@@ -29,6 +29,7 @@ package org.metastatic.rsync.v2;
 import java.io.FileInputStream ;
 import java.io.IOException;
 
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
 import java.security.MessageDigest;
@@ -63,6 +64,7 @@ public final class BufferFileList implements BufferTool, Constants {
    private int index;
    private FileInfo lastfile;
    private String lastname = "";
+   private String lastdir = null;
    private int state;
    private int io_error = 0;
 
@@ -101,11 +103,14 @@ public final class BufferFileList implements BufferTool, Constants {
    public boolean updateInput() throws Exception {
       switch (state & INPUT_MASK) {
          case FLIST_RECEIVE_FILES:
+            getNextFile();
+            return true;
          case FLIST_RECEIVE_UIDS:
          case FLIST_RECEIVE_GIDS:
          case FLIST_RECEIVE_DONE:
             if (remoteVersion >= 17)
                io_error = inBuffer.getInt();
+            return false;
       }
       return false;
    }
@@ -150,7 +155,114 @@ public final class BufferFileList implements BufferTool, Constants {
    // Own methods.
    // -----------------------------------------------------------------------
 
+   private void getNextFile() {
+      int flags = inBuffer.get() & 0xFF;
+      int entryLen = 1;
+      int l1 = 0, l2 = 0;
+      FileInfo file = new FileInfo();
+
+      if (flags == 0) {
+         if (options.preserve_uid)
+            state = FLIST_RECEIVE_UIDS;
+         else if (options.preserve_gid)
+            state = FLIST_RECEIVE_GIDS;
+         else
+            state = FLIST_RECEIVE_DONE;
+         return;
+      }
+      try {
+         if ((flags & SAME_NAME) != 0) {
+            l1 = inBuffer.get() & 0xFF;
+            entryLen++;
+         }
+         String thisname = null;
+         if ((flags & LONG_NAME) != 0) {
+            thisname = BufferUtil.getString(inBuffer, MAXPATHLEN);
+            entryLen += 4 + thisname.length();
+         } else {
+            thisname = BufferUtil.getShortString(inBuffer);
+            entryLen += 1 + thisname.length();
+         }
+         if (lastname.length() > 0 && l1 > 0)
+            thisname = lastname.substring(0, l1) + thisname;
+
+         thisname = thisname.replace('/', UnixFile.separatorChar);
+         int p = 0;
+         if ((p = thisname.lastIndexOf(UnixFile.separatorChar)) > 0) {
+            if (lastdir != null && thisname.startsWith(lastdir)) {
+               file.dirname = lastdir;
+            } else {
+               file.dirname = thisname.substring(0, p);
+               lastdir = file.dirname;
+            }
+            file.basename = thisname.substring(p + 1);
+         } else {
+            file.dirname = "";
+            file.basename = thisname;
+         }
+
+         file.flags = flags;
+         file.length = BufferUtil.getLong(inBuffer);
+         entryLen += (file.length > 0x7FFFFFFF) ? 12 : 4;
+         if ((flags & SAME_TIME) == 0) {
+            file.modtime = inBuffer.getInt() & 0xFFFFFFFFL;
+            entryLen += 4;
+         } else {
+            file.modtime = lastfile.modtime;
+         }
+         if ((flags & SAME_MODE) == 0) {
+            file.mode = inBuffer.getInt();
+            entryLen += 4;
+         } else {
+            file.mode = lastfile.mode;
+         }
+
+         if (options.preserve_uid) {
+            if ((flags & SAME_UID) == 0) {
+               file.uid = inBuffer.getInt();
+               entryLen += 4;
+            } else {
+               file.uid = lastfile.uid;
+            }
+         }
+         if (options.preserve_gid) {
+            if ((flags & SAME_GID) == 0) {
+               file.gid = inBuffer.getInt();
+               entryLen += 4;
+            } else {
+               file.gid = lastfile.gid;
+            }
+         }
+         if (options.preserve_links && file.S_ISLNK()) {
+            file.link = BufferUtil.getString(inBuffer, 0);
+            entryLen += 4 + file.link.length();
+         }
+         if (options.always_checksum) {
+            file.sum = new byte[SUM_LENGTH];
+            if (remoteVersion < 21) {
+               inBuffer.get(file.sum, 0, 2);
+               entryLen += 2;
+            } else {
+               inBuffer.get(file.sum);
+               entryLen += file.sum.length;
+            }
+         }
+
+         lastfile = file;
+         lastname = thisname;
+         files.add(file);
+         logger.debug("got file=" + file);
+      } catch (BufferUnderflowException bue) {
+         inBuffer.position(inBuffer.position() - entryLen);
+         throw bue;
+      }
+   }
+
    private void sendNextFile() throws Exception {
+      if (argv.size() == 0) {
+         state = FLIST_SEND_DONE;
+         return;
+      }
       UnixFile f = new UnixFile(path, (String) argv.get(index));
       if (f.isDirectory() && !options.recurse) {
          logger.info("skipping directory " + f.getName());

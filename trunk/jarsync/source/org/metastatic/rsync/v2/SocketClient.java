@@ -51,7 +51,7 @@ import org.metastatic.rsync.*;
  *
  * @version $Revision$
  */
-public class SocketClient implements RsyncConstants {
+public class SocketClient implements Constants {
 
    // Constants and variables.
    // ------------------------------------------------------------------------

@@ -97,6 +97,7 @@ public class Protocol implements Constants {
    protected Statistics stats;
    protected List fileList;
    protected Map uids, gids;
+   protected boolean stats_module = false;
 
    protected boolean start_glob = false;
    protected String request;
@@ -184,16 +185,43 @@ public class Protocol implements Constants {
                   options.exclude = l;
                else
                   options.exclude += " " + l;
+               logger.debug("add_exclude(" + l + ")");
             }
          } catch (BufferUnderflowException bue) {
+            // Ignored. Wait until the next time, when there should be
+            // more.
             break;
          }
-         if (options.verbose > 2)
-            logger.info("server sender process starting");
-         tool = new BufferFileList(options, module.path, argv,
-            remoteVersion, logger, FLIST_SEND_FILES);
+         if (options.am_sender) {
+            if (stats_module)
+               argv.clear();
+            if (options.verbose > 2)
+               logger.info("server sender process starting");
+            tool = new BufferFileList(options, module.path, argv,
+               remoteVersion, logger, FLIST_SEND_FILES);
+            state = STATE_SEND_FLIST;
+         } else {
+            state = STATE_RECEIVE_FLIST;
+         }
          tool.setBuffers(duplex, inBuffer);
-         state = STATE_SEND_FLIST;
+         break;
+
+      case STATE_RECEIVE_FLIST:
+         try {
+            if (!tool.updateInput()) {
+               module.connections--;
+               connected = false;
+               state = STATE_DONE;
+            }
+         } catch (BufferUnderflowException bue) {
+            // Ignored. Wait until the next time, when there should be
+            // more.
+         } catch (Exception x) {
+            logger.error("error in recv_flist: " + x);
+            module.connections--;
+            connected = false;
+            state = STATE_DONE;
+         }
          break;
 
       case STATE_SENDER_INPUT:
@@ -246,6 +274,12 @@ public class Protocol implements Constants {
                fileList = ((BufferFileList) tool).getFileList();
                uids = ((BufferFileList) tool).getUidList();
                gids = ((BufferFileList) tool).getGidList();
+               if (fileList.size() == 0) {
+                  state = STATE_DONE;
+                  module.connections--;
+                  connected = false;
+                  break;
+               }
                tool = new BufferSender(options, config, fileList,
                   module.path, logger, remoteVersion);
                tool.setBuffers(duplex, inBuffer);
@@ -337,7 +371,9 @@ public class Protocol implements Constants {
             outState = SETUP_WRITE_MODULES;
             break;
          }
-         if (line.startsWith("#")) {
+         if (line.equals("#stats")) {
+            stats_module = true;
+         } else if (line.startsWith("#")) {
             error = "Unknown command";
             outState = SETUP_WRITE_ERROR;
             inState = SETUP_READ_DONE;
@@ -370,12 +406,12 @@ public class Protocol implements Constants {
          if (module.users != null) {
             inState = SETUP_READ_AUTH;
             outState = SETUP_WRITE_CHALLENGE;
-            break;
          } else {
             inState = SETUP_READ_OPTIONS;
             outState = SETUP_WRITE_OK;
          }
          module.connections++;
+         module.totalConnections++;
          break;
 
       case SETUP_READ_AUTH:
@@ -542,10 +578,28 @@ public class Protocol implements Constants {
          }
          encoder = null;
          duplex.setDuplex(true);
-         if (options.am_sender) {
-            state = STATE_RECEIVE_EXCLUDE;
+         if (stats_module) {
+            duplex.putString(duplex.FINFO,
+               ((StatsModule) module).format(modules));
+         }
+         if (!options.am_sender) {
+            if (module.readOnly) {
+               logger.error("ERROR: module is read-only");
+               module.connections--;
+               connected = false;
+               state = STATE_DONE;
+               return;
+            }
+            if (options.delete_mode && !options.delete_excluded) {
+               state = STATE_RECEIVE_EXCLUDE;
+            } else {
+               tool = new BufferFileList(options, module.path, argv,
+                  remoteVersion, logger, FLIST_RECEIVE_FILES);
+               tool.setBuffers(duplex, inBuffer);
+               state = STATE_RECEIVE_FLIST;
+            }
          } else {
-            state = STATE_SEND_FLIST;
+            state = STATE_RECEIVE_EXCLUDE;
          }
 
       case SETUP_WRITE_WAIT:

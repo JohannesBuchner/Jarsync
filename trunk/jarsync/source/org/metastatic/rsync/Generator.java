@@ -71,7 +71,7 @@ public class Generator {
    // ------------------------------------------------------------------------
 
    public Generator(Configuration config) {
-      this.config = (Configuration) config.clone();
+      this.config = config;
    }
 
    // Instance methods.

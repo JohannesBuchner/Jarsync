@@ -3,12 +3,12 @@
 JAVADOC = @JAVADOC@
 BREAKITERATOR = @BREAKITERATOR@
 
-EXTRA_DIST = LICENSE jarsyncd rdiff rdiff.magic getopt/COPYING
+EXTRA_DIST = LICENSE rdiff rdiff.magic COPYING.getopt ChangeLog.getopt \
+  README.getopt
 SUBDIRS = source test
 
 docs: FORCE
-	-mkdir $(srcdir)/apidocs
-	$(JAVADOC) $(BREAKITERATOR) -d $(srcdir)/apidoc \
+	$(JAVADOC) $(BREAKITERATOR) -d apidoc \
 	  -sourcepath $(srcdir)/source/:$(srcdir)/getopt/ \
 	  -windowtitle "Jarsync $(VERSION)$(PRE_VERSION) documentation" \
 	  -doctitle "Jarsync $(VERSION)$(PRE_VERSION)" \

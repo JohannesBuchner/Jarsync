@@ -75,7 +75,10 @@ public class RsyncdConf implements ParameterListener {
    }
 
    public void beginSection(String name) {
-      current = new Module(name);
+      if (name.equals("#stats"))
+         current = new StatsModule();
+      else
+         current = new Module(name);
       modules.put(name, current);
    }
 

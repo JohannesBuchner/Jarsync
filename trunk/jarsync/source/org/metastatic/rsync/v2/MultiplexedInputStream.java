@@ -29,8 +29,6 @@ package org.metastatic.rsync.v2;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.metastatic.rsync.*;
-
 import org.apache.log4j.Logger;
 
 /**
@@ -39,7 +37,7 @@ import org.apache.log4j.Logger;
  * @version $Revision$
  */
 public class MultiplexedInputStream extends InputStream
-implements RsyncConstants, MultiplexedIO
+implements MultiplexedIO
 {
 
    // Constants and variables.
@@ -64,6 +62,10 @@ implements RsyncConstants, MultiplexedIO
 
    // Instance methods.
    // -----------------------------------------------------------------------
+
+   public void setMultiplex(boolean multiplex) {
+      this.multiplex = multiplex;
+   }
 
    public int read() throws IOException {
       byte[] b = new byte[1];
@@ -125,7 +127,8 @@ implements RsyncConstants, MultiplexedIO
    public int readInt() throws IOException {
       byte[] buf = new byte[4];
       readFully(buf);
-      return buf[3]<<24 | buf[2]<<16 | buf[1]<<8 | buf[0];
+      return (buf[3] << 24 & 0xFF) | (buf[2] << 16 & 0xFF)
+           | (buf[1] <<  8 & 0xFF) | (buf[0] & 0xFF);
    }
 
    /**
@@ -140,8 +143,10 @@ implements RsyncConstants, MultiplexedIO
       }
       byte[] buf = new byte[8];
       readFully(buf);
-      return buf[7]<<56 | buf[6]<<48 | buf[5]<<40 | buf[4]<<32 |
-             buf[3]<<24 | buf[2]<<16 | buf[1]<< 8 | buf[0];
+      return (buf[7] << 56 & 0xFF) | (buf[6] << 48 & 0xFF)
+           | (buf[5] << 40 & 0xFF) | (buf[4] << 32 & 0xFF) 
+           | (buf[3] << 24 & 0xFF) | (buf[2] << 16 & 0xFF)
+           | (buf[1] <<  8 & 0xFF) | (buf[0] & 0xFF);
    }
 
    /**
@@ -169,11 +174,11 @@ implements RsyncConstants, MultiplexedIO
          }
 
          in.read(line, 0, 4);
-         tag = line[3];
+         tag = line[3] & 0xFF;
 
-         remaining  = line[0];
-         remaining |= line[1] <<  8;
-         remaining |= line[2] << 16;
+         remaining  = line[0] & 0xFF;
+         remaining |= line[1] <<  8 & 0xFF;
+         remaining |= line[2] << 16 & 0xFF;
 
          if (tag == MPLEX_BASE) {
             continue;

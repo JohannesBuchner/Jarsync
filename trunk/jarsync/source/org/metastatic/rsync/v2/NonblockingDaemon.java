@@ -95,6 +95,9 @@ public class NonblockingDaemon extends Daemon
          logger.warn("error reading MOTD file: " + ioe.getMessage());
       }
 
+      StatsModule statsMod = null;
+      if (modules.containsKey("#stats"))
+         statsMod = (StatsModule) modules.get("#stats");
       // Main server loop.
       for (;;) {
          Protocol prot;
@@ -123,6 +126,10 @@ public class NonblockingDaemon extends Daemon
                      logger.info("connection made by " +
                         host.getHostName() + " (" + host.getHostAddress() +
                         ") on port " + c.socket().getPort());
+                     if (statsMod != null) {
+                        statsMod.currentConnections++;
+                        statsMod.numConnections++;
+                     }
                   }
                } catch (IOException ioe) {
                   logger.warn("error accepting connection: "+ioe.getMessage());
@@ -137,8 +144,12 @@ public class NonblockingDaemon extends Daemon
                   if (key.isWritable()) {
                      prot.updateOutput();
                      out.flip();
-                     if (out.hasRemaining())
-                        stats.total_written += client.write(out);
+                     if (out.hasRemaining()) {
+                        int len = client.write(out);
+                        stats.total_written += len;
+                        if (statsMod != null)
+                           statsMod.bytesWritten += len;
+                     }
                      out.compact();
                   }
                   int len = 0;
@@ -149,6 +160,8 @@ public class NonblockingDaemon extends Daemon
                   }
                   if (len > 0) {
                      stats.total_read += len;
+                     if (statsMod != null)
+                        statsMod.bytesRead += len;
                   }
                   if (in.hasRemaining()) {
                      prot.updateInput();
@@ -168,6 +181,8 @@ public class NonblockingDaemon extends Daemon
                         client.socket().getInetAddress() + " finished");
                      key.cancel();
                      client.close();
+                     if (statsMod != null)
+                        statsMod.currentConnections--;
                   }
                } catch (IOException ioe) {
                   logger.warn(client.socket().getInetAddress() + ": " + ioe);
@@ -177,6 +192,8 @@ public class NonblockingDaemon extends Daemon
                   } catch (IOException ioe2) {
                      logger.warn("error closing connection: " + ioe2);
                   }
+                  if (statsMod != null)
+                     statsMod.currentConnections--;
                } catch (BufferOverflowException boe) {
                   logger.warn("buffer overflow on connection to "
                      + client.socket().getInetAddress());
@@ -186,6 +203,8 @@ public class NonblockingDaemon extends Daemon
                   } catch (IOException ioe) {
                      logger.warn("error closing connection: " + ioe);
                   }
+                  if (statsMod != null)
+                     statsMod.currentConnections--;
                } catch (BufferUnderflowException bue) {
                   logger.warn("buffer underflow on connection to "
                      + client.socket().getInetAddress());
@@ -195,6 +214,8 @@ public class NonblockingDaemon extends Daemon
                   } catch (IOException ioe) {
                      logger.warn("error closing connection: " + ioe);
                   }
+                  if (statsMod != null)
+                     statsMod.currentConnections--;
                } catch (Exception x) {
                   logger.warn("uncaught exception: " + x +
                      " on the connection to " +
@@ -206,6 +227,8 @@ public class NonblockingDaemon extends Daemon
                   } catch (IOException ioe) {
                      logger.warn("error closing connection: " + ioe);
                   }
+                  if (statsMod != null)
+                     statsMod.currentConnections--;
                }
             }
          }
