@@ -70,8 +70,10 @@ fi
 
 dnl AC_CHECK_CLASS(javaunix.io.UnixFile, [have_javaunix=yes], [have_javaunix=no])
 AC_CHECK_CLASS(java.nio.channels.SocketChannel, [have_nio=yes], [have_nio=no])
+AC_CHECK_CLASS(javax.net.ssl.SSLSocket, [have_jsse=yes], [have_jsse=no])
 
 AM_CONDITIONAL(HAVE_NIO, test "x$have_nio" = "xyes")
+AM_CONDITIONAL(HAVE_JSSE, test "x$have_jsse" = "xyes")
 
 AC_MSG_CHECKING([if we are building the client and server programs.])
 if test "x$make_v2" = "xyes"; then

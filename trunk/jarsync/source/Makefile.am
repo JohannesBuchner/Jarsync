@@ -24,17 +24,23 @@ EXTRA_DIST = $(sources) $(properties) $(rdiff_sources) \
   $(srcdir)/org/metastatic/rsync/package.html \
   $(srcdir)/org/metastatic/rsync/v2/package.html
 
+if HAVE_JSSE
+ssl_v2_sources = org/metastatic/rsync/v2/SSLUtil.java
+else
+ssl_v2_sources = 
+endif
+
 if HAVE_NIO
 nio_sources = org/metastatic/rsync/MappedRebuilderStream.java
-nio_v2_sources = \
-  org/metastatic/rsync/v2/BufferUtil.java \
-  org/metastatic/rsync/v2/DuplexByteBuffer.java \
-  org/metastatic/rsync/v2/NonblockingDaemon.java \
-  org/metastatic/rsync/v2/NonblockingFileList.java \
-  org/metastatic/rsync/v2/NonblockingSender.java \
-  org/metastatic/rsync/v2/NonblockingTool.java \
-  org/metastatic/rsync/v2/Protocol.java \
-  org/metastatic/rsync/v2/RsyncBufferAppender.java
+nio_v2_sources = # \
+#  org/metastatic/rsync/v2/BufferUtil.java \
+#  org/metastatic/rsync/v2/DuplexByteBuffer.java \
+#  org/metastatic/rsync/v2/NonblockingDaemon.java \
+#  org/metastatic/rsync/v2/NonblockingFileList.java \
+#  org/metastatic/rsync/v2/NonblockingSender.java \
+#  org/metastatic/rsync/v2/NonblockingTool.java \
+#  org/metastatic/rsync/v2/Protocol.java \
+#  org/metastatic/rsync/v2/RsyncBufferAppender.java
 else
 nio_sources =
 nio_v2_sources =
@@ -69,7 +75,7 @@ client_sources = \
   org/metastatic/rsync/v2/SocketClient.java \
   org/metastatic/rsync/v2/Statistics.java \
   org/metastatic/rsync/v2/StatsModule.java \
-  $(nio_v2_sources)
+  $(nio_v2_sources) $(ssl_v2_sources)
 
 jarclasses = \
   org/metastatic/rsync/*.class \
