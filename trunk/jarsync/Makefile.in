@@ -28,10 +28,8 @@ SOURCES = \
   source/org/metastatic/rsync/Util.java \
   source/org/metastatic/rsync/version.java \
   source/org/metastatic/rsync/v2/ConsoleClient.java \
-  source/org/metastatic/rsync/v2/Logger.java \
   source/org/metastatic/rsync/v2/MultiplexedInputStream.java \
   source/org/metastatic/rsync/v2/MultiplexedOutputStream.java \
-  source/org/metastatic/rsync/v2/Rsync.java \
   source/org/metastatic/rsync/v2/SocketClient.java \
   getopt/gnu/getopt/Getopt.java \
   getopt/gnu/getopt/LongOpt.java \
@@ -42,13 +40,10 @@ SOURCES = \
   getopt/gnu/getopt/MessagesBundle_nl.properties \
   getopt/gnu/getopt/MessagesBundle_no.properties
 
-TEST_SRC = test.java test2.java test3.java
-TEST_PROG = test.class test2.class test3.class
-
-distfiles = $(SOURCES) $(TEST_SRC) AUTHORS COPYING ChangeLog LICENSE \
-  Makefile.in README TODO configure configure.ac mutate.pl ChangeLog \
-  build.xml source/Makefile.in rdiff rdiff.magic getopt/COPYING getopt/README \
-  getopt/Makefile.in getopt/ChangeLog \
+distfiles = $(SOURCES) AUTHORS COPYING ChangeLog LICENSE Makefile.in \
+  README TODO aclocal.m4 configure configure.ac mutate.pl ChangeLog \
+  build.xml source/Makefile.in rdiff rdiff.magic getopt/COPYING \
+  getopt/README getopt/Makefile.in getopt/ChangeLog \
   source/org/metastatic/rsync/version.java.in
 
 version = @PACKAGE_VERSION@
@@ -63,15 +58,16 @@ lib/jarsync.jar: $(SOURCES)
 	-mkdir classes
 	$(MAKE) -C getopt compile
 	$(MAKE) -C source compile
-	cd classes && $(JAR) cf ../lib/jarsync.jar org gnu/getopt
-
-test: lib/jarsync.jar $(TEST_PROG)
+	cd classes && $(JAR) cf ../lib/jarsync.jar \
+		org/metastatic/rsync/*.class gnu/getopt
 
 check: lib/jarsync.jar
 	$(MAKE) -C test check
 
 client:
 	$(MAKE) -C source client
+	cd classes && $(JAR) cf ../lib/jarsync-client.jar \
+		org/metastatic/rsync/v2/*.class
 
 dist: $(distdir)
 	tar cf $(distdir).tar $(distdir)
