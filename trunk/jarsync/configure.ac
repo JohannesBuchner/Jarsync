@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Format: "AC_REVISION($Id$)dnl"$
+dnl $Id$
 
 AC_INIT(jarsync, 0.0.3)
 
