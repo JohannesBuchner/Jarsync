@@ -14,9 +14,9 @@ suffix = .bz2
 sources = $(wildcard source/org/metastatic/rsync/*.java)
 test_src = test.java test2.java test3.java
 
-distfiles = $(sources) $(test_src) AUTHORS COPYING Makefile README TODO mutate.pl ChangeLog build.xml source/Makefile
+distfiles = $(sources) $(test_src) AUTHORS COPYING Makefile README TODO mutate.pl ChangeLog build.xml source/Makefile lib/getopt.jar
 
-version = 0.0.0
+version = 0.0.1
 package = jarsync
 
 distdir = $(package)-$(version)
