@@ -29,5 +29,24 @@ Open tasks for jarsync, in order of importance:
 
   * Clean up and improve the code.
 
+For the `rdiff' tool:
+
+  * Implement the -I, -O options. I think this has to do with librsync's
+    "tube", and thus doesn't apply here. On a related note, perhaps
+    Jarsync needs its own "tube" for buffered output?
+
+  * Implement the -z, -i options. Since these aren't implemented in
+    librsync yet there's no big rush, and besides, we have no idea how
+    these options SHOULD be implemented (compress entire file, compress
+    LITERAL commands, what?).
+
+  * Implement the --paranoid option.
+
+  * Assert compatibility.
+
+  * librsync's rdiff encodes long LITERAL deltas in chunks, ie a single
+    long LITERAL is split into smaller ones. Is this a feature, or a
+    by-product of the tube?
+
 =======================================================================
   $Id$
