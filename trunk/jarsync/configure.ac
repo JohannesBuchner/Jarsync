@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl $Id$
 
-AC_INIT(jarsync, 0.0.3)
+AC_INIT(jarsync, 0.0.4)
 
 AC_SUBST(COMPILER)
 AC_SUBST(TEST_CFLAGS)

@@ -1,26 +1,45 @@
-// vim:set tabstop=3 expandtab tw=72:
+// vim:set tw=72 expandtab softtabstop=3 shiftwidth=3 tabstop=3:
 // $Id$
 // 
 // TwoKeyMap: Two-key Map implementation.
 // Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
 //
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
+// This file is a part of Jarsync.
 //
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// Jarsync is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option) any
+// later version.
+//
+// Jarsync is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the
+// along with Jarsync; see the file COPYING.  If not, write to the
 //
-//    Free Software Foundation, Inc.,
-//    59 Temple Place, Suite 330,
-//    Boston, MA  02111-1307
+//    Free Software Foundation Inc.,
+//    59 Temple Place - Suite 330,
+//    Boston, MA 02111-1307
 //    USA
+//
+// Linking this library statically or dynamically with other modules is
+// making a combined work based on this library.  Thus, the terms and
+// conditions of the GNU General Public License cover the whole
+// combination.
+//
+// As a special exception, the copyright holders of this library give
+// you permission to link this library with independent modules to
+// produce an executable, regardless of the license terms of these
+// independent modules, and to copy and distribute the resulting
+// executable under terms of your choice, provided that you also meet,
+// for each linked independent module, the terms and conditions of the
+// license of that module.  An independent module is a module which is
+// not derived from or based on this library.  If you modify this
+// library, you may extend this exception to your version of the
+// library, but you are not obligated to do so.  If you do not wish to
+// do so, delete this exception statement from your version.
 //
 // --------------------------------------------------------------------
 
@@ -29,31 +48,34 @@ package org.metastatic.rsync;
 import java.util.*;
 
 /**
- * This is a "double-keyed" mapping. The first key is a 16-bit integer,
+ * <p>This is a "double-keyed" mapping. The first key is a 16-bit integer,
  * and the second key is a variable-length byte array. With this, we can
  * compute if a given mapping is "probably" in the map using the first key,
  * and compute whether or not a mapping is definitely in the hashtable with
  * the second key. The rationale behind this is that the first key is
  * trivial to compute and that the second key is more difficult to compute
- * but more unique.
- * <p>
- * Since the strong key can be a byte array of any length, then this
+ * but more unique.</p>
+ * 
+ * <p>Since the strong key can be a byte array of any length, then this
  * "strong" key can be shorter (and thus less unique) than the "weak"
  * key. For this class to work properly, the stronger key should be at
- * least four bytes in length, preferably longer.
- * <p>
- * The weak-key/strong-key method is inspired by (and is was written
+ * least four bytes in length, preferably longer.</p>
+ * 
+ * <p>The weak-key/strong-key method is inspired by (and is was written
  * for) the "hashtable" in the rsync algorithm, and has three levels of
- * key search:
+ * key search:</p>
+ * 
  * <ol>
  * <li>Test if the lower 2 bytes of the weak key (the positive part of a
  * 32-bit integer in Java) have been mapped to anything yet. This method
  * always takes O(1) time, and it is assumed that the weak key is
  * trivial to compute.</li>
+ * 
  * <li>Test if the entire weak key is mapped to anything. Since this
  * class uses a linked list to handle collisions where the lower 2 bytes
  * are the same, this method takes at most O(n) operations (also
  * assuming that the weak key is trivial to compute).</li>
+ * 
  * <li>Test if both the weak and strong keys map to an Object. In
  * addition to the linked-list search of the second step, this involves
  * a search of a red-black tree, meaning that the upper-bound time
@@ -61,10 +83,11 @@ import java.util.*;
  * assumption that the strong key is some sort of {@link
  * MessageDigest}, and thus takes longer to compute.</li>
  * </ol>
- * With this method, we can determine if it is worth it to compute the
- * strong key if we have already computed the weak key.
- * <p>
- * <code>null</code> is not a valid key in this map.
+ * 
+ * <p>With this method, we can determine if it is worth it to compute the
+ * strong key if we have already computed the weak key.</p>
+ * 
+ * <p><code>null</code> is not a valid key in this map.</p>
  * 
  * @author Casey Marshall
  * @version $Revision$
@@ -80,7 +103,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
     * The sub-tables whose keys are the larger, stronger keys. The
     * index of this array is the shorter, weaker key.
     *
-    * @since 1.6
+    * @since 1.1
     */
    protected SubTable[] tables;
 
@@ -93,7 +116,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
     * to other SubTables whose {@link #key}'s lower four bytes are
     * equivalent.
     *
-    * @since 1.6
+    * @since 1.1
     * @version 1.1
     * @author Casey Marshall
     */
@@ -262,7 +285,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
     * {@link #hashCode()} and {@link #compareTo(java.lang.Object)}
     * methods.
     *
-    * @since 1.7
+    * @since 1.1
     * @version 1.0
     * @author Casey Marshall
     */

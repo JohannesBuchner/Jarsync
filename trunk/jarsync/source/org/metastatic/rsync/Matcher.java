@@ -1,26 +1,45 @@
-// vim:set tabstop=3 expandtab tw=72:
+// vim:set tw=72 expandtab softtabstop=3 shiftwidth=3 tabstop=3:
 // $Id$
 //
 // Matcher: Hashtable generation and search.
 // Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
 //
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
+// This file is a part of Jarsync.
 //
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// Jarsync is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option) any
+// later version.
+//
+// Jarsync is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the
+// along with Jarsync; see the file COPYING.  If not, write to the
 //
-//    Free Software Foundation, Inc.,
-//    59 Temple Place, Suite 330,
-//    Boston, MA  02111-1307
+//    Free Software Foundation Inc.,
+//    59 Temple Place - Suite 330,
+//    Boston, MA 02111-1307
 //    USA
+//
+// Linking this library statically or dynamically with other modules is
+// making a combined work based on this library.  Thus, the terms and
+// conditions of the GNU General Public License cover the whole
+// combination.
+//
+// As a special exception, the copyright holders of this library give
+// you permission to link this library with independent modules to
+// produce an executable, regardless of the license terms of these
+// independent modules, and to copy and distribute the resulting
+// executable under terms of your choice, provided that you also meet,
+// for each linked independent module, the terms and conditions of the
+// license of that module.  An independent module is a module which is
+// not derived from or based on this library.  If you modify this
+// library, you may extend this exception to your version of the
+// library, but you are not obligated to do so.  If you do not wish to
+// do so, delete this exception statement from your version.
 //
 // --------------------------------------------------------------------
 
@@ -33,10 +52,10 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 /**
- * Methods for performing the checksum search. The result of a search is
- * a {@link java.util.Collection} of {@link Delta} objects that, when
- * applied to a {@link Rebuilder}, will reconstruct the new version of
- * the data.
+ * <p>Methods for performing the checksum search. The result of a search
+ * is a {@link java.util.Collection} of {@link Delta} objects that, when
+ * applied to a method in {@link Rebuilder}, will reconstruct the new
+ * version of the data.</p>
  *
  * @version $Revision$
  */
@@ -71,21 +90,6 @@ public final class Matcher implements RsyncConstants {
 
  // Instance methods.
    // -----------------------------------------------------------------
-
-   /**
-    * Create a two-key map for the given collection of checksums.
-    *
-    * @param sums The {@link ChecksumPair}s to build the table from.
-    * @return A {@link TwoKeyMap} built from the sums.
-    */
-   public TwoKeyMap buildHashtable(Collection sums) {
-      TwoKeyMap m = new TwoKeyMap();
-      for (Iterator i = sums.iterator(); i.hasNext(); ) {
-         ChecksumPair pair = (ChecksumPair) i.next();
-         m.put(pair, pair.getOffset());
-      }
-      return m;
-   }
 
    /**
     * Search the given byte buffer.
@@ -138,29 +142,48 @@ public final class Matcher implements RsyncConstants {
       return hashSearch(buildHashtable(sums), in);
    }
 
+ // Own methods
+   // -----------------------------------------------------------------------
+
    /**
-    * Create a collection of deltas derived from the given file.
+    * Create a two-key map for the given collection of checksums.
     *
-    * @param m The map of checksums to search for.
-    * @param f The file to search.
-    * @return A collection of {@link Delta}s derived from this search.
+    * @param sums The {@link ChecksumPair}s to build the table from.
+    * @return A {@link TwoKeyMap} built from the sums.
     */
-   public Collection hashSearch(TwoKeyMap m, File f)
-   throws IOException
-   {
-      return hashSearch(m, new RandomAccessFile(f, "r"));
+   protected TwoKeyMap buildHashtable(Collection sums) {
+      TwoKeyMap m = new TwoKeyMap();
+      for (Iterator i = sums.iterator(); i.hasNext(); ) {
+         ChecksumPair pair = (ChecksumPair) i.next();
+         m.put(pair, pair.getOffset());
+      }
+      return m;
    }
 
    /**
-    * Create a collection of deltas derived from the given byte array.
+    * Search an input stream.
     *
-    * @param m The map of checksums to search for.
-    * @param buf  The data buffer to search.
-    * @param baseOffset The offset from whence <code>buf</code> came.
+    * @param m  The {@link TwoKeyMap} to search.
+    * @param in The input stream to search.
     * @return A collection of {@link Delta}s derived from this search.
     */
-   public Collection hashSearch(TwoKeyMap m, byte[] buf, long baseOffset) {
-      return hashSearch(m, buf, 0, buf.length, baseOffset);
+   protected Collection
+   hashSearch(TwoKeyMap m, InputStream in) throws IOException {
+      Collection deltas = null;
+      byte[] buf = new byte[config.blockLength*config.blockLength];
+      long offset = 0;
+      int len = 0;
+
+      while ((len = in.read(buf)) != -1) {
+         if (deltas == null) {
+            deltas = hashSearch(m, buf, 0, len, offset);
+         } else {
+            deltas.addAll(hashSearch(m, buf, 0, len, offset));
+         }
+         offset += len;
+      }
+
+      return deltas;
    }
 
    /**
@@ -174,7 +197,7 @@ public final class Matcher implements RsyncConstants {
     * @param baseOffset The offset from whence <code>buf</code> came.
     * @return A collection of {@link Delta}s derived from this search.
     */
-   public Collection
+   protected Collection
    hashSearch(TwoKeyMap m, byte[] buf, int off, int len, long baseOffset) {
       LinkedList deltas = new LinkedList();
       ChecksumPair p = new ChecksumPair();
@@ -224,33 +247,29 @@ public final class Matcher implements RsyncConstants {
    }
 
    /**
-    * Search an input stream.
+    * Create a collection of deltas derived from the given file.
     *
-    * @param m  The {@link TwoKeyMap} to search.
-    * @param in The input stream to search.
+    * @param m The map of checksums to search for.
+    * @param f The file to search.
     * @return A collection of {@link Delta}s derived from this search.
     */
-   public Collection
-   hashSearch(TwoKeyMap m, InputStream in) throws IOException {
-      Collection deltas = null;
-      byte[] buf = new byte[config.blockLength*config.blockLength];
-      long offset = 0;
-      int len = 0;
-
-      while ((len = in.read(buf)) != -1) {
-         if (deltas == null) {
-            deltas = hashSearch(m, buf, 0, len, offset);
-         } else {
-            deltas.addAll(hashSearch(m, buf, 0, len, offset));
-         }
-         offset += len;
-      }
-
-      return deltas;
+   protected Collection hashSearch(TwoKeyMap m, File f)
+   throws IOException
+   {
+      return hashSearch(m, new RandomAccessFile(f, "r"));
    }
 
- // Own methods
-   // -----------------------------------------------------------------------
+   /**
+    * Create a collection of deltas derived from the given byte array.
+    *
+    * @param m The map of checksums to search for.
+    * @param buf  The data buffer to search.
+    * @param baseOffset The offset from whence <code>buf</code> came.
+    * @return A collection of {@link Delta}s derived from this search.
+    */
+   protected Collection hashSearch(TwoKeyMap m, byte[] buf, long baseOffset) {
+      return hashSearch(m, buf, 0, buf.length, baseOffset);
+   }
 
    /**
     * Search if a portion of the given byte array is in the map,
