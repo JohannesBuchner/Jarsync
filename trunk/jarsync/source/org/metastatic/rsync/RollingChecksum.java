@@ -99,34 +99,6 @@ public class RollingChecksum {
  // Constructors.
    // -----------------------------------------------------------------
 
-   /**
-    * Creates a new rolling checksum. Use this by supplying an
-    * appropriately-sized array of bytes as the parameter, as the
-    * size of this array will determine the size of the blocks used
-    * to compute the checksum in subsequent operations.
-    *
-    * @param buf The initial bytes to sum.
-    * @since 1.1
-    */
-   public RollingChecksum(byte[] buf) {
-      block = (byte[]) buf.clone();
-      k = 0;
-      l = buf.length - 1;
-      a = b = 0;
-      int i;
-      for (i = 0; i < buf.length - 4; i += 4) {
-         b += 4*(a+buf[i]) + 3*buf[i+1] + 2*buf[i+2] + buf[i+3]
-              + 10*CHAR_OFFSET;
-         a += buf[i] + buf[i+1] + buf[i+2] + buf[i+3] + 4*CHAR_OFFSET;
-      }
-      for (; i < buf.length; i++) {
-         a += buf[i] + CHAR_OFFSET;
-         b += a;
-      }
-      new_block = new byte[block.length];
-      new_index = 0;
-   }
-
    public RollingChecksum() {
       a = b = 0;
       k = 0;
