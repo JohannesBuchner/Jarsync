@@ -46,7 +46,7 @@ package org.metastatic.rsync;
  *
  * @version $Revision$
  */
-public final class MD4 implements Cloneable {
+public final class MD4 extends MessageDigest implements Cloneable {
 
    // Constants and variables.
    // -----------------------------------------------------------------
@@ -68,13 +68,11 @@ public final class MD4 implements Cloneable {
    private static final int C = 0x98badcfe;
    private static final int D = 0x10325476;
 
+   /* The four chaining variables. */
    private int a, b, c, d;
 
    /** Number of bytes processed so far. */
    private long count;
-
-   /** Temporary input buffer. */
-   private byte[] buffer = new byte[BLOCK_LENGTH];
 
    /** Word buffer for transforming. */
    private final int[] X = new int[16];
@@ -89,9 +87,16 @@ public final class MD4 implements Cloneable {
     * Trivial zero-argument constructor.
     */
    public MD4() {
+      name = "md4";
+      hashSize = DIGEST_LENGTH;
+      blockSize = BLOCK_LENGTH;
+      buffer = new byte[BLOCK_LENGTH];
       reset();
    }
 
+   /**
+    * Private constructor for cloning.
+    */
    private MD4(MD4 that) {
       this();
 
@@ -112,58 +117,11 @@ public final class MD4 implements Cloneable {
    // Instance methods.
    // -----------------------------------------------------------------
 
-   public void update(byte b) {
-      // compute number of bytes still unhashed; ie. present in buffer
-      int i = (int)(count % BLOCK_LENGTH);
-      count++;
-      buffer[i] = b;
-      if (i == (BLOCK_LENGTH - 1)) {
-         transform(buffer, 0);
-      }
-   }
-
-   public void update(byte[] b, int offset, int len) {
-      int n = (int)(count % BLOCK_LENGTH);
-      count += len;
-      int partLen = BLOCK_LENGTH - n;
-      int i = 0;
-
-      if (len >= partLen) {
-         System.arraycopy(b, offset, buffer, n, partLen);
-         transform(buffer, 0);
-         for (i = partLen; i + BLOCK_LENGTH - 1 < len; i+= BLOCK_LENGTH) {
-            transform(b, offset + i);
-         }
-         n = 0;
-      }
-
-      if (i < len) {
-         System.arraycopy(b, offset + i, buffer, n, len - i);
-      }
-   }
-
-   /** Finish and return the digest. */
-   public byte[] digest() {
-      byte[] tail = padBuffer();
-      update(tail, 0, tail.length);
-      byte[] result = getResult();
-
-      reset();
-
-      return result;
-   }
-
-   /** Reset this instance for future re-use. */
-   public void reset() {
-      count = 0L;
-      for (int i = 0; i < BLOCK_LENGTH; ) {
-         buffer[i++] = 0;
-      }
-
-      resetContext();
-   }
-
-   /** Do a simple conformance test. */
+   /**
+    * Do a simple conformance test.
+    *
+    * @return true If the self-test suceeds.
+    */
    public boolean selfTest() {
       return DIGEST0.equals(toString(new MD4().digest()));
    }
