@@ -14,7 +14,7 @@ suffix = bz2
 sources = $(wildcard source/org/metastatic/rsync/*.java)
 test_src = test.java test2.java test3.java
 
-distfiles = $(sources) $(test_src) AUTHORS COPYING Makefile README TODO mutate.pl ChangeLog build.xml source/Makefile lib/getopt.jar rdiff
+distfiles = $(sources) $(test_src) AUTHORS COPYING Makefile README TODO mutate.pl ChangeLog build.xml source/Makefile lib/getopt.jar rdiff rdiff.magic
 
 version = 0.0.2
 package = jarsync
@@ -24,7 +24,6 @@ distdir = $(package)-$(version)
 all: lib/jarsync.jar test
 
 lib/jarsync.jar: source/jarsync.jar
-	-mkdir lib
 	mv -f source/jarsync.jar lib
 
 test: lib/jarsync.jar test.class test2.class
@@ -55,6 +54,10 @@ dist: $(distdir)
 $(distdir):
 	mkdir -p $(distdir)
 	cp --parents -a $(distfiles) $(distdir)
+
+apidoc: $(sources)
+	-mkdir apidoc
+	javadoc -sourcepath source -d apidoc -private org.metastatic.rsync
 
 clean:
 	rm -f test.class
