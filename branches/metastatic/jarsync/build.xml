@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+
+<!--
+   $Id$
+
+   Copyright (C) 2002  Casey Marshall (rsdio@metastatic.org)
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+  
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+  
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the
+  
+      Free Software Foundation, Inc.,
+      59 Temple Place, Suite 330,
+      Boston, MA  02111-1307
+      USA
+
+-->
+
+<project name="jarsync" default="jar" basedir=".">
+
+   <description>
+      A re-implementation of the rsync fast file transfer program, and
+      library providing its essential functions written in Java.
+   </description>
+
+   <property file=".ant.properties"/>
+   <property file="${user.home}/.ant.properties"/>
+
+   <property name="debug" value="true"/>
+   <property name="optimize" value="false"/>
+
+   <property name="classes.dir" value="classes"/>
+   <property name="src.dir" value="source"/>
+   <property name="lib.dir" value="lib"/>
+
+   <property name="version.major" value="0"/>
+   <property name="version.minor" value="0"/>
+   <property name="version.micro" value="7"/>
+   <property name="dist.dir"
+      value="jarsync-${version.major}.${version.minor}.${version.micro}"/>
+
+   <property name="main.jar" value="${lib.dir}/jarsync.jar"/>
+
+   <target name="configure">
+      <tstamp/>
+      <mkdir dir="${classes.dir}"/>
+      <mkdir dir="${lib.dir}"/>
+   </target>
+
+   <target name="jar" depends="compile,configure">
+      <jar jarfile="${main.jar}" basedir="${classes.dir}"/>
+   </target>
+
+   <target name="compile" depends="configure">
+      <javac destdir="${classes.dir}" debug="${debug}"
+         optimize="${optimize}" srcdir="${src.dir}"
+         includes="org/metastatic/rsync/*.java" fork="yes"/>
+   </target>
+
+   <target name="dist" depends="${dist.dir}">
+      <tar tarfile="${dist.dir}.tar" includes="${dist.dir}" basedir="."/>
+      <bzip2 src="${dist.dir}.tar" zipfile="${dist.dir}.tar.bz2"/>
+   </target>
+
+   <target name="${dist.dir}">
+      <mkdir dir="${dist.dir}"/>
+      <copy todir="${dist.dir}">
+         <fileset dir=".">
+            <include name="AUTHORS"/>
+            <include name="COPYING"/>
+            <include name="README"/>
+            <include name="TODO"/>
+            <include name="build.xml"/>
+            <include name="source/**"/>
+         </fileset>
+      </copy>
+   </target>
+
+</project>
