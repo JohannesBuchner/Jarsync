@@ -88,6 +88,10 @@ The class 'test3' will reconstruct the new file in-place, so just say:
 
 SHOULD make the two files identical.
 
+This library includes a console program org.metastatic.rsync.Rdiff,
+which is a workalike for the rdiff program from librsync. Right now this
+is only a test program for the library, but may be made better later on.
+
 =======================================================================
 
 3. The API.
@@ -106,6 +110,7 @@ SHOULD make the two files identical.
   TODO       -  A list of things yet to be done.
   build.xml  -  Jakarta Ant XML build file.
   mutate.pl  -  Utility from librsync to make random modifications to files.
+  rdiff      -  Bash script to run org.metastatic.rsync.Rdiff.
   test.java  -  A simple test of byte array based methods.
   test2.java -  A simple test of file-based methods.
 
@@ -124,6 +129,7 @@ In directory org/metastatic/rsync:
                            the "strong" checksum.
   Offsets.java          -  A Delta that represents data that has simply
                            moved.
+  Rdiff.java            -  rdiff(1)-workalike example program.
   Rebuilder.java        -  Reconstructs files from deltas.
   RollingChecksum.java  -  A simple checksum based on Adler32 that can
                            be updated from either end.
