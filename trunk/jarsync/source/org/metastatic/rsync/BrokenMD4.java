@@ -101,7 +101,7 @@ public final class BrokenMD4 extends MessageDigest implements Cloneable {
    // java.lang.Cloneable interface implementation --------------------
 
    public Object clone() {
-      return new MD4(this);
+      return new BrokenMD4(this);
    }
 
    // Instance methods.
