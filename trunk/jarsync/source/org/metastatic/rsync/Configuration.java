@@ -1,47 +1,45 @@
-// vim:set tw=72 expandtab softtabstop=3 shiftwidth=3 tabstop=3:
-// $Id$
-//
-// Configuration -- Wrapper around configuration data.
-// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
-//
-// This file is a part of Jarsync.
-//
-// Jarsync is free software; you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option) any
-// later version.
-//
-// Jarsync is distributed in the hope that it will be useful, but
-// WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with Jarsync; see the file COPYING.  If not, write to the
-//
-//    Free Software Foundation Inc.,
-//    59 Temple Place - Suite 330,
-//    Boston, MA 02111-1307
-//    USA
-//
-// Linking this library statically or dynamically with other modules is
-// making a combined work based on this library.  Thus, the terms and
-// conditions of the GNU General Public License cover the whole
-// combination.
-//
-// As a special exception, the copyright holders of this library give
-// you permission to link this library with independent modules to
-// produce an executable, regardless of the license terms of these
-// independent modules, and to copy and distribute the resulting
-// executable under terms of your choice, provided that you also meet,
-// for each linked independent module, the terms and conditions of the
-// license of that module.  An independent module is a module which is
-// not derived from or based on this library.  If you modify this
-// library, you may extend this exception to your version of the
-// library, but you are not obligated to do so.  If you do not wish to
-// do so, delete this exception statement from your version.
-//
-// ---------------------------------------------------------------------------
+/* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
+   $Id$
+  
+   Configuration -- Wrapper around configuration data.
+   Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
+  
+   This file is a part of Jarsync.
+  
+   Jarsync is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by the
+   Free Software Foundation; either version 2 of the License, or (at
+   your option) any later version.
+  
+   Jarsync is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+  
+   You should have received a copy of the GNU General Public License
+   along with Jarsync; if not, write to the
+  
+      Free Software Foundation, Inc.,
+      59 Temple Place, Suite 330,
+      Boston, MA  02111-1307
+      USA
+  
+   Linking Jarsync statically or dynamically with other modules is
+   making a combined work based on Jarsync.  Thus, the terms and
+   conditions of the GNU General Public License cover the whole
+   combination.
+  
+   As a special exception, the copyright holders of Jarsync give you
+   permission to link Jarsync with independent modules to produce an
+   executable, regardless of the license terms of these independent
+   modules, and to copy and distribute the resulting executable under
+   terms of your choice, provided that you also meet, for each linked
+   independent module, the terms and conditions of the license of that
+   module.  An independent module is a module which is not derived from
+   or based on Jarsync.  If you modify Jarsync, you may extend this
+   exception to your version of it, but you are not obligated to do so.
+   If you do not wish to do so, delete this exception statement from
+   your version.  */
 
 package org.metastatic.rsync;
 
@@ -62,10 +60,20 @@ import java.security.NoSuchAlgorithmException;
  * @author Casey Marshall
  * @version $Revision$
  */
-public class Configuration {
+public class Configuration implements Cloneable, java.io.Serializable {
 
    // Constants and variables.
    // ------------------------------------------------------------------------
+
+   /**
+    * The default block size.
+    */
+   public static final int BLOCK_LENGTH = 700;
+
+   /**
+    * The default chunk size.
+    */
+   public static final int CHUNK_SIZE = 32768;
 
    /**
     * The message digest that computes the stronger checksum.
@@ -98,9 +106,54 @@ public class Configuration {
     */
    public byte[] checksumSeed;
 
+   /**
+    * The maximum size of byte arrays to create, when they are needed.
+    * This vale defaults to 32 kilobytes.
+    */
+   public int chunkSize;
+
    // Constructors.
    // ------------------------------------------------------------------------
 
-   // Default 0-arguments constructor.
+   public Configuration() {
+      blockLength = BLOCK_LENGTH;
+      chunkSize = CHUNK_SIZE;
+   }
 
+   /**
+    * Private copying constructor.
+    */
+   private Configuration(Configuration that)
+   {
+      try {
+         this.strongSum = (MessageDigest) (that.strongSum != null
+            ? that.strongSum.clone()
+            : null);
+      } catch (CloneNotSupportedException cnse) {
+         try {
+            this.strongSum = MessageDigest.getInstance(
+               that.strongSum.getAlgorithm());
+         } catch (NoSuchAlgorithmException nsae) {
+            // Fucked up situation. We die now.
+            throw new Error(nsae);
+         }
+      }
+      this.weakSum = (RollingChecksum) (that.weakSum != null
+         ? that.weakSum.clone()
+         : null);
+      this.blockLength = that.blockLength;
+      this.doRunLength = that.doRunLength;
+      this.strongSumLength = that.strongSumLength;
+      this.checksumSeed = (byte[]) (that.checksumSeed != null
+         ? that.checksumSeed.clone()
+         : null);
+      this.chunkSize = that.chunkSize;
+   }
+
+   // Instance methods.
+   // -----------------------------------------------------------------------
+
+   public Object clone() {
+      return new Configuration(this);
+   }
 }
