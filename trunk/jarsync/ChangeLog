@@ -4,6 +4,15 @@ $Id$
 
 2003-04-30   Casey Marshall  <rsdio@metastatic.org>
 
+	* configure.ac:
+	  (PRE_VERSION) removed.
+	  (DOUBLE_VERSION) new variable/replacement.
+	  Commented out bits only needed when configuring for
+	  client/server, which is not ready yet.
+	* source/org/metastatic/rsync/version.java.in:
+	  (VERSION) removed @PRE_VERSION@
+	  (VERSION_DOUBLE) replaced @PACKAGE_VERSION@ with
+	  @DOUBLE_VERSION@.
 	* source/org/metastatic/rsync/Matcher.java:
 	  (hashSearch(List, InputStream)) removed `off' field.
 	* source/org/metastatic/rsync/Rebuilder.java:
