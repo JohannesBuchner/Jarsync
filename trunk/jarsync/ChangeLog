@@ -2,6 +2,11 @@ ChangeLog for JARSYNC.
 
 $Id$
 
+0.2
+  + We now have some regression tests, using the Mauve test framework.
+  + Minor fixes to MD4 and BrokenMD4.
+  + Additional methods added to Rebuilder.
+
 2003-03-04 -- 0.1
 
   - The rsync-compatible program is on hold for now.
