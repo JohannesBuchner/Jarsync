@@ -30,6 +30,7 @@ package org.metastatic.vwdiff;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import java.security.Security;
 import java.util.Iterator;
 
 import gnu.getopt.Getopt;
@@ -40,8 +41,11 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.WriterAppender;
 
+import org.metastatic.rsync.JarsyncProvider;
 import org.metastatic.rsync.ParameterException;
 import org.metastatic.rsync.Parameters;
+
+import HTTPClient.HTTPConnection;
 
 public final class Main {
 
@@ -57,6 +61,8 @@ public final class Main {
    // -----------------------------------------------------------------------
 
    public static void main(String[] argv) throws Throwable {
+      Security.addProvider(new JarsyncProvider());
+      HTTPConnection.setDefaultTimeout(300000);
       LongOpt[] longopts = {
          new LongOpt("config",  LongOpt.REQUIRED_ARGUMENT, null, 'c'),
          new LongOpt("help",    LongOpt.NO_ARGUMENT,       null, 'h'),
@@ -121,23 +127,28 @@ public final class Main {
       }
 
       while (true) {
-         logger.info("beginning run");
-         long now = System.currentTimeMillis();
-         for (Iterator i = conf.targets.values().iterator(); i.hasNext(); ) {
-            Target t = (Target) i.next();
-            t.update(false, false);
-         }
          try {
-            conf.store();
-         } catch (Exception e) {
-            logger.warn("could not store data: " + e.getMessage());
-         }
-         try {
-            long elapsed = System.currentTimeMillis() - now;
-            logger.info("ended run; elapsed time=" + (elapsed / 1000) + " seconds");
-            if (elapsed < 300000)
-               Thread.sleep(300000 - elapsed);
-         } catch (InterruptedException ie) {
+            logger.info("beginning run");
+            long now = System.currentTimeMillis();
+            for (Iterator i = conf.targets.values().iterator(); i.hasNext(); ) {
+               Target t = (Target) i.next();
+               t.update(false, false);
+            }
+            try {
+               conf.store();
+            } catch (Exception e) {
+               logger.warn("could not store data: " + e.getMessage());
+            }
+            try {
+               long elapsed = System.currentTimeMillis() - now;
+               logger.info("ended run; elapsed time=" + (elapsed / 1000) + " seconds");
+               if (elapsed < 300000)
+                  Thread.sleep(300000 - elapsed);
+            } catch (InterruptedException ie) {
+            }
+         } catch (Exception x) {
+            logger.fatal("FATAL: " + x);
+            System.exit(1);
          }
       }
    }

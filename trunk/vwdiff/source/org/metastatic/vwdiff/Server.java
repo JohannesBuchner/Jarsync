@@ -157,6 +157,9 @@ public class Server implements Runnable {
             }
          } catch (IOException ioe) {
             logger.warn(ioe.toString());
+         } catch (Exception x) {
+            logger.fatal("FATAL: " + x);
+            System.exit(1);
          }
       }
    }

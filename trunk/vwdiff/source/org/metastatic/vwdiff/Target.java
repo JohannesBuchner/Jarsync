@@ -36,7 +36,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 
-import java.net.HttpURLConnection;
 import java.net.URL;
 
 import java.security.MessageDigest;
@@ -57,19 +56,24 @@ import org.metastatic.rsync.Generator;
 import org.metastatic.rsync.Matcher;
 import org.metastatic.rsync.Offsets;
 
+import HTTPClient.HTTPConnection;
+import HTTPClient.HTTPResponse;
+import HTTPClient.NVPair;
+
 public class Target implements java.io.Serializable {
 
    // Fields.
    // -----------------------------------------------------------------------
 
-   private static final String USER_AGENT = "Mozilla/5.0 " +
-      "(compatible; vwdiff/" + version.VERSION +
-      "; Jarsync/" + org.metastatic.rsync.version.VERSION +
+   private static final NVPair[] USER_AGENT = { new NVPair("User-Agent",
+      "vwdiff/" + version.VERSION +
+      " (Jarsync/" + org.metastatic.rsync.version.VERSION +
       "; Java/" + System.getProperty("java.version") +
       "; " + System.getProperty("java.vm.name") +
       "/"  + System.getProperty("java.vm.version") +
       "; " + System.getProperty("os.name") +
-      "/"  + System.getProperty("os.version") + ")";
+      "/"  + System.getProperty("os.version") + 
+      "; http://jarsync.sourceforge.net/vwdiff/)") };
 
    private static final Logger logger = Logger.getLogger(Target.class);
 
@@ -124,13 +128,19 @@ public class Target implements java.io.Serializable {
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       byte[] buf = new byte[512];
       try {
-         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-         conn.setRequestProperty("User-Agent", USER_AGENT);
-         conn.connect();
-         InputStream in = conn.getInputStream();
+         HTTPConnection conn = new HTTPConnection(url);
+         conn.setDefaultHeaders(USER_AGENT);
+         HTTPResponse resp = conn.Get(url.getFile());
+         if (resp.getStatusCode() >= 400) {
+            throw new IOException(resp.getStatusCode() + resp.getReasonLine());
+         }
+         InputStream in = resp.getInputStream();
          int len = 0;
          while ((len = in.read(buf)) != -1)
             out.write(buf, 0, len);
+      } catch (HTTPClient.ModuleException me) {
+         logger.warn(me.toString());
+         return;
       } catch (IOException ioe) {
          logger.warn(ioe.toString());
          return;
@@ -156,10 +166,13 @@ public class Target implements java.io.Serializable {
          InputStream in = null;
          Matcher match = new Matcher(config);
          if (!basisOnly) {
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestProperty("User-Agent", USER_AGENT);
-            conn.connect();
-            in = conn.getInputStream();
+            HTTPConnection conn = new HTTPConnection(url);
+            conn.setDefaultHeaders(USER_AGENT);
+            HTTPResponse resp = conn.Get(url.getFile());
+            if (resp.getStatusCode() >= 400) {
+               throw new IOException(resp.getStatusCode() + resp.getReasonLine());
+            }
+            in = resp.getInputStream();
          } else {
             in = new ByteArrayInputStream(basis);
          }
@@ -181,6 +194,8 @@ public class Target implements java.io.Serializable {
             logger.info("created " + deltas.size() + " deltas, read "
                         + bytes + " bytes");
          }
+      } catch (HTTPClient.ModuleException me) {
+         logger.warn(me.toString());
       } catch (IOException ioe) {
          logger.error(ioe.getMessage());
       }
