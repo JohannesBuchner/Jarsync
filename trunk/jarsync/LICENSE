@@ -1,0 +1,39 @@
+The code that is a part of Jarsync itself, including everything except
+the packages described below, is covered under the GNU General Public
+License, version 2 or later.  A copy of this license is included in the
+top-level directory (the same directory as this file is in) named
+`COPYING'.  Additionally, Jarsync permits linking with non-free modules
+to create an executable, by this exception:
+
+   Linking this library statically or dynamically with other modules is
+   making a combined work based on this library.  Thus, the terms and
+   conditions of the GNU General Public License cover the whole
+   combination.
+  
+   As a special exception, the copyright holders of this library give
+   you permission to link this library with independent modules to
+   produce an executable, regardless of the license terms of these
+   independent modules, and to copy and distribute the resulting
+   executable under terms of your choice, provided that you also meet,
+   for each linked independent module, the terms and conditions of the
+   license of that module.  An independent module is a module which is
+   not derived from or based on this library.  If you modify this
+   library, you may extend this exception to your version of the
+   library, but you are not obligated to do so.  If you do not wish to
+   do so, delete this exception statement from your version.
+
+The (currently incomplete) rsync-compatible client and server is covered
+under the terms of the GNU General Public License, WITHOUT the above
+exception. If you are in doubt about how a file is licensed, see the
+sources; each file declares its license terms at the top.
+
+Any license that applies to other software that Jarsync uses and
+includes in this distribution does not necessarily affect how Jarsync is
+licensed.  Note that the license terms of getopt and/or jzlib may
+conflict with these permissions in certain circumstances; in such
+instances these libraries must not be used in the final executable.
+
+Aaron M. Renn's Java port of the GNU getopt library, here included in
+the directory `getopt', is covered by the GNU Library (or Lesser)
+General Public License, version 2 or later.  The LGPL is included for
+this package in the file `COPYING.getopt'.
