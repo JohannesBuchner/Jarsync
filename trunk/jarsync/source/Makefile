@@ -16,6 +16,7 @@ sources = org/metastatic/rsync/ChecksumPair.java \
   org/metastatic/rsync/Matcher.java \
   org/metastatic/rsync/MessageDigest.java \
   org/metastatic/rsync/Offsets.java \
+  org/metastatic/rsync/Rebuilder.java \
   org/metastatic/rsync/RollingChecksum.java \
   org/metastatic/rsync/RsyncConstants.java \
   org/metastatic/rsync/TwoKeyMap.java
