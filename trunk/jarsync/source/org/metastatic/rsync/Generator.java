@@ -27,8 +27,8 @@
 package org.metastatic.rsync;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -98,6 +98,31 @@ public class Generator implements RsyncConstants {
          offset += n;
       }
 
+      return sums;
+   }
+
+   public Collection generateSums(File f) throws IOException {
+      long len = f.length();
+      int count = (int) ((len+(config.blockLength+1)) / config.blockLength);
+      long offset = 0;
+      FileInputStream fin = new FileInputStream(f);
+      Collection sums = new ArrayList(count);
+      int n = (int) Math.min(len, config.blockLength);
+      byte[] buf = new byte[n];
+
+      for (int i = 0; i < count; i++) {
+         int l = fin.read(buf, 0, n);
+         if (l == -1) break;
+         ChecksumPair pair = generateSum(buf, 0, Math.min(l, n), offset);
+         pair.seq = i;
+
+         sums.add(pair);
+         len -= n;
+         offset += n;
+         n = (int) Math.min(len, config.blockLength);
+      }
+
+      fin.close();
       return sums;
    }
 

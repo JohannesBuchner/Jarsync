@@ -67,20 +67,10 @@ public final class Matcher implements RsyncConstants {
       return m;
    }
 
-   public Collection hashSearch(TwoKeyMap m, Collection sums, File f)
+   public Collection hashSearch(TwoKeyMap m, File f)
    throws IOException
    {
-      return hashSearch(m, sums, new FileInputStream(f));
-   }
-
-   public Collection hashSearch(TwoKeyMap m, Collection sums, InputStream in)
-   throws IOException
-   {
-      //config.weakSum.reset();
-      //do {
-      //   
-      //} (while bt != -1 && len == config.blockSize);
-      return null;
+      return hashSearch(m, new RandomAccessFile(f, "r"));
    }
 
    public Collection hashSearch(TwoKeyMap m, byte[] buf, long baseOffset) {
@@ -136,7 +126,9 @@ public final class Matcher implements RsyncConstants {
       return deltas;
    }
 
-   public Long
+   // own methods
+
+   protected Long
    hashSearch(Integer weakSum, byte[] block, int off, int len, TwoKeyMap m) {
       if (m.containsKey(weakSum.intValue())) {
          System.err.println("first test succeeds; weak=" +
@@ -151,5 +143,62 @@ public final class Matcher implements RsyncConstants {
          }
       }
       return null;
+   }
+
+   protected Collection
+   hashSearch(TwoKeyMap m, RandomAccessFile f) throws IOException {
+      LinkedList deltas = new LinkedList();
+      ChecksumPair p = new ChecksumPair();
+      long len = f.length();
+      int n = (int) Math.min(len, config.blockLength);
+      byte[] buf = new byte[n];
+      Integer weak;
+      Long oldOffset;
+      long i = 0, j = 0;
+
+      weakSum.reset();
+      f.read(buf, 0, n);
+      weakSum.check(buf, 0, n);
+
+      while (i < len) {
+         weak = new Integer(weakSum.getValue());
+         oldOffset = hashSearch(weak, buf, 0, n, m);
+         if (oldOffset != null) {
+            System.err.println("third test succeeds; off=" + oldOffset);
+            if (j == i && !deltas.isEmpty()) {
+               Offsets o = (Offsets) deltas.getLast();
+               o.setBlockLength(o.getBlockLength() + n);
+            } else if (i != j) {
+               byte[] b = new byte[(int) (i-j)];
+               f.seek(j);
+               f.read(b, 0, b.length);
+               deltas.add(new DataBlock(j, b));
+               deltas.add(new Offsets(oldOffset.longValue(), i, n));
+               f.seek(i+n);
+            } else {
+               deltas.add(new Offsets(oldOffset.longValue(), i, n));
+            }
+            i += n;
+            j = i;
+            n = (int) Math.min(len - i, config.blockLength);
+            f.read(buf, 0, n);
+            weakSum.check(buf, 0, n);
+         } else {
+            if (i+n < len)
+               weakSum.roll((byte) f.read());
+            else
+               weakSum.trim();
+            i++;
+            n = (int) Math.min(len - i, config.blockLength);
+         }
+      }
+      if (i != j) {
+         byte[] b = new byte[(int) (i-j)];
+         f.seek(j);
+         f.read(b, 0, b.length);
+         deltas.add(new DataBlock(j, b));
+      }
+      f.close();
+      return deltas;
    }
 }
