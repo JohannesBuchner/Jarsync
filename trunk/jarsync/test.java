@@ -18,11 +18,11 @@ public class test {
 
    public static void main(String[] argv) throws Exception {
       if (argv.length < 2) {
-         System.err.println("usage: test old-file new-file");
+         System.err.println("usage: test new-file old-file");
          System.exit(1);
       }
-      File old = new File(argv[0]);
-      File newf = new File(argv[1]);
+      File newf = new File(argv[0]);
+      File old = new File(argv[1]);
 
       FileInputStream oldIn = new FileInputStream(old);
       byte[] buf = new byte[10*1024*1024];
