@@ -3,22 +3,21 @@
 # $Id$
 
 JAVAC = @JAVAC@
-JAVACFLAGS = @JAVACFLAGS@
+JAVACFLAGS = @CHECKJAVACFLAGS@
 JAVA = @JAVA@
 JAVAFLAGS = @JAVAFLAGS@
 SHELL = @SHELL@
 
-EXTRA_DIST = $(mauve_sources) $(test_sources) choose-classes \
-  gnu/testlet/config.java.in
+EXTRA_DIST = $(mauve_sources) $(test_sources) $(srcdir)/choose-classes \
+  $(srcdir)/gnu/testlet/config.java.in
 
 mauve_sources = \
   gnu/testlet/ResourceNotFoundException.java \
   gnu/testlet/SimpleTestHarness.java \
   gnu/testlet/TestHarness.java \
-  gnu/testlet/Testlet.java \
-  gnu/testlet/config.java
+  gnu/testlet/Testlet.java
 
-mauve_classes = $(patsubst %.java,../classes/%.class,$(mauve_sources))
+mauve_classes = $(patsubst %.java,classes/%.class,$(mauve_sources))
 
 test_sources = \
   gnu/testlet/org/metastatic/rsync/SimpleTest.java \
@@ -27,21 +26,30 @@ test_sources = \
   gnu/testlet/org/metastatic/rsync/TestOfBrokenMD4.java \
   gnu/testlet/org/metastatic/rsync/TestOfMD4.java
 
-test_classes = $(patsubst %.java,../classes/%.class,$(test_sources))
+test_classes = $(patsubst %.java,classes/%.class,$(test_sources))
 
-check-local: $(mauve_classes) $(test_classes) test_classes
-	$(JAVA) $(JAVAFLAGS) gnu.testlet.SimpleTestHarness -verbose < test_classes
+check-local: classes $(mauve_classes) $(test_classes) $(srcdir)/test_classes \
+	     classes/gnu/testlet/config.class
+	CLASSPATH=$$CLASSPATH:../classes/:classes/ \
+	  $(JAVA) $(JAVAFLAGS) gnu.testlet.SimpleTestHarness \
+	  -verbose < $(srcdir)/test_classes
 
-test_classes: FORCE
-	$(SHELL) ./choose-classes . JARSYNC
+$(srcdir)/test_classes: FORCE
+	cd $(srcdir) && $(SHELL) choose-classes . JARSYNC
 
 FORCE:
 
-$(mauve_classes): ../classes/%.class: %.java
-	$(JAVAC) -source 1.4 $(JAVACFLAGS) $<
+classes/gnu/testlet/config.class: gnu/testlet/config.java
+	$(JAVAC) $(JAVACFLAGS) -d classes $<
 
-$(test_classes): ../classes/%.class: %.java
-	$(JAVAC) -source 1.4 $(JAVACFLAGS) $<
+$(mauve_classes): classes/%.class: $(srcdir)/%.java
+	$(JAVAC) $(JAVACFLAGS) -d classes $<
+
+$(test_classes): classes/%.class: $(srcdir)/%.java
+	$(JAVAC) $(JAVACFLAGS) -d classes $<
+
+classes:
+	mkdir classes
 
 clean-local:
-	rm -f $(mauve_classes) $(test_classes)
+	rm -f $(mauve_classes) $(test_classes) classes/gnu/testlet/config.class
