@@ -96,7 +96,50 @@ is only a test program for the library, but may be made better later on.
 
 3. The API.
 
-...
+The gist of the API (at this moment) is to provide the three most basic
+functions in the rsync algorithm -- checksum generation, delta
+generation, and file patching. A higher-level interface may be added
+later.
+
+This is only an overview; see the API JavaDocs for more information.
+
+  3.a. Checksum Generation.
+
+  Checksum generation is handled with the `Generator' class, and comes
+  in two basic flavors: generating over byte arrays and generating over
+  files. All generation methods are called `generateSums', which will
+  all return a java.util.Collection of ChecksumPair objects.
+
+  The constructor can take a `Configuration' argument, which stores
+  things such as the message digest algorithm, the block size, etc.
+
+
+  3.b. Delta Generation
+
+  Deltas are generated with the `Matcher' class, whose methods take
+  either a java.util.Collection of checksums or a TwoKeyMap generated
+  from the `buildHashtable' method, and either a byte array, a
+  java.io.File, or a java.io.InputStream. All methods are called
+  `hashSearch' and all return a java.util.Collection of `Delta' objects,
+  which are either of type `Offsets' or `DataBlock'.
+
+  The Matcher class can take a `Configuration', similar to Generator.
+
+
+  3.c. File Patching
+
+  Files are patched with the `Rebuilder' class, whose methods
+  `rebildFile'  will either take a basis file and a java.util.Collection
+  of Deltas and return a new, temporary file containing the patched
+  file; or take two files and a java.util.Collection, patching into one
+  of them. The `rebuildFileInPlace' will patch the file in-place, not
+  creating any temporary files.
+
+  Since these methods are stateless, they are all static and do not
+  depend upon a `Configuration'.
+
+  There is no equivalent InputStream/byte[] methods, as these methods
+  require random access.
 
 =======================================================================
 
@@ -111,6 +154,7 @@ is only a test program for the library, but may be made better later on.
   build.xml  -  Jakarta Ant XML build file.
   mutate.pl  -  Utility from librsync to make random modifications to files.
   rdiff      -  Bash script to run org.metastatic.rsync.Rdiff.
+  rdiff.magic-  Example (unofficial) magic(5) file for rdiff files.
   test.java  -  A simple test of byte array based methods.
   test2.java -  A simple test of file-based methods.
 
