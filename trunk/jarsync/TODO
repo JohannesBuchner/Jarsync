@@ -1,19 +1,5 @@
 Open tasks for jarsync, in order of importance:
 
-  * Finish implementing file-based methods.
-
-  * Implement the file reconstruction methods.
-
-  * Finalize the library's API.
-
-  * Build environments. Make sure that 'make' and 'ant' run well across
-    platforms.
-
-  * Kill the last remaining bugs in the checksum search.
-
-  * General stress-testing and bug-fixing (once this is done the
-    library should go to version 1.0).
-
   * Implement a client and a server that are compatible with the
     current C implementation of rsync, and/or invent our own protocol to
     make things easier on ourselves.
