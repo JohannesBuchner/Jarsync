@@ -56,12 +56,13 @@ public class ChecksumDecoder extends org.metastatic.rsync.ChecksumDecoder
 
   public int read(List sums)
   {
-    throw new UnsupportedOperationException("rsync protocol does not have end-of-checksums support");
+    throw new UnsupportedOperationException("rsync protocol does not have end-of-checksums marker");
   }
 
   public ChecksumPair read() throws IOException
   {
-    int weak = in.read() | (in.read() << 8) | (in.read() << 16) | (in.read() << 24);
+    int weak = (in.read() & 0xFF)       | (in.read() & 0xFF) <<  8
+             | (in.read() & 0xFF) << 16 | (in.read() & 0xFF) << 24;
     byte[] strong = new byte[config.strongSumLength];
     in.read(strong);
     ChecksumPair pair = new ChecksumPair(weak, strong, offset);

@@ -1,28 +1,27 @@
-/* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
+/* Receiver -- File receiving methods.
    $Id$
 
-   Receiver: File receiving methods.
-   Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
+Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
 
-   This file is a part of Jarsync.
+This file is a part of Jarsync.
 
-   Jarsync is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2 of the License, or (at
-   your option) any later version.
+Jarsync is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version.
 
-   Jarsync is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+Jarsync is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with Jarsync; if not, write to the
+You should have received a copy of the GNU General Public License
+along with Jarsync; if not, write to the
 
-      Free Software Foundation, Inc.,
-      59 Temple Place, Suite 330,
-      Boston, MA  02111-1307
-      USA  */
+   Free Software Foundation, Inc.,
+   59 Temple Place, Suite 330,
+   Boston, MA  02111-1307
+   USA  */
 
 /*
  * Based on rsync-2.5.5.
@@ -39,6 +38,7 @@ import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
@@ -58,9 +58,11 @@ import org.metastatic.rsync.GeneratorEvent;
 import org.metastatic.rsync.GeneratorListener;
 import org.metastatic.rsync.GeneratorStream;
 import org.metastatic.rsync.ListenerException;
+import org.metastatic.rsync.Offsets;
 import org.metastatic.rsync.RebuilderEvent;
 import org.metastatic.rsync.RebuilderListener;
 import org.metastatic.rsync.RebuilderStream;
+import org.metastatic.rsync.Util;
 
 /**
  * The receiver process. The receiver is the one who generates the
@@ -87,7 +89,7 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
 
   private Statistics stats;
 
-  private final Configuration config;
+  private final Configuration genConfig, recvConfig;
 
   private final int remoteVersion;
 
@@ -121,7 +123,8 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
     this.out = out;
     if (amServer)
       logger.addAppender(new RsyncAppender(out));
-    this.config = config;
+    this.genConfig = (Configuration) config.clone();
+    this.recvConfig = (Configuration) config.clone();
     this.remoteVersion = remoteVersion;
     stats = new Statistics();
   }
@@ -158,7 +161,7 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
    */
   public void generateFiles(List files) throws IOException
   {
-    logger.info("generateFiles starting thread=" + Thread.currentThread());
+    logger.debug("generateFiles starting thread=" + Thread.currentThread());
     genPhase = 0;
 
     retryIndex = 0;
@@ -166,16 +169,16 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
     for (int i = 0; i < retry.length; i++)
       retry[i] = -1;
 
-    for (int i = 0; i <= files.size(); i++)
+    for (int i = 0; i < files.size(); i++)
       {
         FileInfo f = (FileInfo) files.get(i);
-        sendSums(new File(f.dirname + File.separator + f.basename), i);
+        sendSums(new File(f.filename()), i);
       }
 
     genPhase++;
     out.writeInt(-1);
-    logger.info("generateFiles phase=" + genPhase);
-    config.strongSumLength = SUM_LENGTH;
+    out.flush();
+    logger.debug("generateFiles phase=" + genPhase);
 
     if (remoteVersion >= 13)
       {
@@ -190,6 +193,7 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
               }
             catch (InterruptedException ignore) { }
           }
+        genConfig.strongSumLength = SUM_LENGTH;
         // in newer versions of the protocol the files can cycle
         // through the system more than once to catch initial checksum
         // errors.
@@ -200,11 +204,12 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
         for (int i = 0; i < retryIndex && retry[i] != -1; i++)
           {
             FileInfo f = (FileInfo) files.get(retry[i]);
-            sendSums(new File(f.dirname + File.separator + f.basename), retry[i]);
+            sendSums(new File(f.filename()), retry[i]);
           }
         genPhase++;
-        logger.info("generateFiles phase=" + genPhase);
+        logger.debug("generateFiles phase=" + genPhase);
         out.writeInt(-1);
+        out.flush();
       }
   }
 
@@ -217,7 +222,7 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
    */
   public void receiveFiles(List files) throws IOException
   {
-    logger.info("receiveFiles starting thread=" + Thread.currentThread());
+    logger.debug("receiveFiles starting thread=" + Thread.currentThread());
     recvPhase = 0;
 
     while (true)
@@ -228,7 +233,7 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
             if (recvPhase == 0 && remoteVersion >= 13)
               {
                 recvPhase++;
-                logger.info("receiveFiles phase=" + recvPhase);
+                logger.debug("receiveFiles phase=" + recvPhase);
                 synchronized (recvLock)
                   {
                     recvLock.notify();
@@ -245,16 +250,17 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
             logger.fatal(msg);
             throw new IOException(msg);
           }
+        logger.debug("receiveFiles read index=" + i);
 
         FileInfo finfo = (FileInfo) files.get(i);
-        File f = new File(finfo.dirname + File.separator + finfo.basename);
+        File f = new File(finfo.filename());
 
         stats.num_transferred_files++;
         stats.total_transferred_size += f.length();
 
         if (!receiveData(f))
           {
-            if (config.strongSumLength == SUM_LENGTH)
+            if (genConfig.strongSumLength == SUM_LENGTH)
               {
                 logger.error("File corruption in " + f.getName()
                              + ". File changed during transfer?");
@@ -269,11 +275,12 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
           }
       }
 
-    logger.info("receiveFiles finished");
+    logger.debug("receiveFiles finished");
   }
 
   public void update(GeneratorEvent e) throws ListenerException
   {
+    logger.debug("emitting sum=" + e.getChecksumPair());
     try
       {
         checkOut.write(e.getChecksumPair());
@@ -288,6 +295,7 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
   {
     try
       {
+        logger.debug("inserting data at=" + e.getOffset());
         rebuildFile.seek(e.getOffset());
         rebuildFile.write(e.getData());
       }
@@ -309,37 +317,47 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
    */
   private void sendSums(File f, int i) throws IOException
   {
-    int blen = config.blockLength;
-    if (config.blockLength == BLOCK_LENGTH)
+    int blen = genConfig.blockLength;
+    if (genConfig.blockLength == BLOCK_LENGTH)
       {
         int l = (int) (f.length() / 10000) & ~15;
-        if (l < config.blockLength)
-          l = config.blockLength;
+        if (l < genConfig.blockLength)
+          l = genConfig.blockLength;
         if (l > CHUNK_SIZE / 2)
           l = CHUNK_SIZE / 2;
-        config.blockLength = l;
+        genConfig.blockLength = l;
       }
 
     out.writeInt(i);
     if (f.exists())
       {
-        int count = (int) (f.length() / config.blockLength);
-        int rem = (int) (f.length() % config.blockLength);
+        int count = (int) (f.length() / genConfig.blockLength);
+        int rem = (int) (f.length() % genConfig.blockLength);
+        if (rem > 0)
+          count++;
         out.writeInt(count);
-        out.writeInt(config.blockLength);
+        out.writeInt(genConfig.blockLength);
         out.writeInt(rem);
+        out.flush();
+        logger.debug("writing sums i=" + i + " count=" + count +
+                     " blockLen=" + genConfig.blockLength + " rem=" +
+                     rem);
 
         FileInputStream fin = new FileInputStream(f);
         byte[] buf = new byte[CHUNK_SIZE];
         int len = 0;
-        checkOut = new ChecksumEncoder(config, out);
-        GeneratorStream gen = new GeneratorStream(config);
+        checkOut = new ChecksumEncoder(genConfig, out);
+        GeneratorStream gen = new GeneratorStream(genConfig);
         gen.addListener(this);
+        logger.debug("generating=" + fin);
         try
           {
-            while ((len = in.read(buf)) < 0)
+            logger.debug("about to read; available=" + fin.available());
+            while ((len = fin.read(buf)) > 0)
               {
+                logger.debug("read " + len + " bytes from file");
                 gen.update(buf, 0, len);
+                out.flush();
               }
             gen.doFinal();
           }
@@ -351,10 +369,11 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
     else
       {
         out.writeInt(0);
-        out.writeInt(config.blockLength);
+        out.writeInt(genConfig.blockLength);
         out.writeInt(0);
+        out.flush();
       }
-    config.blockLength = blen;
+    genConfig.blockLength = blen;
   }
 
   /**
@@ -372,16 +391,45 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
     byte[] file_sum1, file_sum2;
     byte[] data = new byte[CHUNK_SIZE];
 
-    DeltaDecoder deltasIn = new PlainDeltaDecoder(config, in);
+    logger.debug("receiveData count=" + count + " n=" + n +
+                 " remainder=" + remainder);
+
+    recvConfig.blockLength = n;
+    DeltaDecoder deltasIn = new PlainDeltaDecoder(recvConfig, in);
     RebuilderStream rebuilder = new RebuilderStream();
     rebuilder.addListener(this);
+    try
+      {
+        rebuilder.setBasisFile(f);
+      }
+    catch (FileNotFoundException fnfe)
+      {
+        // Ok, we might be writing a new file.
+      }
     Delta delta = null;
-    File newf = File.createTempFile(".jarsync", ".tmp", f.getParentFile());
+    File newf = null;
+    if (f.getParentFile() != null)
+      newf = File.createTempFile(".jarsync", ".tmp", f.getParentFile());
+    else
+      newf = File.createTempFile(".jarsync", ".tmp",
+                                 new File(System.getProperty("user.dir")));
     rebuildFile = new RandomAccessFile(newf, "rw");
     try
       {
+        int i = 0;
         while ((delta = deltasIn.read()) != null)
           {
+            i++;
+            if (i == count && (delta instanceof Offsets) && remainder > 0)
+              {
+                delta = new Offsets(((Offsets) delta).getOldOffset(),
+                                    ((Offsets) delta).getNewOffset(),
+                                    remainder);
+              }
+            if (delta instanceof Offsets)
+              stats.matched_data += delta.getBlockLength();
+            else
+              stats.literal_data += delta.getBlockLength();
             rebuilder.update(delta);
           }
       }
@@ -389,8 +437,12 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
       {
         throw (IOException) le.getCause();
       }
+    rebuilder.doFinal();
     rebuildFile.close();
-    newf.renameTo(f);
+    if (!newf.renameTo(f))
+      {
+        throw new IOException("cannot rename " + newf + " to " + f);
+      }
 
     if (remoteVersion >= 14)
       {
@@ -401,10 +453,12 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
           }
         catch (NoSuchAlgorithmException nsae)
           {
+            logger.fatal("could not create message digest");
             throw new Error(nsae);
           }
         FileInputStream fin = new FileInputStream(f);
         int i = 0;
+        md.update(recvConfig.checksumSeed);
         while ((i = fin.read(data)) != -1)
           {
             md.update(data, 0, i);
@@ -412,6 +466,8 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
         file_sum1 = md.digest();
         file_sum2 = new byte[file_sum1.length];
         in.read(file_sum2);
+        logger.debug("file_sum1=" + Util.toHexString(file_sum1));
+        logger.debug("file_sum2=" + Util.toHexString(file_sum2));
         return Arrays.equals(file_sum1, file_sum2);
       }
 

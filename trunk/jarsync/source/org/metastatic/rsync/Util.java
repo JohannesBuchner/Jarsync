@@ -7,32 +7,32 @@
    Util: Basic utility functions.
    Copyright (C) 2001,2002  The Free Software Foundation, Inc.
    Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
-  
+
    This file is a part of Jarsync.
-  
+
    Jarsync is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
    Free Software Foundation; either version 2 of the License, or (at
    your option) any later version.
-  
+
    Jarsync is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
-  
+
    You should have received a copy of the GNU General Public License
    along with Jarsync; if not, write to the
-  
+
       Free Software Foundation, Inc.,
       59 Temple Place, Suite 330,
       Boston, MA  02111-1307
       USA
-  
+
    Linking Jarsync statically or dynamically with other modules is
    making a combined work based on Jarsync.  Thus, the terms and
    conditions of the GNU General Public License cover the whole
    combination.
-  
+
    As a special exception, the copyright holders of Jarsync give you
    permission to link Jarsync with independent modules to produce an
    executable, regardless of the license terms of these independent
@@ -121,25 +121,29 @@ public final class Util {
       } catch (java.io.UnsupportedEncodingException shouldNotHappen) { }
    }
 
-   /**
-    * Read up to a '\n' or '\r', and return the resulting string. The
-    * input is assumed to be ISO-8859-1.
-    *
-    * @param in The {@link java.io.InputStream} to read from.
-    * @return The line read, without the line terminator.
-    */
-   public static String readLine(InputStream in) throws IOException {
-      StringBuffer s = new StringBuffer();
-      int c = in.read();
-      while (c != -1 && c != '\n' && c != '\r') {
-         s.append((char) (c&0xff));
-         c = in.read();
+  /**
+   * Read up to a '\n' or '\r', and return the resulting string. The
+   * input is assumed to be ISO-8859-1.
+   *
+   * @param in The {@link java.io.InputStream} to read from.
+   * @return The line read, without the line terminator.
+   */
+  public static String readLine(InputStream in) throws IOException
+  {
+    StringBuffer s = new StringBuffer();
+    int c = in.read();
+    while (c != -1 && c != '\n')
+      {
+        if (c != '\r')
+          s.append((char) (c&0xff));
+        c = in.read();
       }
-      if (c == -1) {
-         throw new EOFException();
+    if (s.length() == 0 && c == -1)
+      {
+        return null;
       }
-      return s.toString();
-   }
+    return s.toString();
+  }
 
    // From gnu.crypto.util.Util
 
@@ -157,7 +161,7 @@ public final class Util {
    public static String toHexString(byte[] b) {
       return toHexString(b, 0, b.length);
    }
- 
+
    /**
     * Convert a byte array to a big-endian ordered hexadecimal string.
     *

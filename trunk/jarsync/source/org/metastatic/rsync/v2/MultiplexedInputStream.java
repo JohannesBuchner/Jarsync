@@ -1,28 +1,28 @@
-/* vim:set tabstop=3 expandtab tw=72:
+/* MultiplexedInputStream -- Multiplexed input.
    $Id$
 
-   MultiplexedInputStream: Multiplexed input.
-   Copyright (C) 2002,2003  Casey Marshall <rsdio@metastatic.org>
+Copyright (C) 2002,2003  Casey Marshall <rsdio@metastatic.org>
 
-   This file is a part of Jarsync.
+This file is a part of Jarsync.
 
-   Jarsync is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2, or (at your option) any
-   later version.
+Jarsync is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2, or (at your option) any
+later version.
 
-   Jarsync is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+Jarsync is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with Jarsync; see the file COPYING.  If not, write to the
+You should have received a copy of the GNU General Public License
+along with Jarsync; see the file COPYING.  If not, write to the
 
-      Free Software Foundation Inc.,
-      59 Temple Place - Suite 330,
-      Boston, MA 02111-1307
-      USA  */
+   Free Software Foundation Inc.,
+   59 Temple Place - Suite 330,
+   Boston, MA 02111-1307
+   USA  */
+
 
 package org.metastatic.rsync.v2;
 
@@ -62,7 +62,8 @@ public class MultiplexedInputStream extends InputStream
   // Constructors.
   // -----------------------------------------------------------------------
 
-  public MultiplexedInputStream(InputStream in, boolean multiplex) {
+  public MultiplexedInputStream(InputStream in, boolean multiplex)
+  {
     this.in = in;
     this.multiplex = multiplex;
     this.stats = new Statistics();
@@ -105,6 +106,7 @@ public class MultiplexedInputStream extends InputStream
   {
     int ret = 0, total = 0;
 
+    //logger.debug("want to read " + len + " bytes");
     while (total < len)
       {
         if (multiplex)
@@ -117,6 +119,7 @@ public class MultiplexedInputStream extends InputStream
           }
         total += ret;
       }
+    //logger.debug("read " + total + " bytes");
     stats.total_read += total;
     return total;
   }

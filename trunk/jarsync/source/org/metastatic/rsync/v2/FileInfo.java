@@ -1,28 +1,27 @@
-/* :vim:set tw=78 expandtab tabstop=3:
+/* FileInfo -- information about files being tranferred.
    $Id$
 
-   FileInfo: information about files being tranferred.
-   Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
+Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
 
-   This file is a part of Jarsync.
+This file is a part of Jarsync.
 
-   Jarsync is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2, or (at your option) any
-   later version.
+Jarsync is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2, or (at your option) any
+later version.
 
-   Jarsync is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+Jarsync is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with Jarsync; see the file COPYING.  If not, write to the
+You should have received a copy of the GNU General Public License
+along with Jarsync; see the file COPYING.  If not, write to the
 
-      Free Software Foundation Inc.,
-      59 Temple Place - Suite 330,
-      Boston, MA 02111-1307
-      USA  */
+   Free Software Foundation Inc.,
+   59 Temple Place - Suite 330,
+   Boston, MA 02111-1307
+   USA  */
 
 /*
  * Based on rsync-2.5.5.
@@ -46,13 +45,14 @@ import java.util.Date;
  *
  * @version $Revision$
  */
-public class FileInfo implements Constants {
+public class FileInfo implements Constants
+{
 
   // Fields.
   // -------------------------------------------------------------------------
 
   public int flags;
-  public long modtime;
+  public int modtime;
   public long length;
   public int inode;
   public int rdev;
@@ -71,10 +71,15 @@ public class FileInfo implements Constants {
 
   public FileInfo(File f) throws IOException
   {
-    f = f.getAbsoluteFile();
-    if (!f.isDirectory())
+    if (f.isDirectory())
+      mode = _S_IFDIR;
+    else
       mode = _S_IFREG;
-    modtime = f.lastModified();
+    if (f.canRead())
+      mode |= 0444;
+    if (f.canWrite())
+      mode |= 0222;
+    modtime = (int) (f.lastModified() / 1000L);
     length = f.length();
     dirname = f.getParent();
     basename = f.getName();
@@ -83,11 +88,18 @@ public class FileInfo implements Constants {
   // Class methods.
   // -------------------------------------------------------------------------
 
-  public static boolean S_ISLNK(int mode) {
+  public static boolean S_ISDIR(int mode)
+  {
+    return (mode & _S_IFMT) == _S_IFDIR;
+  }
+
+  public static boolean S_ISLNK(int mode)
+  {
     return (mode & _S_IFMT) == _S_IFLNK;
   }
 
-  public static boolean S_ISREG(int mode) {
+  public static boolean S_ISREG(int mode)
+  {
     return (mode & _S_IFMT) == _S_IFREG;
   }
 
@@ -103,6 +115,8 @@ public class FileInfo implements Constants {
         if ((mode & (1 << i)) != 0)
           buf.setCharAt(9-i, perm_map.charAt(8-i));
       }
+    if (S_ISDIR())
+      buf.setCharAt(0, 'd');
     return buf.toString();
   }
 
@@ -121,15 +135,23 @@ public class FileInfo implements Constants {
       return basename;
   }
 
-  public boolean S_ISLNK() {
+  public boolean S_ISDIR()
+  {
+    return S_ISDIR(mode);
+  }
+
+  public boolean S_ISLNK()
+  {
     return S_ISLNK(mode);
   }
 
-  public boolean S_ISREG() {
+  public boolean S_ISREG()
+  {
     return S_ISREG(mode);
   }
 
-  public String toString() {
+  public String toString()
+  {
     StringBuffer buf = new StringBuffer();
     buf.append(permstring());
     buf.append(' ');

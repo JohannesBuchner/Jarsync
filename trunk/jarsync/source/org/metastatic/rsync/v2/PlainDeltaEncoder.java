@@ -29,14 +29,21 @@ package org.metastatic.rsync.v2;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.apache.log4j.Logger;
+
 import org.metastatic.rsync.Configuration;
 import org.metastatic.rsync.DataBlock;
 import org.metastatic.rsync.Delta;
 import org.metastatic.rsync.DeltaEncoder;
 import org.metastatic.rsync.Offsets;
+import org.metastatic.rsync.Util;
 
 public class PlainDeltaEncoder extends DeltaEncoder
 {
+
+  private static final Logger logger = Logger.getLogger(PlainDeltaEncoder.class.getName());
+
+  private final byte[] intBuf;
 
   // Constructor.
   // -------------------------------------------------------------------------
@@ -44,6 +51,7 @@ public class PlainDeltaEncoder extends DeltaEncoder
   public PlainDeltaEncoder(Configuration config, OutputStream out)
   {
     super(config, out);
+    intBuf = new byte[4];
   }
 
   // Instance methods.
@@ -55,34 +63,35 @@ public class PlainDeltaEncoder extends DeltaEncoder
       {
         int token = (int) (((Offsets) delta).getOldOffset() / config.blockLength);
         token = -(token + 1);
-        out.write(token & 0xFF);
-        out.write((token >>>  8) & 0xFF);
-        out.write((token >>> 16) & 0xFF);
-        out.write(token >>> 24);
+        logger.debug("writing token=" + token);
+        writeInt(token);
       }
     else if (delta instanceof DataBlock)
       {
         int len = delta.getBlockLength();
-        out.write(len & 0xFF);
-        out.write((len >>>  8) & 0xFF);
-        out.write((len >>> 16) & 0xFF);
-        out.write(len >>> 24);
+        writeInt(len);
         out.write(((DataBlock) delta).getData());
       }
     else
-      throw new IllegalArgumentException();
+      throw new IllegalArgumentException(delta.getClass().getName());
   }
 
   public void doFinal() throws IOException
   {
-    out.write(0);
-    out.write(0);
-    out.write(0);
-    out.write(0);
+    writeInt(0);
   }
 
   public boolean requiresOrder()
   {
     return true;
+  }
+
+  private void writeInt(int i) throws IOException
+  {
+    intBuf[0] = (byte) i;
+    intBuf[1] = (byte) (i >>>  8);
+    intBuf[2] = (byte) (i >>> 16);
+    intBuf[3] = (byte) (i >>> 24);
+    out.write(intBuf);
   }
 }

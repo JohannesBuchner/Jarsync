@@ -87,8 +87,10 @@ public class Options {
   public static final int OPT_READ_BATCH = 1038;
   public static final int OPT_WRITE_BATCH = 1039;
   public static final int OPT_IGNORE_EXISTING = 1040;
+  public static final int OPT_USE_SSL = 1041;
+  public static final int OPT_KEYSTORE = 1042;
 
-  public static final String OPTSTRING = "46abceglnopqrtuvxzB:CDHILRST:W";
+  public static final String OPTSTRING = "46abceghlnopqrtuvxzB:CDHILRST:W";
   public static final LongOpt[] LONGOPTS = {
     new LongOpt("verbose", LongOpt.NO_ARGUMENT, null, 'v'),
     new LongOpt("quiet", LongOpt.NO_ARGUMENT, null, 'q'),
@@ -146,7 +148,9 @@ public class Options {
     new LongOpt("password-file", LongOpt.REQUIRED_ARGUMENT, null, OPT_PASSWORD_FILE),
     new LongOpt("help", LongOpt.NO_ARGUMENT, null, 'h'),
     new LongOpt("server", LongOpt.NO_ARGUMENT, null, OPT_SERVER),
-    new LongOpt("sender", LongOpt.NO_ARGUMENT, null, OPT_SENDER)
+    new LongOpt("sender", LongOpt.NO_ARGUMENT, null, OPT_SENDER),
+    new LongOpt("ssl", LongOpt.NO_ARGUMENT, null, OPT_USE_SSL),
+    new LongOpt("keystore", LongOpt.REQUIRED_ARGUMENT, null, OPT_KEYSTORE)
   };
 
   public boolean whole_file = false;
@@ -202,7 +206,7 @@ public class Options {
   public String backup_suffix = "~";
   public String tmpdir = null;
   public String compare_dest = null;
-  public String shell_cmd = null;
+  public String shell_cmd = "/usr/bin/ssh";
   public String log_format = null;
   public String password_file = null;
   public String rsync_path = "/usr/bin/rsync";
@@ -211,6 +215,10 @@ public class Options {
   public String exclude_from = "";
   public String include = "";
   public String include_from = "";
+
+  public boolean use_ssl = false;
+  public String keystore = System.getProperty("user.home") +
+    System.getProperty("file.separator") + ".keystore";
 
   // Constructor.
   // -----------------------------------------------------------------------
@@ -490,13 +498,19 @@ public class Options {
             backup_dir = g.getOptarg();
             break;
 
-          case '?':
-            if (err != null)
+          case OPT_USE_SSL:
+            try
               {
-                err.println(progname+": unknown option `" +
-                            argv[g.getOptind()-1] + "'");
-                err.println("Try `"+progname+" --help' for more info.");
+                Class.forName("javax.net.ssl.SSLSocket");
               }
+            catch (ClassNotFoundException cnfe)
+              {
+                throw new IllegalArgumentException("SSL not available");
+              }
+            use_ssl = true;
+            break;
+
+          case '?':
             throw new IllegalArgumentException("unknown option `" +
                                                argv[g.getOptind()-1] + "'");
           }
@@ -586,6 +600,8 @@ public class Options {
     out.println("     --progress              show progress during transfer");
     out.println("     --password-file=FILE    get password from FILE");
     out.println("     --bwlimit=KBPS          limit I/O bandwidth, KBytes per second");
+    out.println("     --ssl                   make socket connections over SSL (if available)");
+    out.println("     -Joption                options to pass directly to java interpreter");
     out.println(" -h, --help                  show this help screen");
     out.println();
   }

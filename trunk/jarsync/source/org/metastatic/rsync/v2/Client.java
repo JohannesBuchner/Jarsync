@@ -88,8 +88,6 @@ public class Client implements Constants
 
   private static List excludeList = new LinkedList();
   private static List server_argv;
-  private static String[] sources;
-  private static String dest;
   private static String remoteHost;
   private static String remoteUser;
   private static int remotePort = 873;
@@ -125,6 +123,8 @@ public class Client implements Constants
       logger.setLevel(Level.DEBUG);
     String path = null;
     int i = 0;
+
+    listOnly = (optind == argv.length - 1) && !options.am_server;
     if (argv[optind].toLowerCase().startsWith(URL_PREFIX))
       {
         remoteHost = argv[optind].substring(URL_PREFIX.length());
@@ -194,6 +194,7 @@ public class Client implements Constants
       }
     else
       {
+        String[] args = null;
         options.am_sender = true;
         if (argv[argv.length-1].toLowerCase().startsWith(URL_PREFIX))
           {
@@ -228,7 +229,9 @@ public class Client implements Constants
                   }
                 remoteHost = remoteHost.substring(0, i);
               }
-            return startSocketClient(path, argv, optind+1);
+            args = new String[argv.length - optind - 1];
+            System.arraycopy(argv, optind, args, 0, args.length);
+            return startSocketClient(path, args, 0);
           }
 
         i = argv[argv.length-1].indexOf(':');
@@ -261,13 +264,18 @@ public class Client implements Constants
                 remoteUser = remoteHost.substring(0, i);
                 remoteHost = remoteHost.substring(i+1);
               }
-            return startShellClient(path, argv, optind+1);
+            args = new String[argv.length - optind - 1];
+            System.arraycopy(argv, optind, args, 0, args.length);
+            return startShellClient(path, args, 0);
           }
         else
           return localClient(argv, optind);
       }
   }
 
+  /**
+   * Starts the client process over a socket connected to port 873.
+   */
   public static int startSocketClient(String path, String[] argv, int optind)
   {
     logger.debug("starting socket client to " + remoteHost + ":" + remotePort);
@@ -309,8 +317,8 @@ public class Client implements Constants
           socket.setSoTimeout(options.io_timeout);
         socket.setKeepAlive(true);
         logger.debug("socket=" + socket);
-        in = new MultiplexedInputStream(socket.getInputStream(), false);
-        out = new MultiplexedOutputStream(socket.getOutputStream(), false);
+        in = new MultiplexedInputStream(new BufferedInputStream(socket.getInputStream()), false);
+        out = new MultiplexedOutputStream(new BufferedOutputStream(socket.getOutputStream()), false);
         in.setStats(stats);
         out.setStats(stats);
       }
@@ -334,9 +342,83 @@ public class Client implements Constants
 
   public static int startShellClient(String path, String[] argv, int optind)
   {
-    logger.debug("starting shell client to " + remoteHost + ":" + remotePort);
-
-    return 0;
+    logger.debug("starting shell client to " + remoteHost);
+    serverArgs();
+    server_argv.add(path);
+    for (int i = optind; i < argv.length-1; i++)
+      server_argv.add(argv[i]);
+    if (remoteUser == null)
+      remoteUser = System.getProperty("user.name");
+    if (options.shell_cmd.equals("internal-ssh"))
+      {
+        logger.fatal("not implemented");
+        return 1;
+      }
+    else
+      {
+        String[] sargs = new String[server_argv.size()+5];
+        sargs[0] = options.shell_cmd;
+        sargs[1] = "-l";
+        sargs[2] = remoteUser;
+        sargs[3] = remoteHost;
+        sargs[4] = options.rsync_path;
+        for (int i = 0; i < server_argv.size(); i++)
+          sargs[i+5] = (String) server_argv.get(i);
+        if (options.verbose > 2)
+          {
+            StringBuffer cmd = new StringBuffer();
+            for (int i = 0; i < sargs.length; i++)
+              cmd.append(sargs[i] + " ");
+            logger.debug("executing " + cmd.toString());
+          }
+        Process p = null;
+        try
+          {
+            p = Runtime.getRuntime().exec(sargs);
+            in = new MultiplexedInputStream(new BufferedInputStream(p.getInputStream()), false);
+            out = new MultiplexedOutputStream(new BufferedOutputStream(p.getOutputStream()), false);
+            final InputStream err = p.getErrorStream();
+            new Thread(new Runnable()
+              {
+                public void run()
+                {
+                  try
+                    {
+                      byte[] buf = new byte[4092];
+                      int len;
+                      while ((len = err.read(buf)) >= 0)
+                        {
+                          logger.error(new String(buf, 0, len));
+                        }
+                    }
+                  catch (IOException ioe)
+                    {
+                    }
+                }
+              }).start();
+            in.setStats(stats);
+            out.setStats(stats);
+            out.writeInt(PROTOCOL_VERSION);
+            out.flush();
+            remoteVersion = in.readInt();
+            if (remoteVersion < MIN_PROTOCOL_VERSION ||
+                remoteVersion > MAX_PROTOCOL_VERSION)
+              {
+                logger.fatal("protocol version mismatch (is your shell clean?)");
+                p.destroy();
+                return 1;
+              }
+          }
+        catch (IOException ioe)
+          {
+            logger.fatal("could not execute " + options.shell_cmd);
+            logger.fatal(ioe.getMessage());
+            return 1;
+          }
+        int ret = clientRun(argv, optind);
+        try { p.waitFor(); } catch (InterruptedException ie) { }
+        return ret;
+      }
   }
 
   public static int localClient(String[] argv, int optind)
@@ -358,20 +440,39 @@ public class Client implements Constants
         stats.total_written = 0;
         if (listOnly && !options.recurse)
           excludeList.add("/*/*");
-        for (Iterator i = excludeList.iterator(); i.hasNext(); )
+        if (!options.am_sender || (options.delete_mode && !options.delete_excluded))
           {
-            String pattern = (String) i.next();
-            if (pattern.startsWith("+ ") && remoteVersion < 19)
-              throw new IOException("remote rsync does not support include syntax");
-            out.writeInt(pattern.length());
-            out.writeString(pattern);
+            for (Iterator i = excludeList.iterator(); i.hasNext(); )
+              {
+                String pattern = (String) i.next();
+                if (pattern.startsWith("+ ") && remoteVersion < 19)
+                  throw new IOException("remote rsync does not support include syntax");
+                out.writeInt(pattern.length());
+                out.writeString(pattern);
+                out.flush();
+              }
+            out.writeInt(0);
+            out.flush();
           }
-        out.writeInt(0);
         FileList flist = new FileList(in, out, remoteVersion, false, options);
         flist.setStatistics(stats);
+
         if (options.am_sender)
           {
-
+            final List files = flist.createFileList(argv, optind,
+                                                    argv.length-optind);
+            logger.debug("sending files=" + files);
+            long l = stats.total_written;
+            flist.sendFileList(files);
+            stats.flist_size = (int) (stats.total_written - l);
+            // Give the other side a chance to set up.
+            //try { Thread.sleep(3000); } catch (InterruptedException ie) { }
+            Sender sender = new Sender(in, out, config, remoteVersion, false);
+            sender.setStatistics(stats);
+            sender.sendFiles(files);
+            if (remoteVersion >= 24)
+              in.readInt(); // final goodbye
+            return readStats();
           }
         else
           {
@@ -390,12 +491,19 @@ public class Client implements Constants
                 for (Iterator i = files.iterator(); i.hasNext(); )
                   System.out.println(i.next());
                 out.writeInt(-1); // End generator phase 0.
+                out.flush();
                 in.readInt();     // End receiver phase 0.
                 out.writeInt(-1); // End generator phase 1.
+                out.flush();
                 in.readInt();     // End receiver phase 1.
-                out.writeInt(-1); // Final goodbye.
+                if (remoteVersion >= 24)
+                  {
+                    out.writeInt(-1); // Final goodbye.
+                    out.flush();
+                  }
                 return readStats();
               }
+            flist.toLocalList(files, argv[argv.length-1]);
             final Receiver recv = new Receiver(in, out, config, remoteVersion, false);
             recv.setStatistics(stats);
             Thread generator = new Thread(
@@ -414,33 +522,36 @@ public class Client implements Constants
                     }
                 }
               }, "generator");
-            Thread receiver = new Thread(
-              new Runnable()
-              {
-                public void run()
-                {
-                  try
-                    {
-                      recv.receiveFiles(files);
-                    }
-                  catch (IOException ioe)
-                    {
-                      ioe.printStackTrace(new LoggerPrintStream(logger,
-                                                                Level.ERROR));
-                    }
-                }
-              }, "receiver");
             generator.start();
-            receiver.start();
-            try
-              {
-                receiver.join();
-              }
-            catch (Exception e)
-              {
-                logger.error(e.toString());
-              }
-            out.write(-1);
+            recv.receiveFiles(files);
+            //Thread receiver = new Thread(
+            //  new Runnable()
+            //  {
+            //    public void run()
+            //    {
+            //      try
+            //        {
+            //          recv.receiveFiles(files);
+            //        }
+            //      catch (IOException ioe)
+            //        {
+            //          ioe.printStackTrace(new LoggerPrintStream(logger,
+            //                                                    Level.ERROR));
+            //        }
+            //    }
+            //  }, "receiver");
+            //generator.start();
+            //receiver.start();
+            //try
+            //  {
+            //    receiver.join();
+            //  }
+            //catch (Exception e)
+            //  {
+            //    logger.error(e.toString());
+            //  }
+            if (remoteVersion >= 24)
+              out.write(-1);
             return readStats();
           }
       }
@@ -449,7 +560,6 @@ public class Client implements Constants
         logger.error(ioe.getMessage());
         return 1;
       }
-    return 0;
   }
 
   public static int readStats()
@@ -479,29 +589,29 @@ public class Client implements Constants
             logger.error("Use --stats -v to show stats.");
             return 1;
           }
-        System.out.println("Number of files: " + stats.num_files);
-        System.out.println("Number of files transferred: "
-                           + stats.num_transferred_files);
-        System.out.println("Total file size: " + stats.total_size + " bytes");
-        System.out.println("Total transferred file size: "
-                           + stats.total_transferred_size + " bytes");
-        System.out.println("Literal data: " + stats.literal_data + " bytes");
-        System.out.println("Matched data: " + stats.matched_data + " bytes");
-        System.out.println("File list size: " + stats.flist_size + " bytes");
-        System.out.println("Total bytes written: " + stats.total_written + " bytes");
-        System.out.println("Total bytes read: " + stats.total_read + " bytes");
-        System.out.println();
+        logger.warn("Number of files: " + stats.num_files);
+        logger.warn("Number of files transferred: "
+                    + stats.num_transferred_files);
+        logger.warn("Total file size: " + stats.total_size + " bytes");
+        logger.warn("Total transferred file size: "
+                    + stats.total_transferred_size + " bytes");
+        logger.warn("Literal data: " + stats.literal_data + " bytes");
+        logger.warn("Matched data: " + stats.matched_data + " bytes");
+        logger.warn("File list size: " + stats.flist_size + " bytes");
+        logger.warn("Total bytes written: " + stats.total_written + " bytes");
+        logger.warn("Total bytes read: " + stats.total_read + " bytes");
+        logger.warn("");
       }
     if (options.verbose > 0 || options.do_stats)
       {
         DecimalFormat df = new DecimalFormat("###0.00");
-        System.out.println("wrote " + stats.total_written + " bytes  read " +
-                           stats.total_read + " bytes  " +
-                           df.format(((double)(stats.total_written+stats.total_read) /
-                                      (0.5 + (double)((t-starttime) / 1000L))))
-                           + " bytes/sec");
-        System.out.println("total size is " + stats.total_size + " bytes  speedup is " +
-                           df.format((1.0*stats.total_size) / (double)(stats.total_written+stats.total_read)));
+        logger.warn("wrote " + stats.total_written + " bytes  read " +
+                    stats.total_read + " bytes  " +
+                    df.format(((double)(stats.total_written+stats.total_read) /
+                               (0.5 + (double)((t-starttime) / 1000L))))
+                    + " bytes/sec");
+        logger.warn("total size is " + stats.total_size + " bytes  speedup is " +
+                    df.format((1.0*stats.total_size) / (double)(stats.total_written+stats.total_read)));
       }
     return 0;
   }
@@ -572,6 +682,7 @@ public class Client implements Constants
     throws IOException
   {
     Util.writeASCII(out, RSYNCD_GREETING + PROTOCOL_VERSION + '\n');
+    out.flush();
     String greeting = Util.readLine(in);
     logger.debug("got greeting " + greeting);
     if (!greeting.startsWith(RSYNCD_GREETING))
@@ -592,9 +703,7 @@ public class Client implements Constants
     if (remoteUser == null)
       remoteUser = System.getProperty("user.name");
 
-    listOnly = (optind == argv.length) && !options.am_server;
     serverArgs();
-    server_argv.add(".");
     if (path.length() > 0)
       server_argv.add(path);
 
@@ -603,6 +712,7 @@ public class Client implements Constants
       module = module.substring(0, module.indexOf('/'));
     logger.debug("requesting module '" + module + "'");
     Util.writeASCII(out, module + '\n');
+    out.flush();
 
     boolean kludge_around_eof = listOnly && (remoteVersion < 25);
     String line = null;
@@ -633,6 +743,7 @@ public class Client implements Constants
     for (Iterator i = server_argv.iterator(); i.hasNext(); )
       Util.writeASCII(out, (String) i.next() + '\n');
     Util.writeASCII(out, "\n");
+    out.flush();
 
     if (remoteVersion < 23)
       {
@@ -669,6 +780,7 @@ public class Client implements Constants
         md.update(challenge.getBytes("US-ASCII"));
         byte[] response = md.digest();
         Util.writeASCII(out, remoteUser + " " + Util.base64(response) + '\n');
+        out.flush();
       }
     catch (NoSuchAlgorithmException nsae)
       {
@@ -731,7 +843,8 @@ public class Client implements Constants
     if (listOnly && !options.recurse)
       buf.append('r');
 
-    server_argv.add(buf.toString());
+    if (buf.length() > 1)
+      server_argv.add(buf.toString());
 
     if (options.block_size != BLOCK_LENGTH)
       server_argv.add("-B" + options.block_size);
@@ -766,6 +879,7 @@ public class Client implements Constants
     if (options.size_only)
       server_argv.add("--size-only");
 
+    server_argv.add(".");
     logger.debug("server_argv=" + server_argv);
   }
 }

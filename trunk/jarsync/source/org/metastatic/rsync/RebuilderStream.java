@@ -65,7 +65,7 @@ import java.util.LinkedList;
  * <p>This class is optimal for situations where the deltas are coming
  * in a stream over a communications link, and when it would be
  * inefficient to wait until all deltas are received.
- * 
+ *
  */
 public class RebuilderStream {
 
@@ -121,7 +121,7 @@ public class RebuilderStream {
    public void setBasisFile(File file) throws IOException {
       if (basisFile != null) {
          basisFile.close();
-         basisFile = null;  
+         basisFile = null;
       }
       if (file != null)
          basisFile = new RandomAccessFile(file, "r");
@@ -142,6 +142,15 @@ public class RebuilderStream {
          basisFile = new RandomAccessFile(file, "r");
    }
 
+  /**
+   *
+   */
+  public void doFinal() throws IOException
+  {
+    if (basisFile != null)
+      basisFile.close();
+  }
+
    /**
     * Update this rebuilder with a delta.
     *
@@ -158,10 +167,14 @@ public class RebuilderStream {
       } else {
          if (basisFile == null)
             throw new IOException("offsets found but no basis file specified");
-         byte[] buf = new byte[delta.getBlockLength()];
+         int len = Math.min(delta.getBlockLength(),
+           (int) (basisFile.length() - ((Offsets) delta).getOldOffset()));
+         if (len < 0)
+           return;
+         byte[] buf = new byte[len];
          basisFile.seek(((Offsets) delta).getOldOffset());
-         basisFile.readFully(buf);
-         e = new RebuilderEvent(buf, delta.getWriteOffset());
+         len = basisFile.read(buf);
+         e = new RebuilderEvent(buf, 0, len, delta.getWriteOffset());
       }
       for (Iterator i = listeners.iterator(); i.hasNext(); ) {
          try {

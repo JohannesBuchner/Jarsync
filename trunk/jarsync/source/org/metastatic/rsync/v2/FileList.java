@@ -43,7 +43,10 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-public class FileList implements Constants {
+import org.metastatic.rsync.Util;
+
+public class FileList implements Constants
+{
 
   // Constants and fields.
   // -------------------------------------------------------------------------
@@ -60,7 +63,7 @@ public class FileList implements Constants {
 
   private final Options options;
 
-  private long last_time;
+  private int last_time;
   private int last_mode;
   private int last_uid;
   private int last_gid;
@@ -106,6 +109,25 @@ public class FileList implements Constants {
           stats.total_size += f.length;
         flist.add(f);
       }
+    if (options.preserve_uid)
+      {
+        int id;
+        while ((id = in.readInt()) != 0)
+          {
+            int len = in.read();
+            logger.debug("uidList " + id + " -> " + in.readString(len));
+          }
+      }
+    if (options.preserve_uid)
+      {
+        int id;
+        while ((id = in.readInt()) != 0)
+          {
+            int len = in.read();
+            logger.debug("uidList " + id + " -> " + in.readString(len));
+          }
+      }
+    logger.debug("io error flag="+in.readInt());
 
     return flist;
   }
@@ -117,6 +139,83 @@ public class FileList implements Constants {
         sendFileEntry((FileInfo) it.next());
       }
     out.write(0);
+    if (options.preserve_uid)
+      out.writeInt(0); // Dummy uid list.
+    if (options.preserve_gid)
+      out.writeInt(0); // Dummy gid list.
+    if (remoteVersion >= 17)
+      out.writeInt(0); // io_error flag
+    out.flush();
+  }
+
+  public List createFileList(String[] argv, int off, int len)
+    throws IOException
+  {
+    LinkedList files = new LinkedList();
+    LinkedList dirs  = new LinkedList();
+    Glob exclude = new Glob(options.exclude, false,
+                            System.getProperty("user.dir"));
+    logger.debug("createFileList off=" + off + " len=" + len);
+    for (int i = 0; i < len; i++)
+      {
+        File f = new File(argv[i+off]);
+        if (!f.exists())
+          {
+            logger.warn(argv[i+off] + ": no such file or directory");
+            continue;
+          }
+        if (f.isDirectory())
+          dirs.add(f);
+        else
+          files.add(new FileInfo(f));
+      }
+
+    if (options.recurse)
+      {
+        while (dirs.size() > 0)
+          {
+            File dir = (File) dirs.removeFirst();
+            File[] f = dir.listFiles(exclude);
+            for (int i = 0; i < f.length; i++)
+              {
+                if (f[i].isDirectory())
+                  dirs.add(f[i]);
+                else
+                  files.add(new FileInfo(f[i]));
+              }
+          }
+      }
+    stats.num_files = files.size();
+    return files;
+  }
+
+  /**
+   * Maps a file list received from the remote side to its local equivalent,
+   * depending upon the destination.
+   */
+  public void toLocalList(List flist, String destination)
+  {
+    File dest = new File(destination);
+    if (dest.exists() && !dest.isDirectory() && flist.size() > 1)
+      throw new IllegalArgumentException(dest + " is not a directory");
+
+    for (Iterator i = flist.iterator(); i.hasNext(); )
+      {
+        FileInfo file = (FileInfo) i.next();
+        if (options.only_existing)
+          if (dest.exists() && dest.isDirectory() &&
+              !new File(dest, file.basename).exists())
+            i.remove();
+        if (!dest.exists() || !dest.isDirectory())
+          file.basename = dest.getName();
+        if (!options.relative_paths)
+          {
+            if (dest.isDirectory())
+              file.dirname = dest.getPath();
+            else
+              file.dirname = dest.getParent();
+          }
+      }
   }
 
   // Own methods.
@@ -209,6 +308,72 @@ public class FileList implements Constants {
 
   private void sendFileEntry(FileInfo file) throws IOException
   {
+    int l1 = 0, l2 = 0;
+    int flags = 0;
+    String fname = file.filename();
+    fname = fname.replace(File.separatorChar, '/');
 
+    if (file.mode == last_mode)
+      flags |= SAME_MODE;
+    if (options.preserve_uid && file.uid == last_uid)
+      flags |= SAME_UID;
+    if (options.preserve_gid && file.gid == last_gid)
+      flags |= SAME_GID;
+    if (file.modtime == last_time)
+      flags |= SAME_TIME;
+
+    if (lastname != null)
+      for (l1 = 0; l1 < lastname.length() && l1 < fname.length() &&
+             lastname.charAt(l1) == fname.charAt(l1) && l1 <= 255; l1++);
+
+    l2 = fname.length() - l1;
+
+    if (l1 > 0)
+      flags |= SAME_NAME;
+    if (l2 > 255)
+      flags |= LONG_NAME;
+
+    if (flags == 0 && !file.S_ISDIR())
+      flags |= FLAG_DELETE;
+    if (flags == 0)
+      flags |= LONG_NAME;
+
+    logger.debug("writing flags=" + Integer.toBinaryString(flags));
+    out.write(flags);
+    logger.debug("writing file name l1=" + l1 + " l2=" + l2 + " name=" + fname.substring(l1));
+    if ((flags & SAME_NAME) != 0)
+      out.write(l1);
+    if ((flags & LONG_NAME) != 0)
+      out.writeInt(l2);
+    else
+      out.write(l2);
+    Util.writeASCII(out, fname.substring(l1));
+
+    out.writeLong(file.length);
+    if ((flags & SAME_TIME) == 0)
+      out.writeInt(file.modtime);
+    if ((flags & SAME_MODE) == 0)
+      out.writeInt(file.mode);
+
+    if (options.preserve_uid && (flags & SAME_UID) == 0)
+      out.writeInt(file.uid);
+    if (options.preserve_gid && (flags & SAME_GID) == 0)
+      out.writeInt(file.gid);
+
+    if (options.always_checksum)
+      {
+        if (file.sum == null)
+          file.sum = RsyncUtil.fileChecksum(file.filename());
+        if (remoteVersion < 21)
+          out.write(file.sum, 0, 2);
+        else
+          out.write(file.sum);
+      }
+
+    out.flush();
+
+    last_mode = file.mode;
+    last_time = file.modtime;
+    lastname = fname;
   }
 }

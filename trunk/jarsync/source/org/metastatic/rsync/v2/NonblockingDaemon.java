@@ -1,28 +1,27 @@
-/* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
+/* NonblockingDaemon -- nonblocking daemon process.
    $Id$
 
-   NonblockingDaemon: nonblocking daemon process.
-   Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
+Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
 
-   This file is a part of Jarsync.
+This file is a part of Jarsync.
 
-   Jarsync is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2 of the License, or (at
-   your option) any later version.
+Jarsync is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version.
 
-   Jarsync is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+Jarsync is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with Jarsync; if not, write to the
+You should have received a copy of the GNU General Public License
+along with Jarsync; if not, write to the
 
-      Free Software Foundation, Inc.,
-      59 Temple Place, Suite 330,
-      Boston, MA  02111-1307
-      USA  */
+   Free Software Foundation, Inc.,
+   59 Temple Place, Suite 330,
+   Boston, MA  02111-1307
+   USA  */
 
 package org.metastatic.rsync.v2;
 
@@ -31,6 +30,7 @@ import java.io.IOException;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
@@ -67,11 +67,33 @@ public class NonblockingDaemon extends Daemon
       SelectionKey acceptKey = null;
       try {
          selector = Selector.open();
-         server = ServerSocketChannel.open();
-         if (address != null)
-            server.socket().bind(new InetSocketAddress(address, port));
+         if (ssl)
+           {
+             try
+               {
+                 ServerSocket s = null;
+                 if (address != null)
+                   s = SSLUtil.getSSLServerSocket(port, InetAddress.getByName(address),
+                                                  ssl_keystore, ssl_secrets);
+                 else
+                   s = SSLUtil.getSSLServerSocket(port, ssl_keystore, ssl_secrets);
+                 server = s.getChannel();
+               }
+             catch (Exception x)
+               {
+                 logger.fatal("error creating SSL socket: " + x);
+                 return;
+               }
+           }
          else
-            server.socket().bind(new InetSocketAddress(port));
+           {
+             server = ServerSocketChannel.open();
+             if (address != null)
+               server.socket().bind(new InetSocketAddress(address, port));
+             else
+               server.socket().bind(new InetSocketAddress(port));
+           }
+         logger.warn("server socket channel is " + server);
          server.configureBlocking(false);
          acceptKey = server.register(selector, SelectionKey.OP_ACCEPT);
       } catch (IOException ioe) {

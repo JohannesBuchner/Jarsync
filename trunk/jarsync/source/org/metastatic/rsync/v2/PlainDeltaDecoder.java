@@ -29,11 +29,14 @@ package org.metastatic.rsync.v2;
 import java.io.InputStream;
 import java.io.IOException;
 
+import org.apache.log4j.Logger;
+
 import org.metastatic.rsync.Configuration;
 import org.metastatic.rsync.DataBlock;
 import org.metastatic.rsync.Delta;
 import org.metastatic.rsync.DeltaDecoder;
 import org.metastatic.rsync.Offsets;
+import org.metastatic.rsync.Util;
 
 public class PlainDeltaDecoder extends DeltaDecoder
 {
@@ -41,7 +44,12 @@ public class PlainDeltaDecoder extends DeltaDecoder
   // Fields.
   // -------------------------------------------------------------------------
 
+  private static final Logger logger =
+    Logger.getLogger(PlainDeltaDecoder.class.getName());
+
   private long offset;
+
+  private Statistics stats;
 
   // Constructor.
   // -------------------------------------------------------------------------
@@ -50,18 +58,34 @@ public class PlainDeltaDecoder extends DeltaDecoder
   {
     super(config, in);
     offset = 0;
+    stats = new Statistics();
   }
 
   // Instance methods.
   // -------------------------------------------------------------------------
 
+  public void setStatistics(Statistics stats)
+  {
+    if (stats != null) this.stats = stats;
+  }
+
+  public Statistics getStatistics()
+  {
+    return stats;
+  }
+
   public Delta read() throws IOException
   {
-    int token = in.read() | (in.read() << 8) | (in.read() << 16) | (in.read() << 24);
+    int token = in.read() & 0xFF;
+    token |= (in.read() & 0xFF) <<  8;
+    token |= (in.read() & 0xFF) << 16;
+    token |= (in.read() & 0xFF) << 24;
+    logger.debug("read token=" + token);
     if (token < 0)
       {
         long readOffset = (long) (-token - 1) * (long) config.blockLength;
         Offsets o = new Offsets(readOffset, offset, config.blockLength);
+        logger.debug("decoded offsets=" + o);
         offset += config.blockLength;
         return o;
       }
@@ -70,7 +94,8 @@ public class PlainDeltaDecoder extends DeltaDecoder
         byte[] buf = new byte[token];
         in.read(buf);
         DataBlock d = new DataBlock(offset, buf);
-        offset += config.blockLength;
+        logger.debug("decoded data block=" + d);
+        offset += token;
         return d;
       }
     else

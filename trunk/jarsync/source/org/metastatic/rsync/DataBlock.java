@@ -1,34 +1,34 @@
 /* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
    $Id$
-  
+
    DataBlock: A new block of data to insert.
    Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
-  
+
    This file is a part of Jarsync.
-  
+
    Jarsync is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
    Free Software Foundation; either version 2 of the License, or (at
    your option) any later version.
-  
+
    Jarsync is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
-  
+
    You should have received a copy of the GNU General Public License
    along with Jarsync; if not, write to the
-  
+
       Free Software Foundation, Inc.,
       59 Temple Place, Suite 330,
       Boston, MA  02111-1307
       USA
-  
+
    Linking Jarsync statically or dynamically with other modules is
    making a combined work based on Jarsync.  Thus, the terms and
    conditions of the GNU General Public License cover the whole
    combination.
-  
+
    As a special exception, the copyright holders of Jarsync give you
    permission to link Jarsync with independent modules to produce an
    executable, regardless of the license terms of these independent
@@ -70,7 +70,7 @@ public class DataBlock implements Delta, java.io.Serializable {
     * @since 1.1
     */
    protected final long offset;
-  
+
    // Constructors.
    // -----------------------------------------------------------------
 
@@ -153,15 +153,9 @@ public class DataBlock implements Delta, java.io.Serializable {
     */
    public String toString() {
       String str = "[ off=" + offset + " len=" + data.length + " data=";
-      int i;
-      for (i = 0; i < data.length && i < 500; i++) {
-         String s = Integer.toHexString((int) data[i] & 0xff);
-         if (s.length() != 2)
-            str += "0" + s;
-         else
-            str += s;
-      }
-      if (i != data.length) str += "...";
+      int len = Math.min(data.length, 256);
+      str += Util.toHexString(data, 0, len);
+      if (len != data.length) str += "...";
       return str + " ]";
    }
 
@@ -183,9 +177,9 @@ public class DataBlock implements Delta, java.io.Serializable {
     * Test if another object equals this one.
     *
     * @return <tt>true</tt> If <tt>o</tt> is an instance of DataBlock and
-    * 	if both the offsets and the byte arrays of both are equal.
+    *   if both the offsets and the byte arrays of both are equal.
     * @throws java.lang.ClassCastException If <tt>o</tt> is not an
-    * 	instance of this class.
+    *   instance of this class.
     * @throws java.lang.NullPointerException If <tt>o</tt> is null.
     */
    public boolean equals(Object o) {

@@ -32,15 +32,15 @@ endif
 
 if HAVE_NIO
 nio_sources = org/metastatic/rsync/MappedRebuilderStream.java
-nio_v2_sources = # \
-#  org/metastatic/rsync/v2/BufferUtil.java \
-#  org/metastatic/rsync/v2/DuplexByteBuffer.java \
-#  org/metastatic/rsync/v2/NonblockingDaemon.java \
-#  org/metastatic/rsync/v2/NonblockingFileList.java \
-#  org/metastatic/rsync/v2/NonblockingSender.java \
-#  org/metastatic/rsync/v2/NonblockingTool.java \
-#  org/metastatic/rsync/v2/Protocol.java \
-#  org/metastatic/rsync/v2/RsyncBufferAppender.java
+nio_v2_sources = \
+  org/metastatic/rsync/v2/BufferUtil.java \
+  org/metastatic/rsync/v2/DuplexByteBuffer.java \
+  org/metastatic/rsync/v2/NonblockingDaemon.java \
+  org/metastatic/rsync/v2/NonblockingFileList.java \
+  org/metastatic/rsync/v2/NonblockingSender.java \
+  org/metastatic/rsync/v2/NonblockingTool.java \
+  org/metastatic/rsync/v2/Protocol.java \
+  org/metastatic/rsync/v2/RsyncBufferAppender.java
 else
 nio_sources =
 nio_v2_sources =
@@ -61,6 +61,7 @@ client_sources = \
   org/metastatic/rsync/v2/FileInfo.java \
   org/metastatic/rsync/v2/FileList.java \
   org/metastatic/rsync/v2/Glob.java \
+  org/metastatic/rsync/v2/LoggerPrintStream.java \
   org/metastatic/rsync/v2/Module.java \
   org/metastatic/rsync/v2/MultiplexedIO.java \
   org/metastatic/rsync/v2/MultiplexedInputStream.java \
@@ -71,6 +72,7 @@ client_sources = \
   org/metastatic/rsync/v2/RsyncAppender.java \
   org/metastatic/rsync/v2/RsyncUtil.java \
   org/metastatic/rsync/v2/RsyncdConf.java \
+  org/metastatic/rsync/v2/Secrets.java \
   org/metastatic/rsync/v2/Sender.java \
   org/metastatic/rsync/v2/SocketClient.java \
   org/metastatic/rsync/v2/Statistics.java \

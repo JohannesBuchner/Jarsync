@@ -1,28 +1,28 @@
-/* vim:set tabstop=3 expandtab tw=72:
+/* MultiplexedOutputStream -- Multiplexed output.
    $Id$
 
-   MultiplexedOutputStream: Multiplexed output.
-   Copyright (C) 2002,2003  Casey Marshall <rsdio@metastatic.org>
+Copyright (C) 2002,2003  Casey Marshall <rsdio@metastatic.org>
 
-   This file is a part of Jarsync.
+This file is a part of Jarsync.
 
-   Jarsync is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2, or (at your option) any
-   later version.
+Jarsync is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2, or (at your option) any
+later version.
 
-   Jarsync is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+Jarsync is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with Jarsync; see the file COPYING.  If not, write to the
+You should have received a copy of the GNU General Public License
+along with Jarsync; see the file COPYING.  If not, write to the
 
-      Free Software Foundation Inc.,
-      59 Temple Place - Suite 330,
-      Boston, MA 02111-1307
-      USA  */
+   Free Software Foundation Inc.,
+   59 Temple Place - Suite 330,
+   Boston, MA 02111-1307
+   USA  */
+
 
 package org.metastatic.rsync.v2;
 
@@ -69,7 +69,7 @@ public class MultiplexedOutputStream extends OutputStream
   {
     this.out = out;
     this.multiplex = multiplex;
-    outputBuffer = new byte[4096];
+    outputBuffer = new byte[4092];
     bufferCount = 0;
     stats = new Statistics();
   }
@@ -120,16 +120,13 @@ public class MultiplexedOutputStream extends OutputStream
    */
   public void flush() throws IOException
   {
-    if (bufferCount == 0) return;
     if (multiplex)
       {
-        write(FNONE, outputBuffer, 0, bufferCount);
+        if (bufferCount > 0)
+          write(FNONE, outputBuffer, 0, bufferCount);
+        bufferCount = 0;
       }
-    else
-      {
-        out.write(outputBuffer, 0, bufferCount);
-      }
-    bufferCount = 0;
+    out.flush();
   }
 
   /**
@@ -153,6 +150,7 @@ public class MultiplexedOutputStream extends OutputStream
    */
   public void write(byte[] buf, int off, int len) throws IOException
   {
+    //logger.debug("writing " + len + " bytes");
     if (multiplex)
       {
         while (bufferCount + len >= outputBuffer.length)
@@ -174,7 +172,11 @@ public class MultiplexedOutputStream extends OutputStream
       }
     else
       {
+        // We automatically flush the output if we are not multiplexing
+        // (we must explicitly flush multiplexed output because the tag
+        // bytes would clutter the stream if we did it automatically).
         out.write(buf, off, len);
+        //        out.flush();
         stats.total_written += len;
       }
   }
@@ -205,6 +207,7 @@ public class MultiplexedOutputStream extends OutputStream
     b[1] = (byte) (i >>>  8);
     b[2] = (byte) (i >>> 16);
     b[3] = (byte) (i >>> 24);
+    logger.debug("writing int=" + i + " " + Util.toHexString(b));
     write(b);
   }
 

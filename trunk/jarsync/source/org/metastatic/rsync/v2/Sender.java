@@ -39,6 +39,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -46,11 +50,14 @@ import java.util.List;
 
 import org.metastatic.rsync.Configuration;
 import org.metastatic.rsync.ChecksumPair;
+import org.metastatic.rsync.Delta;
 import org.metastatic.rsync.DeltaEncoder;
 import org.metastatic.rsync.ListenerException;
 import org.metastatic.rsync.MatcherEvent;
 import org.metastatic.rsync.MatcherListener;
 import org.metastatic.rsync.MatcherStream;
+import org.metastatic.rsync.Offsets;
+import org.metastatic.rsync.Util;
 
 import org.apache.log4j.Logger;
 
@@ -71,6 +78,8 @@ public class Sender implements Constants, MatcherListener {
   private final int remoteVersion;
 
   private DeltaEncoder deltasOut;
+
+  private int count, n, remainder;
 
   // Constructors.
   // -----------------------------------------------------------------------
@@ -94,7 +103,6 @@ public class Sender implements Constants, MatcherListener {
     this.config = config;
     this.remoteVersion = remoteVersion;
     stats = new Statistics();
-    deltasOut = new PlainDeltaEncoder(config, out);
   }
 
   // Instance methods.
@@ -112,7 +120,7 @@ public class Sender implements Constants, MatcherListener {
    * Send the set of files.
    */
   public void sendFiles(List files) throws IOException {
-    logger.info("sendFiles starting");
+    logger.debug("sendFiles starting");
 
     int i;
     int phase = 0;
@@ -122,6 +130,7 @@ public class Sender implements Constants, MatcherListener {
         int offset = 0;
 
         i = in.readInt();
+        logger.debug("read file index " + i);
         if (i == -1)
           {
             if (phase == 0 && remoteVersion >= 13)
@@ -129,7 +138,8 @@ public class Sender implements Constants, MatcherListener {
                 phase++;
                 config.strongSumLength = SUM_LENGTH;
                 out.writeInt(-1);
-                logger.info("sendFiles phase=" + phase);
+                out.flush();
+                logger.debug("sendFiles phase=" + phase);
                 continue;
               }
             break;
@@ -144,51 +154,74 @@ public class Sender implements Constants, MatcherListener {
            }
 
          FileInfo finfo = (FileInfo) files.get(i);
-         File file = new File(finfo.dirname + File.separator + finfo.basename);
+         File file = new File(finfo.filename());
 
          stats.num_transferred_files++;
          stats.total_transferred_size += file.length();
+         if (phase == 0)
+           stats.total_size += file.length();
+         logger.info(finfo.filename());
 
          List sums = receiveSums();
+         out.writeInt(i);
+         out.writeInt(count);
+         out.writeInt(n);
+         out.writeInt(remainder);
+         out.flush();
+         config.blockLength = n;
          MatcherStream match = new MatcherStream(config);
          match.setChecksums(sums);
          match.addListener(this);
-         out.writeInt(i);
+         deltasOut = new PlainDeltaEncoder(config, out);
 
-         FileInputStream fin = null;
+         DigestInputStream fin = null;
          try
            {
+             MessageDigest md = MessageDigest.getInstance("BrokenMD4");
+             md.update(config.checksumSeed);
              byte[] buf = new byte[CHUNK_SIZE];
-             fin = new FileInputStream(file);
+             fin = new DigestInputStream(new FileInputStream(file), md);
              int len;
-             while ((len = fin.read(buf)) < 0)
-               match.update(buf, 0, len);
+             while ((len = fin.read(buf)) != -1)
+               {
+                 logger.debug("updating matcher with " + len + " bytes");
+                 match.update(buf, 0, len);
+                 out.flush();
+               }
              match.doFinal();
              deltasOut.doFinal();
-           }
-         catch (IOException ioe)
-           {
-             String msg = "error reading " + file + ": " + ioe.getMessage();
-             logger.fatal(msg);
-             throw new IOException(msg);
+             byte[] digest = md.digest();
+             logger.debug("file_sum=" + Util.toHexString(digest));
+             out.write(digest);
+             out.flush();
+             fin.close();
            }
          catch (ListenerException le)
            {
-             String msg = "error writing deltas: " + le.getCause().getMessage();
-             logger.fatal(msg);
-             throw new IOException(msg);
+             throw (IOException) le.getCause();
+           }
+         catch (NoSuchAlgorithmException nsae)
+           {
+             throw new IOException("could not create message digest");
            }
       }
 
     out.writeInt(-1);
-    logger.info("sendFiles finished");
+    out.flush();
+    logger.debug("sendFiles finished");
   }
 
   public void update(MatcherEvent e) throws ListenerException
   {
     try
       {
-        deltasOut.write(e.getDelta());
+        logger.debug("matched delta=" + e.getDelta());
+        Delta d = e.getDelta();
+        if (d instanceof Offsets)
+          stats.matched_data += d.getBlockLength();
+        else
+          stats.literal_data += d.getBlockLength();
+        deltasOut.write(d);
       }
     catch (IOException ioe)
       {
@@ -200,9 +233,9 @@ public class Sender implements Constants, MatcherListener {
   // -------------------------------------------------------------------------
 
   private List receiveSums() throws IOException {
-    int count = in.readInt();
-    int n = in.readInt();
-    int remainder = in.readInt();
+    count = in.readInt();
+    n = in.readInt();
+    remainder = in.readInt();
     long offset = 0;
 
     logger.debug("count=" + count + " n=" + n + " rem=" + remainder);
@@ -213,22 +246,23 @@ public class Sender implements Constants, MatcherListener {
 
     if (count == 0) return null;
 
-    config.blockLength = n;
     List sums = new ArrayList(count);
-    ChecksumDecoder din = new ChecksumDecoder(config, in);
 
     for (int i = 0; i < count; i++)
       {
-        ChecksumPair pair = din.read();
+        int weak = in.readInt();
+        byte[] strong = new byte[config.strongSumLength];
+        in.read(strong);
 
+        ChecksumPair pair = null;
         if (i == count - 1 && remainder > 0)
           {
-            pair = new ChecksumPair(pair.getWeak(), pair.getStrong(),
-                                    remainder);
+            pair = new ChecksumPair(weak, strong, offset, remainder, i);
             offset += remainder;
           }
         else
           {
+            pair = new ChecksumPair(weak, strong, offset, n, i);
             offset += n;
           }
 

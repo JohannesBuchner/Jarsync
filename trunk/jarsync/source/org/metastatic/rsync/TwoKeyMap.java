@@ -1,45 +1,44 @@
-/* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
+/* TwoKeyMap -- Two-key Map implementation.
    $Id$
-   
-   TwoKeyMap: Two-key Map implementation.
-   Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
-  
-   This file is a part of Jarsync.
-  
-   Jarsync is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2 of the License, or (at
-   your option) any later version.
-  
-   Jarsync is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
-  
-   You should have received a copy of the GNU General Public License
-   along with Jarsync; if not, write to the
-  
-      Free Software Foundation, Inc.,
-      59 Temple Place, Suite 330,
-      Boston, MA  02111-1307
-      USA
-  
-   Linking Jarsync statically or dynamically with other modules is
-   making a combined work based on Jarsync.  Thus, the terms and
-   conditions of the GNU General Public License cover the whole
-   combination.
-  
-   As a special exception, the copyright holders of Jarsync give you
-   permission to link Jarsync with independent modules to produce an
-   executable, regardless of the license terms of these independent
-   modules, and to copy and distribute the resulting executable under
-   terms of your choice, provided that you also meet, for each linked
-   independent module, the terms and conditions of the license of that
-   module.  An independent module is a module which is not derived from
-   or based on Jarsync.  If you modify Jarsync, you may extend this
-   exception to your version of it, but you are not obligated to do so.
-   If you do not wish to do so, delete this exception statement from
-   your version.  */
+
+Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
+
+This file is a part of Jarsync.
+
+Jarsync is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version.
+
+Jarsync is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License
+along with Jarsync; if not, write to the
+
+   Free Software Foundation, Inc.,
+   59 Temple Place, Suite 330,
+   Boston, MA  02111-1307
+   USA
+
+Linking Jarsync statically or dynamically with other modules is making
+a combined work based on Jarsync.  Thus, the terms and conditions of
+the GNU General Public License cover the whole combination.
+
+As a special exception, the copyright holders of Jarsync give you
+permission to link Jarsync with independent modules to produce an
+executable, regardless of the license terms of these independent
+modules, and to copy and distribute the resulting executable under
+terms of your choice, provided that you also meet, for each linked
+independent module, the terms and conditions of the license of that
+module.  An independent module is a module which is not derived from
+or based on Jarsync.  If you modify Jarsync, you may extend this
+exception to your version of it, but you are not obligated to do so.
+If you do not wish to do so, delete this exception statement from your
+version.  */
+
 
 package org.metastatic.rsync;
 
@@ -53,27 +52,27 @@ import java.util.*;
  * the second key. The rationale behind this is that the first key is
  * trivial to compute and that the second key is more difficult to compute
  * but more unique.</p>
- * 
+ *
  * <p>Since the strong key can be a byte array of any length, then this
  * "strong" key can be shorter (and thus less unique) than the "weak"
  * key. For this class to work properly, the stronger key should be at
  * least four bytes in length, preferably longer.</p>
- * 
+ *
  * <p>The weak-key/strong-key method is inspired by (and is was written
  * for) the "hashtable" in the rsync algorithm, and has three levels of
  * key search:</p>
- * 
+ *
  * <ol>
  * <li>Test if the lower 2 bytes of the weak key (the positive part of a
  * 32-bit integer in Java) have been mapped to anything yet. This method
  * always takes O(1) time, and it is assumed that the weak key is
  * trivial to compute.</li>
- * 
+ *
  * <li>Test if the entire weak key is mapped to anything. Since this
  * class uses a linked list to handle collisions where the lower 2 bytes
  * are the same, this method takes at most O(n) operations (also
  * assuming that the weak key is trivial to compute).</li>
- * 
+ *
  * <li>Test if both the weak and strong keys map to an Object. In
  * addition to the linked-list search of the second step, this involves
  * a search of a red-black tree, meaning that the upper-bound time
@@ -81,12 +80,12 @@ import java.util.*;
  * assumption that the strong key is some sort of {@link
  * MessageDigest}, and thus takes longer to compute.</li>
  * </ol>
- * 
+ *
  * <p>With this method, we can determine if it is worth it to compute the
  * strong key if we have already computed the weak key.</p>
- * 
+ *
  * <p><code>null</code> is not a valid key in this map.</p>
- * 
+ *
  * @author Casey Marshall
  * @version $Revision$
  */
