@@ -17,12 +17,13 @@ import org.metastatic.rsync.*;
 public class test2 {
 
    public static void main(String[] argv) throws Exception {
-      if (argv.length < 2) {
-         System.err.println("usage: test old-file new-file");
+      if (argv.length < 3) {
+         System.err.println("usage: test new-file old-file output-file");
          System.exit(1);
       }
-      File old = new File(argv[0]);
-      File newf = new File(argv[1]);
+      File newf = new File(argv[0]);
+      File old = new File(argv[1]);
+      File reconstructed = new File(argv[2]);
 
       Generator gen = new Generator();
       Collection sums = gen.generateSums(old);
@@ -45,5 +46,7 @@ public class test2 {
          System.out.println(i.next());
       }
       System.out.println();
+
+      Rebuilder.rebuildFile(old, reconstructed, deltas);
    }
 }
