@@ -260,7 +260,6 @@ public class Rebuilder
             Offsets o2 = (Offsets) j.next();
             if (o1 == o2) continue;
             if (conflict(o1, o2)) {
-               System.err.println("These conflict: " + o1 + " and " + o2);
                adj.add(o2);
             }
          }
@@ -272,7 +271,6 @@ public class Rebuilder
 
       for (Iterator i = ts.getCycleNodes().iterator(); i.hasNext(); ) {
          Offsets o = (Offsets) i.next();
-         System.err.println(">RFIP: conflicting offsets: " + o);
          byte[] buf = new byte[o.getBlockLength()];
          f.seek(o.getOldOffset());
          f.read(buf);
@@ -281,7 +279,6 @@ public class Rebuilder
 
       for (Iterator i = ts.getFinished().iterator(); i.hasNext(); ) {
          Offsets o = (Offsets) i.next();
-         System.err.println(">RFIP: offsets: " + o);
          byte[] buf = new byte[o.getBlockLength()];
          f.seek(o.getOldOffset());
          f.read(buf);
@@ -291,7 +288,6 @@ public class Rebuilder
 
       for (Iterator i = dataBlocks.iterator(); i.hasNext(); ) {
          DataBlock db = (DataBlock) i.next();
-         System.err.println(">RFIP: data block: " + db);
          f.seek(db.getOffset());
          f.write(db.getData());
       }
@@ -447,7 +443,6 @@ public class Rebuilder
          for (Iterator i = graph.keySet().iterator(); i.hasNext(); ) {
             Object u = i.next();
             if (colors.get(u).equals(WHITE)) {
-               System.err.println(">>DFS: visiting " + u);
                DFSVisit(u);
             }
          }
