@@ -16,6 +16,6 @@ by this percentage.
 
 PREREQUISITES
 
-	The only prerequisite is the Jarsync delta compression library,
-available at http://jarsync.sourceforge.net/. Version 0.2 or later will
-do.
+	* The Jarsync delta compression library, available at
+	  http://jarsync.sourceforge.net/.
+	* Log4j, available at http://jakarta.apache.org/log4j/docs/.
