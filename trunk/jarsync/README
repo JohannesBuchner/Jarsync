@@ -48,49 +48,25 @@ and Paul Mackerras, available from the URL
 
 2. Compilation.
 
-As the library is still incomplete, the included Makefile is still
-rather simple. Saying 'make' will build all the classes, plus a simple
-test program. Using 'ant' will do the same thing.
+To configure and build the library, the `rdiff' example program, and the
+test programs, simply say
 
-The Makefile is a GNU Makefile and does require a recent version of GNU
-make.
+	./configure
+	make
 
-Right now you can use the program 'test.class' to test the checksum
-generation, hashtable building, and checksum search phases. For example,
-you can do something like this:
+If this is a CVS checkout, first execute `autoconf' to make the
+configure script.
 
-	perl mutate.pl 42 42 <COPYING >COPYING.mut
-	java test COPYING COPYING.mut
+There is also a Jakarta Ant build.xml file, which by executing
 
-which will print out the checksum pairs for COPYING, a TwoKeyMap built
-from these, and finally the deltas between COPYING and COPYING.mut.
+	ant
+	ant test
 
-Also note that running
+will build the same files as `make'.
 
-	java test COPYING COPYING
-
-should print out this as the final line: 
-
-	[ old=0 new=0 len=18009 ]
-
-The class 'test2' will reconstruct the new file, based upon the deltas.
-Therefore if you do this:
-
-	perl mutate.pl 42 42 <COPYING >COPYING.mut
-	java test2 COPYING COPYING.mut COPYING.new
-
-'COPYING.new' should be identical to 'COPYING'.
-
-The class 'test3' will reconstruct the new file in-place, so just say:
-
-	perl mutate.pl 42 42 <COPYING >COPYING.mut
-	java test2 COPYING COPYING.mut
-
-SHOULD make the two files identical.
-
-This library includes a console program org.metastatic.rsync.Rdiff,
-which is a workalike for the rdiff program from librsync. Right now this
-is only a test program for the library, but may be made better later on.
+There is no `install' target yet; to use the test programs and the rdiff
+workalike program the Jar files `jarsync.jar' and `getopt.jar' need to
+be in your CLASSPATH.
 
 =======================================================================
 
@@ -129,7 +105,7 @@ This is only an overview; see the API JavaDocs for more information.
   3.c. File Patching
 
   Files are patched with the `Rebuilder' class, whose methods
-  `rebildFile'  will either take a basis file and a java.util.Collection
+  `rebuildFile'  will either take a basis file and a java.util.Collection
   of Deltas and return a new, temporary file containing the patched
   file; or take two files and a java.util.Collection, patching into one
   of them. The `rebuildFileInPlace' will patch the file in-place, not
@@ -138,25 +114,27 @@ This is only an overview; see the API JavaDocs for more information.
   Since these methods are stateless, they are all static and do not
   depend upon a `Configuration'.
 
-  There is no equivalent InputStream/byte[] methods, as these methods
+  There are no equivalent InputStream/byte[] methods, as these methods
   require random access.
 
 =======================================================================
 
 4. Files in this distribution.
 
-  AUTHORS    -  List of authors, roles, and contact information.
-  COPYING    -  The GNU General Public License.
-  ChangeLog  -  List of changes between versions.
-  Makefile   -  GNU Makefile used for compilation.
-  README     -  This file; notes &c.
-  TODO       -  A list of things yet to be done.
-  build.xml  -  Jakarta Ant XML build file.
-  mutate.pl  -  Utility from librsync to make random modifications to files.
-  rdiff      -  Bash script to run org.metastatic.rsync.Rdiff.
-  rdiff.magic-  Example (unofficial) magic(5) file for rdiff files.
-  test.java  -  A simple test of byte array based methods.
-  test2.java -  A simple test of file-based methods.
+  AUTHORS      -  List of authors, roles, and contact information.
+  COPYING      -  The GNU General Public License.
+  ChangeLog    -  List of changes between versions.
+  Makefile.in  -  GNU Makefile used for compilation.
+  README       -  This file; notes &c.
+  TODO         -  A list of things yet to be done.
+  build.xml    -  Jakarta Ant XML build file.
+  configure    -  GNU configure script.
+  configure.ac -  GNU autoconf specification.
+  mutate.pl    -  Utility from librsync to make random modifications to files.
+  rdiff        -  Bash script to run org.metastatic.rsync.Rdiff.
+  rdiff.magic  -  Example (unofficial) magic(5) file for rdiff files.
+  test.java    -  A simple test of byte array based methods.
+  test2.java   -  A simple test of file-based methods.
 
 In directory org/metastatic/rsync:
 
