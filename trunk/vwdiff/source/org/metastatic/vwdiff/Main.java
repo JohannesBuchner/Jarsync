@@ -62,6 +62,7 @@ public final class Main {
 
    public static void main(String[] argv) throws Throwable {
       Security.addProvider(new JarsyncProvider());
+      Security.setProperty("networkaddress.cache.ttl", "172800");
       HTTPConnection.setDefaultTimeout(300000);
       LongOpt[] longopts = {
          new LongOpt("config",  LongOpt.REQUIRED_ARGUMENT, null, 'c'),

@@ -67,6 +67,7 @@ EXTRA_DIST = \
   $(srcdir)/com/keypoint/PngEncoderB.java \
   $(srcdir)/org/metastatic/vwdiff/AuthFile.java \
   $(srcdir)/org/metastatic/vwdiff/Config.java \
+  $(srcdir)/org/metastatic/vwdiff/Extract.java \
   $(srcdir)/org/metastatic/vwdiff/HTTPException.java \
   $(srcdir)/org/metastatic/vwdiff/HTTPRequest.java \
   $(srcdir)/org/metastatic/vwdiff/HTTPResponse.java \
@@ -136,6 +137,7 @@ sources = \
   $(srcdir)/com/keypoint/PngEncoderB.java \
   $(srcdir)/org/metastatic/vwdiff/AuthFile.java \
   $(srcdir)/org/metastatic/vwdiff/Config.java \
+  $(srcdir)/org/metastatic/vwdiff/Extract.java \
   $(srcdir)/org/metastatic/vwdiff/HTTPException.java \
   $(srcdir)/org/metastatic/vwdiff/HTTPRequest.java \
   $(srcdir)/org/metastatic/vwdiff/HTTPResponse.java \

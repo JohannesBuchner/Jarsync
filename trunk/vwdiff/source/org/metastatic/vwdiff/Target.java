@@ -36,6 +36,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 
+import java.net.InetAddress;
 import java.net.URL;
 
 import java.security.MessageDigest;
@@ -125,9 +126,15 @@ public class Target implements java.io.Serializable {
    // -----------------------------------------------------------------------
 
    public void access() {
+      logger.info("accessing [" + name + "] with URL " + url);
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       byte[] buf = new byte[512];
       try {
+         try {
+            InetAddress addr = InetAddress.getByName(url.getHost());
+            logger.info("Connecting to " + addr);
+         } catch (IOException ignore) {
+         }
          HTTPConnection conn = new HTTPConnection(url);
          conn.setDefaultHeaders(USER_AGENT);
          HTTPResponse resp = conn.Get(url.getFile());
@@ -158,6 +165,11 @@ public class Target implements java.io.Serializable {
          if (!force && System.currentTimeMillis() - lastUpdate < frequency) {
             logger.info("[" + name + "] not ready for update");
             return;
+         }
+         try {
+            InetAddress addr = InetAddress.getByName(url.getHost());
+            logger.info("Connecting to " + addr);
+         } catch (IOException ignore) {
          }
          Generator gen = new Generator(config);
          List sums = Collections.EMPTY_LIST;
