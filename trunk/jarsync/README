@@ -73,6 +73,14 @@ should print out this as the final line:
 
 	[ old=0 new=0 len=18009 ]
 
+The class 'test2' will reconstruct the new file, based upon the deltas.
+Therefore if you do this:
+
+	perl mutate.pl 42 42 <COPYING >COPYING.mut
+	java test2 COPYING COPYING.mut COPYING.new
+
+'COPYING.new' should be identical to 'COPYING'.
+
 =======================================================================
 
 3. The API.
@@ -91,21 +99,25 @@ should print out this as the final line:
   TODO       -  A list of things yet to be done.
   build.xml  -  Jakarta Ant XML build file.
   mutate.pl  -  Utility from librsync to make random modifications to files.
-  test.java  -  A simple test of some of the methods.
+  test.java  -  A simple test of byte array based methods.
+  test2.java -  A simple test of file-based methods.
 
 In directory org/metastatic/rsync:
 
   ChecksumPair.java     -  A pair of weak and strong checksums over a
                            block of data.
+  Configuration.java    -  A context object.
   DataBlock.java        -  A Delta that represents new data to be
                            inserted into a file.
   Delta.java            -  A generic change to data in the algorithm.
   Generator.java        -  The checksum generation methods.
   Matcher.java          -  The hash search and delta generation methods.
+  MessageDigest.java    -  Superclass for message digest algorithms.
   MD4.java              -  The MD4 Message Digest algorithm, used to generate
                            the "strong" checksum.
   Offsets.java          -  A Delta that represents data that has simply
                            moved.
+  Rebuilder.java        -  Reconstructs files from deltas.
   RollingChecksum.java  -  A simple checksum based on Adler32 that can
                            be updated from either end.
   TwoKeyMap.java        -  A java.util.Map that maps two keys, one an
