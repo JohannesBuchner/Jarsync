@@ -66,6 +66,8 @@ public interface Constants {
    /** Exit message. */
    public static final String RSYNCD_EXIT = "@RSYNCD: EXIT";
 
+  public static final String URL_PREFIX = "rsync://";
+
    public static final int MAXPATHLEN = 1024;
 
    /* Flist flags. */
