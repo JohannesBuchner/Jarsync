@@ -27,6 +27,8 @@
 
 if [ "$CLASSPATH" ]; then
     CLASSPATH=$CLASSPATH:lib/jarsync.jar:lib/getopt.jar
+else
+    CLASSPATH=lib/jarsync.jar:lib/getopt.jar
 fi
 
 java -classpath $CLASSPATH org.metastatic.rsync.Rdiff "$@"
