@@ -223,6 +223,10 @@ public class Generator implements RsyncConstants {
       ChecksumPair p = new ChecksumPair();
       weakSum.check(buf, off, len);
       config.strongSum.update(buf, off, len);
+      if (config.checksumSeed != null) {
+         config.strongSum.update(config.checksumSeed, 0,
+            config.checksumSeed.length);
+      }
       p.weak = new Integer(weakSum.getValue());
       p.strong = new byte[config.strongSumLength];
       System.arraycopy(config.strongSum.digest(), 0, p.strong, 0,

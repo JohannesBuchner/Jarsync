@@ -1,6 +1,6 @@
 /*
  * test.java -- Simple test for jarsync.
- * Copyright © 2002  Casey Marshall <rsdio@metastatic.org>
+ * Copyright (C) 2002  Casey Marshall <rsdio@metastatic.org>
  *
  * see COPYING for details.
  */

@@ -59,6 +59,12 @@ public class Configuration implements RsyncConstants {
     */
    boolean doRunLength;
 
+   /**
+    * The seed for the checksum, to perturb the strong checksum and help
+    * avoid collisions in plain rsync (or in similar applicaitons).
+    */
+   byte[] checksumSeed;
+
    // Constructors.
    // ------------------------------------------------------------------------
 
@@ -103,11 +109,67 @@ public class Configuration implements RsyncConstants {
       doRunLength = false;
    }
 
+   // Instance methods.
+   // -------------------------------------------------------------------------
+
+   /**
+    * Set whether or not to do run-length encoding while generating
+    * deltas.
+    *
+    * @param doRunLength Whether or not to do RLE.
+    */
    public void setDoRunLength(boolean doRunLength) {
       this.doRunLength = doRunLength;
    }
 
+   /**
+    * Return whether or not to do run-length encoding.
+    *
+    * @return Whether or not to do RLE.
+    */
+   public boolean getDoRunLength() {
+      return doRunLength;
+   }
+
+   /**
+    * Set the effective length of the strong sum (the first
+    * <code>strongSumLength</code> bytes of the strong sum).
+    *
+    * @param strongSumLength The sum length.
+    */
    public void setStrongSumLength(int strongSumLength) {
       this.strongSumLength = strongSumLength;
+   }
+
+   /**
+    * Get the effective length of the strong sum.
+    *
+    * @return The effective length of the strong sum.
+    */
+   public int getStrongSumLength() {
+      return strongSumLength;
+   }
+
+   /**
+    * Set the checksum seed. This can be <code>null</code> for the case
+    * of no checksum. The byte array is clone()d if non-null.
+    *
+    * @param seed The seed.
+    */
+   public void setChecksumSeed(byte[] seed) {
+      if (seed == null) {
+         checksumSeed = null;
+      } else {
+         checksumSeed = (byte[]) seed.clone();
+      }
+   }
+
+   /**
+    * Get the checksum seed.
+    *
+    * @return The checksum seed, or <code>null</code> if there is none.
+    */
+   public byte[] getChecksumSeed() {
+      return checksumSeed;
    }
 }
