@@ -32,12 +32,20 @@ import java.io.RandomAccessFile;
 
 import java.util.*;
 
+/**
+ * Methods for file reconstruction from deltas.
+ *
+ * @version $Revision$
+ */
 public class Rebuilder {
 
    // Constants and variables.
    // -----------------------------------------------------------------------
 
+   /** The prefix for temporary files. */
    private static final String TMP_PREFIX = ".jarsync-";
+
+   /** The suffix for temporary files. */
    private static final String TMP_SUFFIX = ".temp";
 
    // Class methods.
@@ -47,6 +55,11 @@ public class Rebuilder {
     * Reconstruct a file into a new file created with {@link
     * java.io.File#createTempFile(java.lang.String,java.lang.String,java.io.File)}.
     * This file can then be renamed to the destination.
+    *
+    * @param oldFile The original file.
+    * @param deltas  A collection of {@link Delta}s to apply to the original
+    *    file.
+    * @return A unique {@link java.io.File} containing the reconstruction.
     */
    public static File rebuildFile(File oldFile, Collection deltas)
    throws IOException {
@@ -58,6 +71,11 @@ public class Rebuilder {
 
    /**
     * Reconstruct a file into <code>newFile</code>.
+    *
+    * @param oldFile The original file.
+    * @param newFile The file to write the reconstruction to. This must be a
+    *    different file than <code>oldFile</code>
+    * @param deltas The {@link Delta}s to apply.
     */
    public static void rebuildFile(File oldFile, File newFile, Collection deltas)
    throws IOException {
@@ -86,12 +104,18 @@ public class Rebuilder {
       out.close();
    }
 
+   /**
+    * Reconstruct a file in-place. The contents of <code>file</code> will be
+    * overwritten with the contents of the reconstructed file.
+    *
+    * @param file The file to reconstruct.
+    * @param deltas The {@link Delta}s to apply.
+    */
    public static void rebuildFileInPlace(File file, Collection deltas)
    throws IOException {
       RandomAccessFile f = new RandomAccessFile(file, "rw");
       List offsets = new LinkedList();
       List dataBlocks = new LinkedList();
-      List conflicts = new LinkedList();
       TreeMap digraph = new TreeMap(new OffsetComparator());
       long newFileLength = 0;
 
@@ -159,6 +183,10 @@ public class Rebuilder {
       f.close();
    }
 
+   /**
+    * Test if the first offset will write to the reading area of the second
+    * offset.
+    */
    private static boolean conflict(Offsets o1, Offsets o2) {
       return (o1.getNewOffset() >= o2.getOldOffset()
            && o1.getNewOffset() <= o2.getOldOffset()+o2.getBlockLength())
@@ -170,44 +198,120 @@ public class Rebuilder {
  // Inner classes.
    // -----------------------------------------------------------------------
 
+   /**
+    * <p>This class topologically sorts a directed graph encoded as a mapping
+    * from vertices to sets of adjacent vertices. It is used when
+    * reconstructing a file in-place, where it is possible that Offsets
+    * objects overlap.</p>
+    *
+    * <p>Since a topological ordering of a directed graph is only possible in
+    * acyclic graphs, this sorter will remove any nodes that cause cycles,
+    * leaving the rest of the graph acyclic. After the graph is sorted the
+    * ordering can be obtained with {@link #getFinished()}, which is a {@link
+    * java.util.List} of nodes in their sorted order. Nodes that were part of
+    * cycles but have been removed can be retrieved with {@link
+    * #getCycleNodes()}, which returns a {@link java.util.Set} of nodes that
+    * were removed.</p>
+    *
+    * <p>Despite the terminology of "removed" nodes, the graph passed to the
+    * constructor is not modified.</p>
+    *
+    * @version 1.1
+    */
    private static class TopologicalSorter {
 
       // Constants and variables.
+      // --------------------------------------------------------------------
 
+      /** The color for unvisited nodes. */
       private static final String WHITE = "white";
+
+      /** The color for visited nodes. */
       private static final String GRAY  = "gray";
+
+      /** The color for finished nodes. */
       private static final String BLACK = "black";
 
+      /**
+       * The graph, encoded as a mapping between nodes and {@link
+       * java.util.Set}s of adjacent nodes.
+       */
       private Map graph;
+
+      /**
+       * A mapping between nodes and their color.
+       */
       private Map colors;
+
+      /**
+       * The ordered list of finished nodes.
+       */
       private List finished;
-      private List cycleNodes;
+
+      /**
+       * The set of nodes that had to be removed from cycles.
+       */
+      private Set cycleNodes;
 
       // Constructor.
-      
+      // --------------------------------------------------------------------
+
+      /**
+       * Create a new topological sorter for the given graph.
+       *
+       * @param graph The graph to sort.
+       */
       TopologicalSorter(Map graph) {
          this.graph = graph;
          colors = new HashMap();
          finished = new LinkedList();
-         cycleNodes = new LinkedList();
+         cycleNodes = new HashSet();
       }
 
       // Instance methods.
+      // --------------------------------------------------------------------
 
+      /**
+       * Sort the graph. After this method returns the finished and removed
+       * nodes are available.
+       */
       void sort() {
          DFS();
       }
 
+      /**
+       * Return the ordered list of nodes.
+       *
+       * @return The ordered nodes.
+       */
       List getFinished() {
          return finished;
       }
 
-      List getCycleNodes() {
+      /**
+       * Get the nodes that caused cycles.
+       *
+       * @return The removed nodes.
+       */
+      Set getCycleNodes() {
          return cycleNodes;
       }
 
       // Own methods.
 
+      /**
+       * <p>Depth-first search with removing nodes with back edges. As this
+       * method runs it places nodes into a list, which is a topological
+       * sorting of this graph. Any node encountered with a back-edge is
+       * put into the cycle-nodes list.</p>
+       *
+       * <p>References:</p>
+       * <ol>
+       * <li>T. Cormen, C. Leiserson, and R. Rivest: <i>Introduction to
+       * Algorithms</i>, pp. 477-487 (1990 The Massachusetts Instiute of
+       * Technology).</li>
+       * </ol>
+       */
       private void DFS() {
          for (Iterator i = graph.keySet().iterator(); i.hasNext(); ) {
             colors.put(i.next(), WHITE);
@@ -221,6 +325,11 @@ public class Rebuilder {
          }
       }
 
+      /**
+       * DFS_VISIT. Visit a single node in a depth-first search.
+       *
+       * @param u The node to visit.
+       */
       private void DFSVisit(Object u) {
          colors.put(u, GRAY);
          for (Iterator i = ((Set) graph.get(u)).iterator(); i.hasNext(); ) {
@@ -239,14 +348,21 @@ public class Rebuilder {
    }
 
    /**
-    * Sort Offsets objects by increasing write offset.
+    * Sort Offsets and DataBlocks objects by increasing write offset.
     */
    private static class OffsetComparator implements Comparator {
       public OffsetComparator() { }
 
       public int compare(Object o1, Object o2) {
-         return (int) (((Offsets) o1).getNewOffset() -
-            ((Offsets) o2).getNewOffset());
+         long offset1 = 0;
+         long offset2 = 0;
+         if (o1 instanceof Delta) {
+            offset1 = ((Delta) o1).getWriteOffset();
+         }
+         if (o2 instanceof Delta) {
+            offset2 = ((Delta) o2).getWriteOffset();
+         }
+         return (int) (offset1 - offset2);
       }
 
       public boolean equals(Object o) {

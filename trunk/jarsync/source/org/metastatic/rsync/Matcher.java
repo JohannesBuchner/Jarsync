@@ -32,31 +32,51 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 
+/**
+ * Methods for performing the checksum search. The result of a search is
+ * a {@link java.util.Collection} of {@link Delta} objects that, when
+ * applied to a {@link Rebuilder}, will reconstruct the new version of
+ * the data.
+ *
+ * @version $Revision$
+ */
 public final class Matcher implements RsyncConstants {
 
    // Constants and variables.
    // -----------------------------------------------------------------
 
+   /** Our configuration. */
    protected Configuration config;
+
+   /** The rolling checksum. */
    protected RollingChecksum weakSum;
 
    // Constructors.
    // -----------------------------------------------------------------
 
+   /**
+    * Create a matcher with the default configuration.
+    */
    public Matcher() {
       this(new Configuration());
    }
 
+   /**
+    * Create a matcher with the specified configuration.
+    */
    public Matcher(Configuration config) {
       this.config = config;
       weakSum = new RollingChecksum();
    }
 
-   // Instance methods.
+ // Instance methods.
    // -----------------------------------------------------------------
 
    /**
     * Create a two-key map for the given collection of checksums.
+    *
+    * @param sums The {@link ChecksumPair}s to build the table from.
+    * @return A {@link TwoKeyMap} built from the sums.
     */
    public TwoKeyMap buildHashtable(Collection sums) {
       TwoKeyMap m = new TwoKeyMap();
@@ -68,7 +88,50 @@ public final class Matcher implements RsyncConstants {
    }
 
    /**
+    * Search the given byte buffer.
+    *
+    * @param sums The checksums to search for.
+    * @param buf  The data buffer to search.
+    * @param baseOffset The offset from whence <code>buf</code> came.
+    * @return A collection of {@link Delta}s derived from this search.
+    */
+   public Collection hashSearch(Collection sums, byte[] buf, long baseOffset) {
+      return hashSearch(buildHashtable(sums), buf, baseOffset);
+   }
+
+   /**
+    * Search a portion of a byte buffer.
+    *
+    * @param sums The checksums to search for.
+    * @param buf  The data buffer to search.
+    * @param off  The offset in <code>buf</code> to begin.
+    * @param len  The number of bytes to search from <code>buf</code>.
+    * @param baseOffset The offset from whence <code>buf</code> came.
+    * @return A collection of {@link Delta}s derived from this search.
+    */
+   public Collection hashSearch(Collection sums, byte[] buf, int off,\
+                                int len, long baseOffset)
+   {
+      return hashSearch(buildHashtable(sums), buf, off, len, baseOffset);
+   }
+
+   /**
+    * Search a file.
+    *
+    * @param sums The checksums to search for.
+    * @param f    The file to search.
+    * @return A collection of {@link Delta}s derived from this search.
+    */
+   public Collection hashSearch(Collection sums, File f) throws IOException {
+      return hashSearch(buildHashtable(sums), f);
+   }
+
+   /**
     * Create a collection of deltas derived from the given file.
+    *
+    * @param m The map of checksums to search for.
+    * @param f The file to search.
+    * @return A collection of {@link Delta}s derived from this search.
     */
    public Collection hashSearch(TwoKeyMap m, File f)
    throws IOException
@@ -78,6 +141,11 @@ public final class Matcher implements RsyncConstants {
 
    /**
     * Create a collection of deltas derived from the given byte array.
+    *
+    * @param m The map of checksums to search for.
+    * @param buf  The data buffer to search.
+    * @param baseOffset The offset from whence <code>buf</code> came.
+    * @return A collection of {@link Delta}s derived from this search.
     */
    public Collection hashSearch(TwoKeyMap m, byte[] buf, long baseOffset) {
       return hashSearch(m, buf, 0, buf.length, baseOffset);
@@ -86,6 +154,13 @@ public final class Matcher implements RsyncConstants {
    /**
     * Create a collection of deltas derived from a portion of the given
     * byte array.
+    *
+    * @param m The map of checksums to search for.
+    * @param buf  The data buffer to search.
+    * @param off  The offset in <code>buf</code> to begin.
+    * @param len  The number of bytes to search from <code>buf</code>.
+    * @param baseOffset The offset from whence <code>buf</code> came.
+    * @return A collection of {@link Delta}s derived from this search.
     */
    public Collection
    hashSearch(TwoKeyMap m, byte[] buf, int off, int len, long baseOffset) {
@@ -103,7 +178,7 @@ public final class Matcher implements RsyncConstants {
          weak = new Integer(weakSum.getValue());
          oldOffset = hashSearch(weak, buf, i, n, m);
          if (oldOffset != null) {
-            System.err.println("third test succeeds; off=" + oldOffset);
+            //System.err.println("third test succeeds; off=" + oldOffset);
             if (j == i && !deltas.isEmpty()) {
                Offsets o = (Offsets) deltas.getLast();
                o.setBlockLength(o.getBlockLength() + n);
@@ -136,23 +211,32 @@ public final class Matcher implements RsyncConstants {
       return deltas;
    }
 
-   // own methods
+ // Own methods
+   // -----------------------------------------------------------------------
 
    /**
     * Search if a portion of the given byte array is in the map,
     * returning its original offset if it is.
+    *
+    * @param weakSum The weak sum to search for.
+    * @param block   The block of bytes to search for.
+    * @param off     The offset in the block to begin.
+    * @param len     The number of bytes to read from the block.
+    * @param m       The map to search.
+    * @return The original offset of the given block if it was found in
+    *    the map. null if it was not found.
     */
    protected Long
    hashSearch(Integer weakSum, byte[] block, int off, int len, TwoKeyMap m) {
       if (m.containsKey(weakSum.intValue())) {
-         System.err.println("first test succeeds; weak=" +
-            Integer.toHexString(weakSum.intValue() & 0xffff));
+         //System.err.println("first test succeeds; weak=" +
+         //   Integer.toHexString(weakSum.intValue() & 0xffff));
          if (m.containsKey(weakSum)) {
             config.strongSum.reset();
             config.strongSum.update(block, off, len);
             byte[] digest = config.strongSum.digest();
             ChecksumPair pair = new ChecksumPair(weakSum, digest);
-            System.err.println("second test succeeds; sums=" + pair);
+            //System.err.println("second test succeeds; sums=" + pair);
             return (Long) m.get(new ChecksumPair(weakSum, digest));
          }
       }
@@ -162,13 +246,21 @@ public final class Matcher implements RsyncConstants {
    /**
     * Search if a portion of the given file is in the map, returning its
     * original offset if it is.
+    * 
+    * @param weakSum The weak sum to search for.
+    * @param f       The file to search.
+    * @param off     The offset in the file to begin.
+    * @param len     The number of bytes to read from the file.
+    * @param m       The map to search.
+    * @return The original offset of the given block if it was found in
+    *    the map. null if it was not found.
     */
    protected Long hashSearch(Integer weakSum, RandomAccessFile f, long off,
       int len, TwoKeyMap m) throws IOException
    {
       if (m.containsKey(weakSum.intValue())) {
-         System.err.println("first test succeeds; weak=" +
-            Integer.toHexString(weakSum.intValue() & 0xffff));
+         //System.err.println("first test succeeds; weak=" +
+         //   Integer.toHexString(weakSum.intValue() & 0xffff));
          if (m.containsKey(weakSum)) {
             byte[] buf = new byte[len];
             f.seek(off);
@@ -177,7 +269,7 @@ public final class Matcher implements RsyncConstants {
             config.strongSum.update(buf, 0, l);
             byte[] digest = config.strongSum.digest();
             ChecksumPair pair = new ChecksumPair(weakSum, digest);
-            System.err.println("second test succeeds; sums=" + pair);
+            //System.err.println("second test succeeds; sums=" + pair);
             return (Long) m.get(new ChecksumPair(weakSum, digest));
          }
       }
@@ -186,6 +278,10 @@ public final class Matcher implements RsyncConstants {
 
    /**
     * Create a collection of deltas from the given RandomAccessFile.
+    *
+    * @param m The map to search.
+    * @param f The file to search.
+    * @return A collection of {@link Delta}s derived from this search.
     */
    protected Collection
    hashSearch(TwoKeyMap m, RandomAccessFile f) throws IOException {
@@ -206,7 +302,7 @@ public final class Matcher implements RsyncConstants {
          weak = new Integer(weakSum.getValue());
          oldOffset = hashSearch(weak, f, i, n, m);
          if (oldOffset != null) {
-            System.err.println("third test succeeds; off=" + oldOffset);
+            //System.err.println("third test succeeds; off=" + oldOffset);
             if (j == i && !deltas.isEmpty()) {
                Offsets o = (Offsets) deltas.getLast();
                o.setBlockLength(o.getBlockLength() + n);

@@ -68,12 +68,24 @@ public class DataBlock implements Delta, java.io.Serializable {
     * @since 1.1
     */
    public DataBlock(long offset, byte[] data) {
-     this.offset = offset;
-     this.data = (byte[]) data.clone();
+      this.offset = offset;
+      this.data = (byte[]) data.clone();
    }
 
  // Instance methods.
    // -----------------------------------------------------------------
+
+   // Delta interface implementation.
+
+   public long getWriteOffset() {
+      return offset;
+   }
+
+   public int getBlockLength() {
+      return data.length;
+   }
+
+   // Property accessor methods.
 
    /**
     * Get the offset at which this block should begin.
@@ -93,16 +105,6 @@ public class DataBlock implements Delta, java.io.Serializable {
     */
    public byte[] getData() {
       return data;
-   }
-
-   /**
-    * Return the length of this block, in bytes.
-    *
-    * @return The size of this data block, in bytes.
-    * @since 1.1
-    */
-   public int getBlockLength() {
-      return data.length;
    }
 
  // Instance methods overriding java.lang.Object. -------------------

@@ -26,21 +26,43 @@
 
 package org.metastatic.rsync;
 
+/**
+ * A Configuration is a mere collection of objects and values that
+ * compose a particular configuration for the algorithm, for example the
+ * message digest that computes the strong checksum.
+ *
+ * @author Casey Marshall
+ * @version $Revision$
+ */
 public class Configuration implements RsyncConstants {
 
    // Constants and variables.
    // ------------------------------------------------------------------------
 
+   /**
+    * The message digest that computes the stronger checksum.
+    */
    MessageDigest strongSum;
+
+   /**
+    * The length of blocks to checksum.
+    */
    int blockLength;   
 
    // Constructors.
    // ------------------------------------------------------------------------
 
+   /**
+    * Create a configuration using MD4 and a block length of 700.
+    */
    public Configuration() {
       this(new MD4(), BLOCK_LENGTH);
    }
 
+   /**
+    * Create a configuration with a particular strong checksum and a
+    * block length of 700.
+    */
    public Configuration(MessageDigest strongSum) {
       this(strongSum, BLOCK_LENGTH);
    }

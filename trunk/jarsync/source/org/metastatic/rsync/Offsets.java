@@ -84,6 +84,19 @@ public class Offsets implements Delta, java.io.Serializable {
       this.blockLength = blockLength;
    }
 
+   // Instance methods.
+   // -----------------------------------------------------------------------
+
+   // Delta interface implementation.
+
+   public long getWriteOffset() {
+      return newOffset;
+   }
+
+   public int getBlockLength() {
+      return blockLength;
+   }
+
  // Property accessor methods
 
    /**
@@ -120,15 +133,6 @@ public class Offsets implements Delta, java.io.Serializable {
     */
    public void setNewOffset(long off) {
       newOffset = off;
-   }
-
-   /**
-    * Get the block size.
-    *
-    * @return The block size.
-    */
-   public int getBlockLength() {
-      return blockLength;
    }
 
    /**

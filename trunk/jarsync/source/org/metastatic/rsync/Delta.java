@@ -34,7 +34,6 @@ package org.metastatic.rsync;
  * @version $Revision$
  */
 public interface Delta {
-
    /**
     * The size of the block of data this class represents.
     *
@@ -42,4 +41,12 @@ public interface Delta {
     * @return The size of the block of data this class represents.
     */
    public abstract int getBlockLength();
+
+   /**
+    * Get the offset at which this Delta should be written.
+    *
+    * @since 1.2
+    * @return The write offset.
+    */
+   public abstract long getWriteOffset();
 }
