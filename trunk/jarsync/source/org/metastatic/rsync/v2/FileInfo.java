@@ -37,6 +37,8 @@ package org.metastatic.rsync.v2;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Basic information about files that are being sent over the wire.
@@ -92,6 +94,33 @@ public class FileInfo implements Constants {
   // Intsance methods.
   // -------------------------------------------------------------------------
 
+  public String permstring()
+  {
+    String perm_map = "rwxrwxrwx";
+    StringBuffer buf = new StringBuffer("----------");
+    for (int i = 0; i < 9; i++)
+      {
+        if ((mode & (1 << i)) != 0)
+          buf.setCharAt(9-i, perm_map.charAt(8-i));
+      }
+    return buf.toString();
+  }
+
+  public String timestring()
+  {
+    Date date = new Date(modtime * 1000L);
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+    return sdf.format(date);
+  }
+
+  public String filename()
+  {
+    if (dirname != null)
+      return dirname + File.separator + basename;
+    else
+      return basename;
+  }
+
   public boolean S_ISLNK() {
     return S_ISLNK(mode);
   }
@@ -101,12 +130,20 @@ public class FileInfo implements Constants {
   }
 
   public String toString() {
-    String s = dirname + File.separator + basename + " flags="
-      + Integer.toBinaryString(flags) + " modtime=" + modtime +
-      " length=" + length + " mode=" + Integer.toOctalString(mode) +
-      " uid=" + uid + " gid=" + gid + " inode=" + inode + " rdev=" + rdev;
+    StringBuffer buf = new StringBuffer();
+    buf.append(permstring());
+    buf.append(' ');
+    String len = String.valueOf(length);
+    if (len.length() <= 10)
+      buf.append("          ".substring(0, 10-len.length())).append(len);
+    else
+      buf.append(len);
+    buf.append(' ');
+    buf.append(timestring());
+    buf.append(' ');
+    buf.append(filename());
     if (S_ISLNK())
-      s += " link=" + link;
-    return s;
+      buf.append(" -> " + link);
+    return buf.toString();
   }
 }
