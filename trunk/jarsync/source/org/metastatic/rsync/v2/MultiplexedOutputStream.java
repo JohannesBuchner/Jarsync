@@ -38,189 +38,212 @@ import org.metastatic.rsync.*;
  *
  * @version $Revision$
  */
-public class
-MultiplexedOutputStream extends OutputStream implements MultiplexedIO
+public class MultiplexedOutputStream extends OutputStream
+  implements MultiplexedIO
 {
 
-   // Constants and variables.
-   // -----------------------------------------------------------------------
+  // Constants and variables.
+  // -----------------------------------------------------------------------
 
-   private static final Logger logger =
-      Logger.getLogger(MultiplexedInputStream.class.getName());
+  private static final Logger logger =
+    Logger.getLogger(MultiplexedInputStream.class.getName());
 
-   /** The underlying output stream. */
-   private OutputStream out;
+  /** The underlying output stream. */
+  private OutputStream out;
 
-   /** Our output buffer. */
-   private byte[] outputBuffer;
+  /** Our output buffer. */
+  private byte[] outputBuffer;
 
-   /** The number of bytes written to the buffer. */
-   private int bufferCount;
+  /** The number of bytes written to the buffer. */
+  private int bufferCount;
 
-   /** Whether or not to actually multiplex. */
-   private boolean multiplex;
+  /** Whether or not to actually multiplex. */
+  private boolean multiplex;
 
-   // Constructors.
-   // -----------------------------------------------------------------------
+  // Constructors.
+  // -----------------------------------------------------------------------
 
-   public MultiplexedOutputStream(OutputStream out, boolean multiplex) {
-      this.out = out;
-      this.multiplex = multiplex;
-      outputBuffer = new byte[4096];
-      bufferCount = 0;
-   }
+  public MultiplexedOutputStream(OutputStream out, boolean multiplex)
+  {
+    this.out = out;
+    this.multiplex = multiplex;
+    outputBuffer = new byte[4096];
+    bufferCount = 0;
+  }
 
-   // Instance methods.
-   // -----------------------------------------------------------------------
+  // Instance methods.
+  // -----------------------------------------------------------------------
 
-   /**
-    * Set multiplexing value.
-    *
-    * @param multiplex The new multiplex value.
-    */
-   public void setMultiplex(boolean multiplex) {
-      this.multiplex = multiplex;
-   }
+  /**
+   * Set multiplexing value.
+   *
+   * @param multiplex The new multiplex value.
+   */
+  public void setMultiplex(boolean multiplex)
+  {
+    this.multiplex = multiplex;
+  }
 
-   /**
-    * Write a message to the multiplexed error stream. If this object
-    * was not configured with to multiplex messages, then this method
-    * does nothing.
-    *
-    * @param logcode The log code.
-    * @param message The message.
-    * @throws IOException If an I/O error occurs.
-    */
-   public void writeMessage(int logcode, String message) throws IOException {
-      if (!multiplex) return;
-      flush();
-      write(logcode, message.getBytes("US-ASCII"));
-   }
+  /**
+   * Write a message to the multiplexed error stream. If this object
+   * was not configured with to multiplex messages, then this method
+   * does nothing.
+   *
+   * @param logcode The log code.
+   * @param message The message.
+   * @throws IOException If an I/O error occurs.
+   */
+  public void writeMessage(int logcode, String message) throws IOException
+  {
+    if (!multiplex) return;
+    flush();
+    write(logcode, message.getBytes("US-ASCII"));
+  }
 
-   /**
-    * Write any buffered bytes to the stream.
-    *
-    * @throws IOException If an I/O error occurs.
-    */
-   public void flush() throws IOException {
-      if (bufferCount == 0) return;
-      if (multiplex) {
-         logger.debug("Writing " + bufferCount + " bytes.");
-         write(FNONE, outputBuffer, 0, bufferCount);
-      } else {
-         out.write(outputBuffer, 0, bufferCount);
+  /**
+   * Write any buffered bytes to the stream.
+   *
+   * @throws IOException If an I/O error occurs.
+   */
+  public void flush() throws IOException
+  {
+    if (bufferCount == 0) return;
+    if (multiplex)
+      {
+        logger.debug("Writing " + bufferCount + " bytes.");
+        write(FNONE, outputBuffer, 0, bufferCount);
       }
-      bufferCount = 0;
-   }
-
-   /**
-    * Writes a byte array to the stream.
-    *
-    * @param buf The bytes to write.
-    * @throws IOException If an I/O error occurs.
-    */
-   public void write(byte[] buf) throws IOException {
-      write(buf, 0, buf.length);
-   }
-
-   /**
-    * Writes a portion of a byte array to the stream.
-    *
-    * @param buf The bytes to write.
-    * @param off The offset from whence to begin.
-    * @param len The number of bytes to write.
-    * @throws IOException If an I/O error occurs.
-    */
-   public void write(byte[] buf, int off, int len) throws IOException {
-      while (bufferCount + len >= outputBuffer.length) {
-         int count = Math.min(outputBuffer.length - bufferCount, len);
-         System.arraycopy(buf, off, outputBuffer, bufferCount, count);
-         flush();
-         off += count;
-         len -= count;
-         bufferCount = 0;
+    else
+      {
+        out.write(outputBuffer, 0, bufferCount);
       }
-      System.arraycopy(buf, off, outputBuffer, bufferCount, len);
-      bufferCount += len;
-      if (bufferCount == outputBuffer.length) {
-         flush();
+    bufferCount = 0;
+  }
+
+  /**
+   * Writes a byte array to the stream.
+   *
+   * @param buf The bytes to write.
+   * @throws IOException If an I/O error occurs.
+   */
+  public void write(byte[] buf) throws IOException
+  {
+    write(buf, 0, buf.length);
+  }
+
+  /**
+   * Writes a portion of a byte array to the stream.
+   *
+   * @param buf The bytes to write.
+   * @param off The offset from whence to begin.
+   * @param len The number of bytes to write.
+   * @throws IOException If an I/O error occurs.
+   */
+  public void write(byte[] buf, int off, int len) throws IOException
+  {
+    if (multiplex)
+      {
+        while (bufferCount + len >= outputBuffer.length)
+          {
+            int count = Math.min(outputBuffer.length - bufferCount, len);
+            System.arraycopy(buf, off, outputBuffer, bufferCount, count);
+            flush();
+            off += count;
+            len -= count;
+            bufferCount = 0;
+          }
+        System.arraycopy(buf, off, outputBuffer, bufferCount, len);
+        bufferCount += len;
+        if (bufferCount == outputBuffer.length)
+          {
+            flush();
+          }
       }
-   }
-
-   /**
-    * Write a single byte to the stream.
-    *
-    * @param buf The byte to write.
-    * @throws IOException If an I/O error occurs.
-    */
-   public void write(int b) throws IOException {
-      byte[] buf = new byte[] { (byte) b };
-      write(buf);
-   }
-
-   /**
-    * Write a four-byte integer to the stream in little-endian byte
-    * order.
-    * 
-    * @param i The integer to write.
-    * @throws IOException If an I/O error occurs.
-    */
-   public void writeInt(int i) throws IOException {
-      logger.debug("writing int= " + i);
-      byte[] b = new byte[4];
-      b[0] = (byte) (i & 0xff);
-      b[1] = (byte) (i >>>  8 & 0xff);
-      b[2] = (byte) (i >>> 16 & 0xff);
-      b[3] = (byte) (i >>> 24 & 0xff);
-      write(b);
-   }
-
-   /**
-    * Write a long integer to the stream, in little-endian order,
-    * writing four bytes if the value fits into four bytes, otherwise
-    * writing eight bytes.
-    *
-    * @param l The long integer to write.
-    * @throws IOException If an I/O error occurs.
-    */
-   public void writeLong(long l) throws IOException {
-      if ((l & ~0x7fffffff) == 0) {
-         writeInt((int) l);
-         return;
-      }
-      writeInt(0xffffffff);
-      byte[] b = new byte[8];
-      b[0] = (byte) (l & 0xff);
-      b[1] = (byte) (l >>>  8 & 0xff);
-      b[2] = (byte) (l >>> 16 & 0xff);
-      b[3] = (byte) (l >>> 24 & 0xff);
-      b[4] = (byte) (l >>> 32 & 0xff);
-      b[5] = (byte) (l >>> 40 & 0xff);
-      b[6] = (byte) (l >>> 48 & 0xff);
-      b[7] = (byte) (l >>> 56 & 0xff);
-      write(b);
-   }
-
-   public void writeString(String s) throws IOException {
-      write(s.getBytes("US-ASCII"));
-   }
-
-   protected void write(int logcode, byte[] buf) throws IOException {
-      write(logcode, buf, 0, buf.length);
-   }
-
-   protected synchronized void
-   write(int logcode, byte[] buf, int off, int len) throws IOException {
-      byte[] code = new byte[4];
-      code[0] = (byte) (len & 0xff);
-      code[1] = (byte) (len >>>  8 & 0xff);
-      code[2] = (byte) (len >>> 16 & 0xff);
-      code[3] = (byte) (logcode + MPLEX_BASE & 0xff);
-
-      out.write(code, 0, 4);
+    else
       out.write(buf, off, len);
-      logger.debug("Wrote " + (len+4) + " byte packet:");
-      logger.debug("\t" + Util.toHexString(code) +
-         Util.toHexString(buf, 0, len));
-   }
+  }
+
+  /**
+   * Write a single byte to the stream.
+   *
+   * @param buf The byte to write.
+   * @throws IOException If an I/O error occurs.
+   */
+  public void write(int b) throws IOException
+  {
+    byte[] buf = new byte[] { (byte) b };
+    write(buf);
+  }
+
+  /**
+   * Write a four-byte integer to the stream in little-endian byte
+   * order.
+   *
+   * @param i The integer to write.
+   * @throws IOException If an I/O error occurs.
+   */
+  public void writeInt(int i) throws IOException
+  {
+    logger.debug("writing int= " + i);
+    byte[] b = new byte[4];
+    b[0] = (byte)  i;
+    b[1] = (byte) (i >>>  8);
+    b[2] = (byte) (i >>> 16);
+    b[3] = (byte) (i >>> 24);
+    write(b);
+  }
+
+  /**
+   * Write a long integer to the stream, in little-endian order,
+   * writing four bytes if the value fits into four bytes, otherwise
+   * writing eight bytes.
+   *
+   * @param l The long integer to write.
+   * @throws IOException If an I/O error occurs.
+   */
+  public void writeLong(long l) throws IOException
+  {
+    if ((l & ~0x7fffffff) == 0)
+      {
+        writeInt((int) l);
+        return;
+      }
+    writeInt(0xffffffff);
+    byte[] b = new byte[8];
+    b[0] = (byte)  l;
+    b[1] = (byte) (l >>>  8);
+    b[2] = (byte) (l >>> 16);
+    b[3] = (byte) (l >>> 24);
+    b[4] = (byte) (l >>> 32);
+    b[5] = (byte) (l >>> 40);
+    b[6] = (byte) (l >>> 48);
+    b[7] = (byte) (l >>> 56);
+    write(b);
+  }
+
+  public void writeString(String s) throws IOException
+  {
+    write(s.getBytes("US-ASCII"));
+  }
+
+  protected void write(int logcode, byte[] buf) throws IOException
+  {
+    write(logcode, buf, 0, buf.length);
+  }
+
+  protected synchronized void write(int logcode, byte[] buf, int off, int len)
+    throws IOException
+  {
+    byte[] code = new byte[4];
+    code[0] = (byte) (len & 0xff);
+    code[1] = (byte) (len >>>  8 & 0xff);
+    code[2] = (byte) (len >>> 16 & 0xff);
+    code[3] = (byte) (logcode + MPLEX_BASE & 0xff);
+
+    out.write(code, 0, 4);
+    out.write(buf, off, len);
+    logger.debug("Wrote " + (len+4) + " byte packet:");
+    logger.debug("\t" + Util.toHexString(code) +
+                 Util.toHexString(buf, 0, len));
+  }
 }
