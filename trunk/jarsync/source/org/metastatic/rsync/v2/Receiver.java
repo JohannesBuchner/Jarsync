@@ -52,7 +52,25 @@
 
 package org.metastatic.rsync.v2;
 
-public class Receiver {
+import org.metastatic.rsync.*;
+
+import org.apache.log4j.*;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+
+/**
+ * The receiver process. The receiver is the one who generates the
+ * checksums for the to-be-synched files, and receives the deltas. These
+ * two processes (checksum generation and applying deltas) are usually
+ * run in parallel -- one thread generates sums for one file while
+ * another thread rebuilds another file.
+ *
+ * @version $Revision$
+ */
+public class Receiver imlements RsyncConstants
+{
 
    // Constants and fields.
    // -----------------------------------------------------------------------
@@ -75,9 +93,19 @@ public class Receiver {
 
    private int retryIndex;
 
+   private int genPhase = 0, recvPhase = 0;
+
    // Constructors.
    // -----------------------------------------------------------------------
 
+   /**
+    * Create a new receiver object.
+    *
+    * @param in       The input stream from the Sender.
+    * @param out      The output stream to the Sender.
+    * @param config   The configuration to use.
+    * @param amServer true if this is the server process.
+    */
    public Receiver(MultiplexedInputStream in, MultiplexedOutputStream out,
                    Configuration config, int remoteVersion, boolean amServer)
    {
@@ -88,24 +116,43 @@ public class Receiver {
       this.config = config;
       generator = new Generator(config);
       this.remoteVersion = remoteVersion;
+      stats = new Statistics();
    }
 
    // Instance methods.
    // -----------------------------------------------------------------------
 
+   /**
+    * Return the statistics for this session.
+    *
+    * @return The statistics.
+    */
    public Statistics getStatistics()
    {
       return stats;
    }
 
+   /**
+    * Set the pre-initialized statistics object fer this session.
+    *
+    * @param stats The statistics object to use.
+    */
    public void setStatistics(Statistics stats)
    {
       if (stats != null) this.stats = stats;
    }
 
+   /**
+    * Generate the checksums for a list of files and send them to the
+    * other side.
+    *
+    * @param files The files to generate the checksums for.
+    * @throws IOException If an I/O error occurs.
+    */
    public void generateFiles(List files) throws IOException 
    {
-      int phase = 0;
+      logger.info("generateFiles starting thread=" + Thread.currentThread());
+      genPhase = 0;
 
       retryIndex = 0;
       retry = new int[files.size()];
@@ -116,12 +163,17 @@ public class Receiver {
          sendSums((File) files.get(i), i);
       }
 
-      phase++;
+      genPhase++;
       out.writeInt(-1);
-      logger.info("generateFiles phase=" + phase);
+      logger.info("generateFiles phase=" + genPhase);
       config.setStrongSumLength(SUM_LENGTH);
 
       if (remoteVersion >= 13) {
+         while (recvPhase == 0) {
+            try {
+               Thread.sleep(100);
+            } catch (InterruptedException ignore) { }
+         }
          // in newer versions of the protocol the files can cycle
          // through the system more than once to catch initial checksum
          // errors.
@@ -132,24 +184,31 @@ public class Receiver {
          for (int i = 0; i < retryIndex && retry[i] != -1; i++) {
             sendSums(files.get(retry[i]), retry[i]);
          }
-         phase++;
-         logger.info("generateFiles phase=" + phase);
+         genPhase++;
+         logger.info("generateFiles phase=" + genPhase);
          out.writeInt(-1);
       }
    }
 
+   /**
+    * Recieve the deltas from the other side, and rebuild the target
+    * files.
+    *
+    * @param files The list of {@link java.io.File}s to be received.
+    * @throws IOException If an I/O error occurs.
+    */
    public void receiveFiles(List files) throws IOException
    {
       logger.info("receiveFiles starting thread=" + Thread.currentThread());
       
-      int phase = 0;
+      recvPhase = 0;
 
       while (true) {
          int i = in.readInt();
          if (i == -1) {
-            if (phase == 0 && remoteVersion >= 13) {
-               phase++;
-               logger.info("receiveFiles phase=" + phase);
+            if (recvPhase == 0 && remoteVersion >= 13) {
+               recvPhase++;
+               logger.info("receiveFiles phase=" + recvPhase);
                continue;
             }
             break;
@@ -183,9 +242,16 @@ public class Receiver {
       logger.info("receiveFiles finished");
    }
 
-   // Own methods.
+ // Own methods.
    // -----------------------------------------------------------------------
 
+   /**
+    * Generate and send the checksums for a file.
+    *
+    * @param f The file to generate the checksums for.
+    * @param i The index of this file.
+    * @throws IOException If an I/O error occurs.
+    */
    private void sendSums(File f, int i) throws IOException
    {
       // XXX fiddle with permissions.
@@ -201,17 +267,30 @@ public class Receiver {
       Collection sums = generator.generateSums(f);
 
       out.writeInt(i);
-      out.writeInt(sums.size());
-      out.writeInt(config.getBlockLength());
-      out.writeInt(rem);
 
-      for (Iterator it = sums.iterator(); it.hasNext(); ) {
-         CheksumPair p = (ChecksumPair) it.next();
-         out.writeInt(p.getWeakSum());
-         out.write(p.getStrongSum());
+      if (f.exists()) {
+         out.writeInt(sums.size());
+         out.writeInt(config.getBlockLength());
+         out.writeInt(rem);
+
+         for (Iterator it = sums.iterator(); it.hasNext(); ) {
+            CheksumPair p = (ChecksumPair) it.next();
+            out.writeInt(p.getWeakSum());
+            out.write(p.getStrongSum());
+         }
+      } else {
+         out.writeInt(0);
+         out.writeInt(config.getBlockLength());
+         out.writeInt(0);
       }
    }
 
+   /**
+    * Receive the deltas for a file, and rebuild it.
+    *
+    * @param f The file to rebuild.
+    * @throws IOException If an I/O error occurs.
+    */
    private boolean receiveData(File f) throws IOException
    {
       int count = in.readInt();
@@ -225,7 +304,7 @@ public class Receiver {
       for (int i = receiveToken(data); i != 0; i = receiveToken(data)) {
          if (i > 0) {
             logger.debug("data received " + i + " at " + offset);
-            deltas.add(new DataBlock(offset, data));
+            deltas.add(new DataBlock(offset, data, 0, i));
             offset += i;
             stats.literal_data += i;
          } else {
@@ -267,8 +346,20 @@ public class Receiver {
       return true;
    }
 
+   /** Partial byte count in {@link #receiveToken(byte[])}. */
    private int residue = 0;
 
+   /**
+    * Receive a single "token": either (1) an integer with the most
+    * significant bit unset, then that many bytes (a "insert" command),
+    * (2) an integer with the most significant bit set, which represents
+    * that the current block should become block -(<i>i</i> + 1) (a
+    * "copy" command), or (3) the integer 0, meaning the end of file.
+    *
+    * @param buf The byte buffer to store literal data in (if any).
+    * @return The token, as described above.
+    * @throws IOException If an I/O error occurs.
+    */
    private int receiveToken(byte[] buf) throws IOException
    {
       // XXX compression.
@@ -279,8 +370,8 @@ public class Receiver {
       }
 
       int n = Math.min(CHUNK_SIZE, residue);
+      n = in.read(buf, 0, n);
       residue -= n;
-      in.read(buf, 0, n);
       return n;
    }
 }

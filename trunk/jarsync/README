@@ -6,11 +6,7 @@ This is the source distribution of Jarsync, a library written in Java
 that implements the rsync algorithm---a method for syncing remote files
 by transmitting only the differences between the two files.
 
-THIS IS ALPHA SOFTWARE. NOT EVERYTHING NEEDED IS YET IMPLEMENTED, AND
-THAT WHICH IS IMPLEMENTED PROBABLY IS STILL INCREDIBLY BUGGY. THIS
-DISTRIBUTION IS INTENDED FOR DEVELOPERS WHO WANT TO CONTRIBUTE, NOT FOR
-DEVELOPERS SEEKING TO USE THE RSYNC ALGORITHM IN ANOTHER PROJECT, AND
-CERTAINLY NOT FOR END USERS.
+Jarsync is beta software, and is not thoroughly tested. 
 
 =======================================================================
 
@@ -65,8 +61,7 @@ There is also a Jakarta Ant build.xml file, which by executing
 will build the same files as `make'.
 
 There is no `install' target yet; to use the test programs and the rdiff
-workalike program the Jar files `jarsync.jar' and `getopt.jar' need to
-be in your CLASSPATH.
+workalike program the Jar file `jarsync.jar' needs to be in your CLASSPATH.
 
 =======================================================================
 
@@ -124,7 +119,8 @@ This is only an overview; see the API JavaDocs for more information.
   AUTHORS      -  List of authors, roles, and contact information.
   COPYING      -  The GNU General Public License.
   ChangeLog    -  List of changes between versions.
-  Makefile.in  -  GNU Makefile used for compilation.
+  LICENSE      -  Decription of this library's license.
+  Makefile.in  -  For producing Makefile with configure.
   README       -  This file; notes &c.
   TODO         -  A list of things yet to be done.
   build.xml    -  Jakarta Ant XML build file.
@@ -136,8 +132,10 @@ This is only an overview; see the API JavaDocs for more information.
   test.java    -  A simple test of byte array based methods.
   test2.java   -  A simple test of file-based methods.
 
-In directory org/metastatic/rsync:
+In directory source/org/metastatic/rsync:
 
+  BrokenMD4.java        -  A mutation of MD4 that aims to be compatible
+                           with 
   ChecksumPair.java     -  A pair of weak and strong checksums over a
                            block of data.
   Configuration.java    -  A context object.
@@ -157,6 +155,10 @@ In directory org/metastatic/rsync:
                            be updated from either end.
   TwoKeyMap.java        -  A java.util.Map that maps two keys, one an
                            integer and the other a byte array.
+
+In directory getopt/gnu/getopt:
+
+  Aaron M. Renn's Java port of GNU Getopt.
 
 =======================================================================
   $Id$

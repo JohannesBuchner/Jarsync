@@ -66,14 +66,14 @@ public class DataBlock implements Delta, java.io.Serializable {
     *
     * @since 1.1
     */
-   protected byte[] data;
+   protected final byte[] data;
 
    /**
     * The offset in the file to start this block.
     *
     * @since 1.1
     */
-   protected long offset;
+   protected final long offset;
   
    // Constructors.
    // -----------------------------------------------------------------
@@ -86,9 +86,30 @@ public class DataBlock implements Delta, java.io.Serializable {
     * @param data The data itself.
     * @since 1.1
     */
-   public DataBlock(long offset, byte[] data) {
+   public DataBlock(long offset, byte[] data)
+   {
       this.offset = offset;
       this.data = (byte[]) data.clone();
+   }
+
+   /**
+    * Create a new instance of a DataBlock with a given offset and a
+    * portion of a byte array.
+    *
+    * @param offset The write offset of this data block.
+    * @param data   The data itself.
+    * @param off    The offset in the array to begin copying.
+    * @param len    The number of bytes to copy.
+    */
+   public DataBlock(long offset, byte[] data, int off, int len)
+   {
+      this.offset = offset;
+      if (data.length == len && off == 0) {
+         this.data = (byte[]) data.clone();
+      } else {
+         this.data = new byte[len];
+         System.arraycopy(data, 0, this.data, off, len);
+      }
    }
 
  // Instance methods.

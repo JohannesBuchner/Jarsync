@@ -56,7 +56,8 @@ import java.util.*;
  *
  * @version $Revision$
  */
-public class Rebuilder {
+public class Rebuilder
+{
 
    // Constants and variables.
    // -----------------------------------------------------------------------
@@ -81,7 +82,8 @@ public class Rebuilder {
     * @return A unique {@link java.io.File} containing the reconstruction.
     */
    public static File rebuildFile(File oldFile, Collection deltas)
-   throws IOException {
+   throws IOException
+   {
       File newFile = File.createTempFile(TMP_PREFIX, TMP_SUFFIX,
          oldFile.getParentFile());
       rebuildFile(oldFile, newFile, deltas);
@@ -97,12 +99,16 @@ public class Rebuilder {
     * @param deltas The {@link Delta}s to apply.
     */
    public static void rebuildFile(File oldFile, File newFile, Collection deltas)
-   throws IOException {
+   throws IOException
+   {
       if (oldFile.equals(newFile)) {
          throw new IOException("cannot read and write to the same file");
       }
       RandomAccessFile out = new RandomAccessFile(newFile, "rw");
-      RandomAccessFile in = new RandomAccessFile(oldFile, "r");
+      RandomAccessFile in = null;
+      try {
+         in = new RandomAccessFile(oldFile, "r");
+      } catch (IOException ignore) { }
 
       for (Iterator i = deltas.iterator(); i.hasNext(); ) {
          Object o = i.next();
@@ -111,6 +117,9 @@ public class Rebuilder {
             out.seek(off);
             out.write(((DataBlock) o).getData());
          } else if (o instanceof Offsets) {
+            if (in == null) {
+               throw new IOException("original file does not exist or not readable");
+            }
             int len = ((Offsets) o).getBlockLength();
             long off1 = ((Offsets) o).getOldOffset();
             long off2 = ((Offsets) o).getNewOffset();
@@ -122,7 +131,8 @@ public class Rebuilder {
          }
       }
 
-      in.close();
+      if (in != null)
+         in.close();
       out.close();
    }
 
@@ -134,7 +144,9 @@ public class Rebuilder {
     * @param deltas The {@link Delta}s to apply.
     */
    public static void rebuildFileInPlace(File file, Collection deltas)
-   throws IOException {
+   throws IOException
+   {
+      final boolean copyOnly = !file.exists();
       RandomAccessFile f = new RandomAccessFile(file, "rw");
       List offsets = new LinkedList();
       List dataBlocks = new LinkedList();
@@ -144,6 +156,8 @@ public class Rebuilder {
       for (Iterator i = deltas.iterator(); i.hasNext(); ) {
          Object o = i.next();
          if (o instanceof Offsets) {
+            if (copyOnly)
+               throw new IOException("original file does not exist.");
             offsets.add(o);
             digraph.put(o, new HashSet());
             newFileLength = Math.max(newFileLength,
@@ -153,6 +167,19 @@ public class Rebuilder {
             newFileLength = Math.max(newFileLength,
                ((DataBlock) o).getOffset()+((DataBlock) o).getBlockLength());
          }
+      }
+
+      if (copyOnly) {
+         for (Iterator i = dataBlocks.iterator(); i.hasNext(); ) {
+            DataBlock d = (DataBlock) i.next();
+            f.seek(d.getWriteOffset());
+            f.write(d.getData());
+         }
+         if (f.length() < newFileLength) {
+            f.setLength(newFileLength);
+         }
+         f.close();
+         return;
       }
 
       // build the digraph
@@ -199,7 +226,7 @@ public class Rebuilder {
          f.write(db.getData());
       }
       if (f.length() > newFileLength) {
-         // f.setLength(newFileLength);
+         f.setLength(newFileLength);
       }
 
       f.close();
@@ -211,7 +238,8 @@ public class Rebuilder {
     * Test if the first offset will write to the reading area of the second
     * offset.
     */
-   private static boolean conflict(Offsets o1, Offsets o2) {
+   private static boolean conflict(Offsets o1, Offsets o2)
+   {
       return (o1.getNewOffset() >= o2.getOldOffset()
            && o1.getNewOffset() <= o2.getOldOffset()+o2.getBlockLength())
          ||  (o1.getNewOffset()+o1.getBlockLength() >= o2.getOldOffset()
@@ -242,7 +270,8 @@ public class Rebuilder {
     *
     * @version 1.1
     */
-   private static class TopologicalSorter {
+   private static class TopologicalSorter
+   {
 
       // Constants and variables.
       // --------------------------------------------------------------------
@@ -285,7 +314,8 @@ public class Rebuilder {
        *
        * @param graph The graph to sort.
        */
-      TopologicalSorter(Map graph) {
+      TopologicalSorter(Map graph)
+      {
          this.graph = graph;
          colors = new HashMap();
          finished = new LinkedList();
@@ -299,7 +329,8 @@ public class Rebuilder {
        * Sort the graph. After this method returns the finished and removed
        * nodes are available.
        */
-      void sort() {
+      void sort()
+      {
          DFS();
       }
 
@@ -308,7 +339,8 @@ public class Rebuilder {
        *
        * @return The ordered nodes.
        */
-      List getFinished() {
+      List getFinished()
+      {
          return finished;
       }
 
@@ -317,7 +349,8 @@ public class Rebuilder {
        *
        * @return The removed nodes.
        */
-      Set getCycleNodes() {
+      Set getCycleNodes()
+      {
          return cycleNodes;
       }
 
@@ -336,7 +369,8 @@ public class Rebuilder {
        * Technology).</li>
        * </ol>
        */
-      private void DFS() {
+      private void DFS()
+      {
          for (Iterator i = graph.keySet().iterator(); i.hasNext(); ) {
             colors.put(i.next(), WHITE);
          }
@@ -354,7 +388,8 @@ public class Rebuilder {
        *
        * @param u The node to visit.
        */
-      private void DFSVisit(Object u) {
+      private void DFSVisit(Object u)
+      {
          colors.put(u, GRAY);
          for (Iterator i = ((Set) graph.get(u)).iterator(); i.hasNext(); ) {
             Object v = i.next();
@@ -374,10 +409,12 @@ public class Rebuilder {
    /**
     * Sort Offsets and DataBlocks objects by increasing write offset.
     */
-   private static class OffsetComparator implements Comparator {
+   private static class OffsetComparator implements Comparator
+   {
       public OffsetComparator() { }
 
-      public int compare(Object o1, Object o2) {
+      public int compare(Object o1, Object o2)
+      {
          long offset1 = 0;
          long offset2 = 0;
          if (o1 instanceof Delta) {
@@ -389,7 +426,8 @@ public class Rebuilder {
          return (int) (offset1 - offset2);
       }
 
-      public boolean equals(Object o) {
+      public boolean equals(Object o)
+      {
          return (o instanceof OffsetComparator);
       }
    }

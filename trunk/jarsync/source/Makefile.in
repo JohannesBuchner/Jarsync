@@ -3,10 +3,6 @@
 
 COMPILER = @COMPILER@
 CFLAGS = @CFLAGS@
-JFLEX = @JFLEX@
-CUP = @CUP@
-
-CUPOPT = -package org.metastatic.vwdiff -parser Parser -symbols Symbols
 
 sources = \
   org/metastatic/rsync/BrokenMD4.java \
@@ -26,40 +22,15 @@ sources = \
   org/metastatic/rsync/RsyncConstants.java \
   org/metastatic/rsync/TwoKeyMap.java \
   org/metastatic/rsync/Util.java
-#  org/metastatic/rsync/v2/ConsoleClient.java \
-#  org/metastatic/rsync/v2/Logger.java \
-#  org/metastatic/rsync/v2/MultiplexedInputStream.java \
-#  org/metastatic/rsync/v2/MultiplexedOutputStream.java \
-#  org/metastatic/rsync/v2/Rsync.java \
-#  org/metastatic/rsync/v2/SocketClient.java
-
-vwdiff_sources = \
- org/metastatic/vwdiff/Config.java \
- org/metastatic/vwdiff/Daemon.java \
- org/metastatic/vwdiff/Parser.java \
- org/metastatic/vwdiff/Scanner.java \
- org/metastatic/vwdiff/Version.java
 
 classes = $(patsubst %.java,../classes/%.class,$(sources))
-vwdiff_classes = $(patsubst %.java,../classes/%.class,$(vwdiff_sources))
 
 all: compile
 
 compile: $(classes)
 
-vwdiff: compile $(vwdiff_classes)
-
 $(classes): ../classes/%.class: %.java
 	$(COMPILER) $(CFLAGS) $<
 
-$(vwdiff_classes): ../classes/%.class: %.java
-	$(COMPILER) $(CFLAGS) $<
-
-org/metastatic/vwdiff/Scanner.java: org/metastatic/vwdiff/Scanner.l
-	$(JFLEX) $<
-
-org/metastatic/vwdiff/Parser.java: org/metastatic/vwdiff/Parser.y
-	cd org/metastatic/vwdiff; $(CUP) $(CUPOPT) < Parser.y
-
 clean:
-	rm -f $(classes) $(vwdiff_classes)
+	rm -f $(classes)

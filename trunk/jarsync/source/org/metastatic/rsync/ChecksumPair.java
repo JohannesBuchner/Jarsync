@@ -181,8 +181,8 @@ public class ChecksumPair implements java.io.Serializable {
     * @return True if both checksum pairs are equal.
     */
    public boolean equals(Object obj) {
-      return (getWeak() == ((ChecksumPair) obj).getWeak()) &&
-         Arrays.equals(getStrong(), ((ChecksumPair) obj).getStrong());
+      return weak == ((ChecksumPair) obj).weak &&
+         Arrays.equals(strong, ((ChecksumPair) obj).strong);
    }
 
    /**

@@ -2,6 +2,12 @@ ChangeLog for JARSYNC.
 
 $Id$
 
+2003-03-04 -- 0.1
+
+  - The rsync-compatible program is on hold for now.
+
+  - Beta release of the library. I think it's good enough for beta.
+
 2002-08-15
 
   - Previous version numbers are now obsolete; right now there is no

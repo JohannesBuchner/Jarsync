@@ -4,18 +4,20 @@
 // Sender -- File-sending methods.
 // Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
 //
-// This program is free software; you can redistribute it and/or modify
+// This file is a part of Jarsync.
+//
+// Jarsync is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
 //
-// This program is distributed in the hope that it will be useful,
+// Jarsync is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the
+// along with Jarsync; if not, write to the
 //
 //    Free Software Foundation, Inc.,
 //    59 Temple Place, Suite 330,
@@ -68,14 +70,14 @@ public class Sender {
 
    private static Logger logger = Logger.getLogger(Sender.class.getName());
 
-   private Configuration config;
+   private final Configuration config;
 
-   private MultiplexedInputStream in;
-   private MultiplexedOutputStream out;
+   private final MultiplexedInputStream in;
+   private final MultiplexedOutputStream out;
 
    private Statistics stats;
 
-   private int remoteVersion;
+   private final int remoteVersion;
 
    // Constructors.
    // -----------------------------------------------------------------------
@@ -105,9 +107,7 @@ public class Sender {
    // -----------------------------------------------------------------------
 
    public void setStatistics(Statistics newStats) {
-      if (newStats == null)
-         throw new IllegalArgumentException();
-      stats = newStats;
+      if (newStats != null) stats = newStats;
    }
 
    public Statistics getStatistics() {
@@ -177,6 +177,7 @@ public class Sender {
 
       if (count == 0) return null;
 
+      config.setBlockSize(n);
       List sums = new ArrayList(count);
 
       for (int i = 0; i < count; i++) {

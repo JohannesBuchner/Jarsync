@@ -30,8 +30,8 @@
 <project name="jarsync" default="jar" basedir=".">
 
    <description>
-      A re-implementation of the rsync fast file transfer program, and
-      library providing its essential functions written in Java.
+      A library for cacheless delta compression using the Rsync
+      algorithm.
    </description>
 
    <property file=".ant.properties"/>
@@ -43,12 +43,12 @@
    <property name="classes.dir" value="classes"/>
    <property name="src.dir" value="source"/>
    <property name="lib.dir" value="lib"/>
+   <property name="getopt.src.dir" value="getopt"/>
 
    <property name="version.major" value="0"/>
-   <property name="version.minor" value="0"/>
-   <property name="version.micro" value="4"/>
+   <property name="version.minor" value="1"/>
    <property name="dist.dir"
-      value="jarsync-${version.major}.${version.minor}.${version.micro}"/>
+      value="jarsync-${version.major}.${version.minor}"/>
 
    <property name="main.jar" value="${lib.dir}/jarsync.jar"/>
 
@@ -59,20 +59,20 @@
    </target>
 
    <target name="jar" depends="compile,configure">
+      <copy todir="${classes.dir}/gnu/getopt">
+         <fileset dir="${getopt.src.dir}/gnu/getopt" includes="*.properties" />
+      </copy>
       <jar jarfile="${main.jar}" basedir="${classes.dir}"/>
    </target>
 
    <target name="compile" depends="configure">
       <javac destdir="${classes.dir}" debug="${debug}"
+         optimize="${optimize}" srcdir="${getopt.src.dir}"
+	 includes="gnu/getopt/*.java" fork="yes" />
+      <javac destdir="${classes.dir}" debug="${debug}"
          optimize="${optimize}" srcdir="${src.dir}"
          includes="org/metastatic/rsync/*.java" fork="yes"
-	 classpath="lib/getopt.jar" />
-   </target>
-
-   <target name="test" depends="jar">
-      <javac destdir="." debug="${debug}" optimize="${optimize}"
-         srcdir="." includes="test.java, test2.java, test3.java"
-         classpath="lib/jarsync.jar:."/>
+	 classpath="${classes.dir}" />
    </target>
 
    <target name="dist" depends="${dist.dir}">

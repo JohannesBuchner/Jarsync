@@ -43,6 +43,15 @@
 //
 // --------------------------------------------------------------------------
 
+/*
+ * Based on rsync-2.5.5.
+ * 
+ * Rsync Copyright (C) 1992-2001 Andrew Tridgell
+ *                     1996 Paul Mackerras
+ *                     2001, 2002 Martin Pool
+ *                     and others.
+ */
+
 package org.metastatic.rsync.v2;
 
 public class FileList
@@ -51,8 +60,29 @@ public class FileList
    // Constants and fields.
    // -----------------------------------------------------------------------
 
+   private static final Logger logger =
+      Logger.getInstance(FileList.class.getName());
+
    private final MultiplexedInputStream in;
    private final MultiplexedOutputStream out;
 
    private final int remoteVersion;
+
+   // Constrctor.
+   // -----------------------------------------------------------------------
+
+   public FileList(MultiplexedInputStream in, MultiplexedOutputStream out,
+                   int remoteVersion, boolean amServer)
+   {
+      this.in = in;
+      this.out = out;
+      if (amServer)
+         logger.addAppender(new RsyncAppender(out));
+      this.remoteVersion = remoteVersion;
+   }
+
+   // Instance methods.
+   // -----------------------------------------------------------------------
+
+   
 }

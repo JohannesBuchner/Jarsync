@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl $Id$
 
-AC_INIT(jarsync, 0.0.4)
+AC_INIT(jarsync, 0.1)
 
 AC_SUBST(COMPILER)
 AC_SUBST(TEST_CFLAGS)
@@ -9,17 +9,15 @@ AC_SUBST(CFLAGS)
 AC_SUBST(JAR)
 AC_SUBST(COMPRESS)
 AC_SUBST(COMPRESS_SUFFIX)
-AC_SUBST(JFLEX)
-AC_SUBST(CUP)
 AC_PROG_MAKE_SET
 
 dnl --with arguments
 AC_ARG_WITH(jikes,
 	[  --with-jikes            Jikes compiler will be used ],
-	use_jikes="yes", use_jikes="no")
+	[use_jikes=$withval], [use_jikes="no"])
 AC_ARG_WITH(gcj,
 	[  --with-gcj              GCJ compiler will be used ],
-	use_gcj="yes", use_gcj="no")
+	[use_gcj=$withval], [use_gcj="no"])
 AC_ARG_WITH(compress-prog,
 	[  --with-compress-prog=PROG   Use compression program PROG (gzip)],
 	[compress_prog=$withval])
@@ -62,20 +60,10 @@ elif test $compress_prog = "bzip2" -a -z "$COMPRESS_SUFFIX"; then
 	COMPRESS_SUFFIX=bz2
 fi
 
-AC_PATH_PROG(JFLEX, jflex, no)
-if test "x${JFLEX}" = xno; then
-	AC_MSG_WARN([No jflex found. `make vwdiff' will not work])
-fi
-
-AC_PATH_PROG(CUP, cup, no)
-if test "x${cup}" = xno; then
-	AC_MSG_WARN([No cup found. `make vwdiff' will not work])
-fi
-
 AC_PATH_PROG(COMPRESS, $compress_prog, no)
 if test $COMPRESS = "no"; then 
 	AC_MSG_WARN([no `$compress_prog' found, this will break `make dist'])
 	unset COMPRESS
 fi
 
-AC_OUTPUT(Makefile source/Makefile jzlib/Makefile getopt/Makefile java_cup/Makefile)
+AC_OUTPUT(Makefile source/Makefile getopt/Makefile)

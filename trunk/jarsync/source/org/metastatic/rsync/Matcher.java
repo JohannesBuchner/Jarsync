@@ -2,7 +2,7 @@
 // $Id$
 //
 // Matcher: Hashtable generation and search.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -51,8 +51,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import org.apache.log4j.*;
-
 /**
  * <p>Methods for performing the checksum search. The result of a search
  * is a {@link java.util.Collection} of {@link Delta} objects that, when
@@ -65,14 +63,6 @@ public final class Matcher implements RsyncConstants {
 
    // Constants and variables.
    // -----------------------------------------------------------------
-
-   private static final Logger logger = Logger.getLogger(
-      Matcher.class.getName());
-
-   static {
-      BasicConfigurator.configure();
-      logger.setLevel(Level.DEBUG);
-   }
 
    /** Our configuration. */
    protected Configuration config;
@@ -212,7 +202,6 @@ public final class Matcher implements RsyncConstants {
          weak = new Integer(config.weakSum.getValue());
          oldOffset = hashSearch(weak, buf, i, n, m);
          if (oldOffset != null) {
-            logger.debug("third test succeeds; off=" + oldOffset);
             if (j == i && !deltas.isEmpty() && config.doRunLength) {
                Offsets o = (Offsets) deltas.getLast();
                o.setBlockLength(o.getBlockLength() + n);
@@ -285,8 +274,6 @@ public final class Matcher implements RsyncConstants {
    protected Long
    hashSearch(Integer weakSum, byte[] block, int off, int len, TwoKeyMap m) {
       if (m.containsKey(weakSum.intValue())) {
-         logger.debug("first test succeeds; weak=" +
-            Integer.toHexString(weakSum.intValue()));
          if (m.containsKey(weakSum)) {
             config.strongSum.reset();
             config.strongSum.update(block, off, len);
@@ -294,7 +281,6 @@ public final class Matcher implements RsyncConstants {
             System.arraycopy(config.strongSum.digest(), 0, digest, 0,
                digest.length);
             ChecksumPair pair = new ChecksumPair(weakSum.intValue(), digest);
-            logger.debug("second test succeeds; sums=" + pair.toString());
             return (Long) m.get(new ChecksumPair(weakSum.intValue(), digest));
          }
       }
@@ -317,8 +303,6 @@ public final class Matcher implements RsyncConstants {
       int len, TwoKeyMap m) throws IOException
    {
       if (m.containsKey(weakSum.intValue())) {
-         logger.debug("first test succeeds; weak=" +
-            Integer.toHexString(weakSum.intValue()));
          if (m.containsKey(weakSum)) {
             byte[] buf = new byte[len];
             f.seek(off);
@@ -329,7 +313,6 @@ public final class Matcher implements RsyncConstants {
             System.arraycopy(config.strongSum.digest(), 0, digest, 0,
                digest.length);
             ChecksumPair pair = new ChecksumPair(weakSum.intValue(), digest);
-            logger.debug("second test succeeds; sums=" + pair);
             return (Long) m.get(new ChecksumPair(weakSum.intValue(), digest));
          }
       }
@@ -362,7 +345,6 @@ public final class Matcher implements RsyncConstants {
          weak = new Integer(config.weakSum.getValue());
          oldOffset = hashSearch(weak, f, i, n, m);
          if (oldOffset != null) {
-            logger.debug("third test succeeds; off=" + oldOffset);
             if (j == i && !deltas.isEmpty() && config.doRunLength) {
                Offsets o = (Offsets) deltas.getLast();
                o.setBlockLength(o.getBlockLength() + n);
