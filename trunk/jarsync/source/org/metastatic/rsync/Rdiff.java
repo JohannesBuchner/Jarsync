@@ -32,6 +32,13 @@ import java.util.*;
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
 
+/**
+ * A re-implementation of the <code>rdiff</code> utility from librsync.
+ * For more info see <a href="http://rproxy.samba.org/">the rproxy
+ * page</a>.
+ *
+ * @version $Revision$
+ */
 public class Rdiff implements RsyncConstants {
 
    // Constants and variables.
@@ -78,6 +85,7 @@ public class Rdiff implements RsyncConstants {
       Getopt g = new Getopt(PROGNAME, argv, OPTSTRING, LONGOPTS);
       int c;
       int blockLength = RDIFF_BLOCK_LENGTH, sumLength = RDIFF_STRONG_LENGTH;
+      boolean showStats = false;
       while ((c = g.getopt()) != -1) {
          switch (c) {
             case 'b':
@@ -91,7 +99,9 @@ public class Rdiff implements RsyncConstants {
             case 'S':
                sumLength = Integer.parseInt(g.getOptarg());
                break;
-            case 's': break;
+            case 's':
+               showStats = true;
+               break;
             case 'V':
                version(System.out);
                System.exit(0);
@@ -167,6 +177,11 @@ public class Rdiff implements RsyncConstants {
          if (out != System.out) {
             out.close();
          }
+         if (showStats) {
+            System.err.println(PROGNAME + ": signature statistics: " +
+               "signature[" + sums.size() + " blocks, " + blockLength +
+               " bytes per block]");
+         }
 
       } else if (DELTA.startsWith(command)) {
          if (verbose) {
@@ -197,6 +212,11 @@ public class Rdiff implements RsyncConstants {
          }
          Collection sigs = rdiff.readSignatures(sigsIn);
          sigsIn.close();
+         if (showStats) {
+            System.err.println(PROGNAME + ": loadsig statistics: " +
+               "signature[" + sigs.size() + " blocks, " + blockLength +
+               " bytes per block]");
+         }
 
          if (argv.length > g.getOptind()+2) {
             try {
@@ -217,6 +237,34 @@ public class Rdiff implements RsyncConstants {
          Collection deltas = rdiff.makeDeltas(sigs, newIn);
          if (newIn != System.in) {
             newIn.close();
+         }
+         if (showStats) {
+            int lit = 0;
+            long litBytes = 0;
+            int litCmdBytes = 0;
+            int copy = 0;
+            long copyBytes = 0;
+            System.err.print(PROGNAME + ": delta statistics:");
+            for (Iterator i = deltas.iterator(); i.hasNext(); ) {
+               Object o = i.next();
+               if (o instanceof Offsets) {
+                  copy++;
+                  copyBytes += ((Offsets) o).getBlockLength();
+               } else {
+                  lit++;
+                  litBytes += ((DataBlock) o).getBlockLength();
+                  litCmdBytes += 1 + integerLength(((DataBlock) o).getBlockLength());
+               }
+            }
+            if (lit > 0) {
+               System.err.print(" literal[" + lit + " cmds, " + litBytes
+                  + " bytes, " + litCmdBytes + " cmdbytes]");
+            }
+            if (copy > 0) {
+               System.err.print(" copy[" + copy + " cmds, " + copyBytes
+                  + " bytes, 0 false, " + copy*9 + " cmdbytes]");
+            }
+            System.err.println();
          }
 
          if (argv.length > g.getOptind()+3) {
@@ -289,6 +337,34 @@ public class Rdiff implements RsyncConstants {
          Collection deltas = rdiff.readDeltas(deltasIn);
          if (deltasIn != System.in) {
             deltasIn.close();
+         }
+         if (showStats) {
+            int lit = 0;
+            long litBytes = 0;
+            int litCmdBytes = 0;
+            int copy = 0;
+            long copyBytes = 0;
+            System.err.print(PROGNAME + ": patch statistics:");
+            for (Iterator i = deltas.iterator(); i.hasNext(); ) {
+               Object o = i.next();
+               if (o instanceof Offsets) {
+                  copy++;
+                  copyBytes += ((Offsets) o).getBlockLength();
+               } else {
+                  lit++;
+                  litBytes += ((DataBlock) o).getBlockLength();
+                  litCmdBytes += 1 + integerLength(((DataBlock) o).getBlockLength());
+               }
+            }
+            if (lit > 0) {
+               System.err.print(" literal[" + lit + " cmds, " + litBytes
+                  + " bytes, " + litCmdBytes + " cmdbytes]");
+            }
+            if (copy > 0) {
+               System.err.print(" copy[" + copy + " cmds, " + copyBytes
+                  + " bytes, 0 false, " + copy*9 + " cmdbytes]");
+            }
+            System.err.println();
          }
 
          if (argv.length > g.getOptind()+3) {
@@ -495,7 +571,7 @@ public class Rdiff implements RsyncConstants {
       out.println("  -v, --verbose             Trace internal processing");
       out.println("  -V, --version             Show program version");
       out.println("  -h, --help                Show this help message");
-      out.println("* -s, --statistics          Show performance statistics");
+      out.println("  -s, --statistics          Show performance statistics");
       out.println("Delta-encoding options:");
       out.println("  -b, --block-size=BYTES    Signature block size");
       out.println("  -S, --sum-size=BYTES      Set signature strength");
