@@ -2,7 +2,23 @@ ChangeLog for JARSYNC.
 
 $Id$
 
-0.2
+2003-03-30 -- Casey Marshall <rsdio@metastatic.org>
+  + Switched to automake.
+  + Added new "streaming" matcher API
+  + Modified Matcher.java to make use of this, as it is much simpler
+    than the previous version (and works better).
+  + Added parser for Samba-like config files.
+  + Added 'chunkSize' field to Configuration.
+  + All classes that take a Configuration now copy thier argument.
+  + Added cloneing support to Configuration.
+  + Fixed (hopefully once and for all) the rolling checksum.
+  + RsyncConstants obsolete.
+  + Added one further test of the full algorithm.
+  + Expanded TestOfChecksum32.
+  + Formatting changes.
+
+2003-03-04 -- Casey Marshall <rsdio@metastatic.org>
+  + Added classes that read Samba-style config files.
   + We now have some regression tests, using the Mauve test framework.
   + Minor fixes to MD4 and BrokenMD4.
   + Additional methods added to Rebuilder.
