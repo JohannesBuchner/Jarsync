@@ -96,6 +96,24 @@ AC_SUBST(JAVAHCP)
 AC_PROVIDE([$0])dnl
 ])
 
+AC_DEFUN([AC_PROG_JAVADOC],[
+AC_REQUIRE([AC_EXEEXT])dnl
+AC_REQUIRE([AC_PROG_JAVA])dnl
+AC_ARG_VAR(JAVADOC, [Java documentation generator.])
+test x$JAVADOC = x && AC_CHECK_PROGS(JAVADOC, javadoc$EXEEXT)
+test x$JAVADOC = x && AC_MSG_ERROR([no javadoc found])
+JAVA_VERSION=$($JAVA -version 2>&1 | head -1 | cut -d '"' -f 2)
+JAVA_VERSION_MAJOR=$(echo $JAVA_VERSION | cut -d '.' -f 1)
+JAVA_VERSION_MINOR=$(echo $JAVA_VERSION | cut -d '.' -f 2)
+if expr "$JAVA_VERSION_MAJOR" \> 0 >/dev/null && expr "$JAVA_VERSION_MINOR" \> 3 >/dev/null ; then
+	BREAKITERATOR="-breakiterator"
+else
+	BREAKITERATOR=""
+fi
+AC_SUBST(BREAKITERATOR)
+AC_PROVIDE([$0])dnl
+])
+
 dnl @synopsis AC_CHECK_CLASS
 dnl
 dnl AC_CHECK_CLASS tests the existence of a given Java class, either in
