@@ -23,7 +23,11 @@ SOURCES = \
   source/org/metastatic/rsync/Rebuilder.java \
   source/org/metastatic/rsync/RollingChecksum.java \
   source/org/metastatic/rsync/RsyncConstants.java \
-  source/org/metastatic/rsync/TwoKeyMap.java
+  source/org/metastatic/rsync/TwoKeyMap.java \
+  source/org/metastatic/rsync/Util.java \
+  source/org/metastatic/rsync/client/ConsoleClient.java \
+  source/org/metastatic/rsync/client/SocketClient.java
+
 TEST_SRC = test.java test2.java test3.java
 TEST_PROG = test.class test2.class test3.class
 

@@ -48,10 +48,22 @@ public interface RsyncConstants {
    public static final int RDIFF_STRONG_LENGTH = 8;
 
    /** The default port for rsyncd connections. */
-   public static final int RSYNC_PORT = 873;
+   public static final int RSYNCD_PORT = 873;
 
    /** The greeting. */
    public static final String RSYNCD_GREETING = "@RSYNCD: ";
+
+   /** Authentication required. */
+   public static final String RSYNCD_AUTHREQD = "@RSYNCD: AUTHREQD ";
+
+   /** OK. */
+   public static final String RSYNCD_OK = "@RSYNCD: OK";
+
+   /** Error. */
+   public static final String AT_ERROR = "@ERROR";
+
+   /** Exit message. */
+   public static final String RSYNCD_EXIT = "@RSYNCD: EXIT";
 
    /** Rdiff/rproxy signature magic. */
    public static final int SIG_MAGIC = 0x72730136;

@@ -28,15 +28,15 @@ AC_ARG_WITH(compress-suffix,
 dnl Check which Java compiler to use.
 if test $use_jikes = "yes"; then
 	AC_PATH_PROG(COMPILER, jikes, no)
-	CFLAGS="-g -classpath $CLASSPATH:lib/getopt.jar -d ../classes"
+	CFLAGS="-g -classpath $CLASSPATH:../lib/getopt.jar -d ../classes"
 	TEST_CFLAGS="-g -classpath $CLASSPATH:lib/jarsync.jar"
 elif test $use_gcj = "yes"; then
 	AC_PATH_PROG(COMPILER, gcj, no)
-	CFLAGS="-C -g -fCLASSPATH=$CLASSPATH:lib/getopt.jar -d ../classes"
+	CFLAGS="-C -g -fCLASSPATH=$CLASSPATH:../lib/getopt.jar -d ../classes"
 	TEST_CFLAGS="-C -g -fCLASSPATH=$CLASSPATH:lib/jarsync.jar"
 else
 	AC_PATH_PROG(COMPILER, javac, no)
-	CFLAGS="-g -classpath $CLASSPATH:lib/getopt.jar -d ../classes"
+	CFLAGS="-g -classpath $CLASSPATH:../lib/getopt.jar -d ../classes"
 	TEST_CFLAGS="-g -classpath $CLASSPATH:lib/jarsync.jar"
 fi
 
