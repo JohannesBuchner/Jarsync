@@ -60,6 +60,8 @@ public class MultiplexedOutputStream extends OutputStream
   /** Whether or not to actually multiplex. */
   private boolean multiplex;
 
+  protected Statistics stats;
+
   // Constructors.
   // -----------------------------------------------------------------------
 
@@ -69,10 +71,21 @@ public class MultiplexedOutputStream extends OutputStream
     this.multiplex = multiplex;
     outputBuffer = new byte[4096];
     bufferCount = 0;
+    stats = new Statistics();
   }
 
   // Instance methods.
   // -----------------------------------------------------------------------
+
+  public void setStats(Statistics stats)
+  {
+    if (stats != null) this.stats = stats;
+  }
+
+  public Statistics getStats()
+  {
+    return stats;
+  }
 
   /**
    * Set multiplexing value.
@@ -110,7 +123,6 @@ public class MultiplexedOutputStream extends OutputStream
     if (bufferCount == 0) return;
     if (multiplex)
       {
-        logger.debug("Writing " + bufferCount + " bytes.");
         write(FNONE, outputBuffer, 0, bufferCount);
       }
     else
@@ -150,6 +162,7 @@ public class MultiplexedOutputStream extends OutputStream
             flush();
             off += count;
             len -= count;
+            stats.total_written += count;
             bufferCount = 0;
           }
         System.arraycopy(buf, off, outputBuffer, bufferCount, len);
@@ -160,7 +173,10 @@ public class MultiplexedOutputStream extends OutputStream
           }
       }
     else
-      out.write(buf, off, len);
+      {
+        out.write(buf, off, len);
+        stats.total_written += len;
+      }
   }
 
   /**
@@ -184,7 +200,6 @@ public class MultiplexedOutputStream extends OutputStream
    */
   public void writeInt(int i) throws IOException
   {
-    logger.debug("writing int= " + i);
     byte[] b = new byte[4];
     b[0] = (byte)  i;
     b[1] = (byte) (i >>>  8);
@@ -242,8 +257,8 @@ public class MultiplexedOutputStream extends OutputStream
 
     out.write(code, 0, 4);
     out.write(buf, off, len);
-    logger.debug("Wrote " + (len+4) + " byte packet:");
-    logger.debug("\t" + Util.toHexString(code) +
-                 Util.toHexString(buf, 0, len));
+    //logger.debug("Wrote " + (len+4) + " byte packet:");
+    //logger.debug("\t" + Util.toHexString(code) +
+    //             Util.toHexString(buf, 0, len));
   }
 }

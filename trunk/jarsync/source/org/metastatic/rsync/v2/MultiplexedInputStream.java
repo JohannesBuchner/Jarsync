@@ -57,22 +57,37 @@ public class MultiplexedInputStream extends InputStream
   /** Used in readUnbuffered. */
   protected int remaining;
 
+  protected Statistics stats;
+
   // Constructors.
   // -----------------------------------------------------------------------
 
   public MultiplexedInputStream(InputStream in, boolean multiplex) {
     this.in = in;
     this.multiplex = multiplex;
+    this.stats = new Statistics();
   }
 
   // Instance methods.
   // -----------------------------------------------------------------------
 
-  public void setMultiplex(boolean multiplex) {
+  public void setStats(Statistics stats)
+  {
+    if (stats != null) this.stats = stats;
+  }
+
+  public Statistics getStats()
+  {
+    return stats;
+  }
+
+  public void setMultiplex(boolean multiplex)
+  {
     this.multiplex = multiplex;
   }
 
-  public int read() throws IOException {
+  public int read() throws IOException
+  {
     byte[] b = new byte[1];
     read(b);
     return b[0];
@@ -86,7 +101,8 @@ public class MultiplexedInputStream extends InputStream
    * @param off From whence to start storage in <tt>buf</tt>.
    * @param len The number of bytes to read.
    */
-  public int read(byte[] buf, int off, int len) throws IOException {
+  public int read(byte[] buf, int off, int len) throws IOException
+  {
     int ret = 0, total = 0;
 
     while (total < len)
@@ -101,6 +117,7 @@ public class MultiplexedInputStream extends InputStream
           }
         total += ret;
       }
+    stats.total_read += total;
     return total;
   }
 
@@ -140,8 +157,8 @@ public class MultiplexedInputStream extends InputStream
   {
     byte[] buf = new byte[4];
     read(buf);
-    return (buf[3] & 0xFF) << 24 | (buf[2] & 0xFF) << 16
-         | (buf[1] & 0xFF) <<  8 | (buf[0] & 0xFF);
+    return ((buf[3] & 0xFF) << 24) | ((buf[2] & 0xFF) << 16)
+         | ((buf[1] & 0xFF) <<  8) | (buf[0] & 0xFF);
   }
 
   /**
@@ -158,10 +175,10 @@ public class MultiplexedInputStream extends InputStream
       }
     byte[] buf = new byte[8];
     read(buf);
-    return (buf[7] & 0xFF) << 56 | (buf[6] & 0xFF) << 48
-         | (buf[5] & 0xFF) << 40 | (buf[4] & 0xFF) << 32
-         | (buf[3] & 0xFF) << 24 | (buf[2] & 0xFF) << 16
-         | (buf[1] & 0xFF) <<  8 | (buf[0] & 0xFF);
+    return ((buf[7] & 0xFF) << 56) | ((buf[6] & 0xFF) << 48)
+         | ((buf[5] & 0xFF) << 40) | ((buf[4] & 0xFF) << 32)
+         | ((buf[3] & 0xFF) << 24) | ((buf[2] & 0xFF) << 16)
+         | ((buf[1] & 0xFF) <<  8) | (buf[0] & 0xFF);
   }
 
   /**
@@ -174,7 +191,8 @@ public class MultiplexedInputStream extends InputStream
    * @param len The number of bytes to attempt to read.
    * @return The number of bytes read.
    */
-  protected int readUnbuffered(byte[] buf, int off, int len) throws IOException {
+  protected int readUnbuffered(byte[] buf, int off, int len) throws IOException
+  {
     int ret = 0;
     int tag;
     byte[] line = new byte[1024];
@@ -185,7 +203,6 @@ public class MultiplexedInputStream extends InputStream
           {
             len = Math.min(len, remaining);
             ret = in.read(buf, off, len);
-            logger.debug("len=" + len + " ret=" + ret + " remaining=" + remaining);
             off += ret;
             remaining -= ret;
             continue;
@@ -197,9 +214,6 @@ public class MultiplexedInputStream extends InputStream
         remaining  =  line[0] & 0xFF;
         remaining |= (line[1] & 0xFF) <<  8;
         remaining |= (line[2] & 0xFF) << 16;
-
-        logger.debug("bytes=" + Util.toHexString(line, 0, 4) +
-                     " tag=" + tag + " remaining=" + remaining);
 
         if (tag == MPLEX_BASE)
             continue;
@@ -218,10 +232,13 @@ public class MultiplexedInputStream extends InputStream
           }
 
         in.read(line, 0, remaining);
+        String msg = new String(line, 0, remaining);
+        if (msg.endsWith("\n"))
+          msg = msg.substring(0, msg.length()-1);
         if (tag == FERROR)
-          logger.error(new String(line, 0, remaining));
+          logger.error(msg);
         else
-          logger.info(new String(line, 0, remaining));
+          logger.info(msg);
         remaining = 0;
       }
     return ret;
