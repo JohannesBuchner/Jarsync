@@ -2,6 +2,11 @@ ChangeLog for JARSYNC.
 
 $Id$
 
+2002-08-15
+
+  - Previous version numbers are now obsolete; right now there is no
+    public release of the new source tree.
+
 2002-08-14 -- 0.0.7
 
   - Not dead!
