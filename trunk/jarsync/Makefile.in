@@ -20,6 +20,9 @@ SOURCES = \
   source/org/metastatic/rsync/MD4.java \
   source/org/metastatic/rsync/Matcher.java \
   source/org/metastatic/rsync/Offsets.java \
+  source/org/metastatic/rsync/ParameterException.java \
+  source/org/metastatic/rsync/ParameterListener.java \
+  source/org/metastatic/rsync/Parameters.java \
   source/org/metastatic/rsync/Rdiff.java \
   source/org/metastatic/rsync/Rebuilder.java \
   source/org/metastatic/rsync/RollingChecksum.java \

@@ -17,6 +17,9 @@ sources = \
   org/metastatic/rsync/Matcher.java \
   org/metastatic/rsync/Offsets.java \
   org/metastatic/rsync/Rdiff.java \
+  org/metastatic/rsync/ParameterException.java \
+  org/metastatic/rsync/ParameterListener.java \
+  org/metastatic/rsync/Parameters.java \
   org/metastatic/rsync/Rebuilder.java \
   org/metastatic/rsync/RollingChecksum.java \
   org/metastatic/rsync/RsyncConstants.java \
@@ -26,18 +29,18 @@ sources = \
 
 client_sources = \
   org/metastatic/rsync/v2/ConsoleClient.java \
+  org/metastatic/rsync/v2/Daemon.java \
+  org/metastatic/rsync/v2/FileInfo.java \
   org/metastatic/rsync/v2/FileList.java \
-  org/metastatic/rsync/v2/Logger.java \
   org/metastatic/rsync/v2/MultiplexedIO.java \
   org/metastatic/rsync/v2/MultiplexedInputStream.java \
   org/metastatic/rsync/v2/MultiplexedOutputStream.java \
+  org/metastatic/rsync/v2/Options.java \
   org/metastatic/rsync/v2/Receiver.java \
-  org/metastatic/rsync/v2/Rsync.java \
   org/metastatic/rsync/v2/RsyncAppender.java \
   org/metastatic/rsync/v2/Sender.java \
   org/metastatic/rsync/v2/SocketClient.java \
-  org/metastatic/rsync/v2/Statistics.java \
-  org/metastatic/rsync/v2/UnixFile.java
+  org/metastatic/rsync/v2/Statistics.java
 
 classes = $(patsubst %.java,../classes/%.class,$(sources))
 client_classes = $(patsubst %.java,../classes/%.class,$(client_sources))
