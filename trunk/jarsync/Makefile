@@ -27,7 +27,7 @@ lib/jarsync.jar: source/jarsync.jar
 	-mkdir lib
 	mv -f source/jarsync.jar lib
 
-test: jarsync.jar test.class
+test: lib/jarsync.jar test.class
 
 test.class: test.java
 	$(cc) $(ccopts) test.java
