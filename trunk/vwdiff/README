@@ -1,0 +1,8 @@
+This is the Visual Web Differ, or vwdiff.
+
+Vwdiff is a utility for tracking the incremental changes of files that
+exist on the internet. It periodically reads a list of URLs and compares
+the data presented there with the data fetched earlier, then produces a
+terse report of the apparent differences between these versions. The
+report can be viewed via a minimal builtin web server with an ordinary
+web browser.

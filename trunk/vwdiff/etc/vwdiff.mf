@@ -1,0 +1,1 @@
+Main-Class: org.metastatic.vwdiff.Main

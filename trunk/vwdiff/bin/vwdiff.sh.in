@@ -1,0 +1,8 @@
+#!@SHELL@
+
+JAVA=@JAVA@
+JAVAFLAGS=@JAVAFLAGS@
+prefix=@prefix@
+datadir=@datadir@
+
+exec ${JAVA} ${JAVAFLAGS} -Xbootclasspath/a:@JARSYNC_JAR@ -jar ${datadir}/vwdiff.jar "$@"
