@@ -66,4 +66,4 @@ if test $COMPRESS = "no"; then
 	unset COMPRESS
 fi
 
-AC_OUTPUT(Makefile source/Makefile)
+AC_OUTPUT(Makefile source/Makefile jzlib/Makefile getopt/Makefile)
