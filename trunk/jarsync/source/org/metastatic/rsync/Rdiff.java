@@ -1,47 +1,45 @@
-// vim:set tw=72 expandtab softtabstop=3 shiftwidth=3 tabstop=3:
-// $Id$
-//
-// Rdiff - rdiff workalike program.
-// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
-//
-// This file is a part of Jarsync.
-//
-// Jarsync is free software; you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option) any
-// later version.
-//
-// Jarsync is distributed in the hope that it will be useful, but
-// WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with Jarsync; see the file COPYING.  If not, write to the
-//
-//    Free Software Foundation Inc.,
-//    59 Temple Place - Suite 330,
-//    Boston, MA 02111-1307
-//    USA
-//
-// Linking this library statically or dynamically with other modules is
-// making a combined work based on this library.  Thus, the terms and
-// conditions of the GNU General Public License cover the whole
-// combination.
-//
-// As a special exception, the copyright holders of this library give
-// you permission to link this library with independent modules to
-// produce an executable, regardless of the license terms of these
-// independent modules, and to copy and distribute the resulting
-// executable under terms of your choice, provided that you also meet,
-// for each linked independent module, the terms and conditions of the
-// license of that module.  An independent module is a module which is
-// not derived from or based on this library.  If you modify this
-// library, you may extend this exception to your version of the
-// library, but you are not obligated to do so.  If you do not wish to
-// do so, delete this exception statement from your version.
-//
-// --------------------------------------------------------------------
+/* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
+   $Id$
+
+   Rdiff: rdiff workalike program.
+   Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
+  
+   This file is a part of Jarsync.
+  
+   Jarsync is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by the
+   Free Software Foundation; either version 2 of the License, or (at
+   your option) any later version.
+  
+   Jarsync is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+  
+   You should have received a copy of the GNU General Public License
+   along with Jarsync; if not, write to the
+  
+      Free Software Foundation, Inc.,
+      59 Temple Place, Suite 330,
+      Boston, MA  02111-1307
+      USA
+  
+   Linking Jarsync statically or dynamically with other modules is
+   making a combined work based on Jarsync.  Thus, the terms and
+   conditions of the GNU General Public License cover the whole
+   combination.
+  
+   As a special exception, the copyright holders of Jarsync give you
+   permission to link Jarsync with independent modules to produce an
+   executable, regardless of the license terms of these independent
+   modules, and to copy and distribute the resulting executable under
+   terms of your choice, provided that you also meet, for each linked
+   independent module, the terms and conditions of the license of that
+   module.  An independent module is a module which is not derived from
+   or based on Jarsync.  If you modify Jarsync, you may extend this
+   exception to your version of it, but you are not obligated to do so.
+   If you do not wish to do so, delete this exception statement from
+   your version.  */
 
 package org.metastatic.rsync;
 
@@ -61,7 +59,7 @@ import gnu.getopt.LongOpt;
  *
  * @version $Revision$
  */
-public class Rdiff implements RsyncConstants {
+public class Rdiff {
 
    // Constants and variables.
    // -----------------------------------------------------------------
@@ -84,6 +82,30 @@ public class Rdiff implements RsyncConstants {
       new LongOpt("version",     LongOpt.NO_ARGUMENT, null, 'V')
    };
 
+   /** The strong checksum length. */
+   public static final int SUM_LENGTH = MD4.DIGEST_LENGTH;
+
+   /** Rdiff/rproxy default block length. */
+   public static final int RDIFF_BLOCK_LENGTH = 2048;
+
+   /** Rdiff/rproxy default sum length. */
+   public static final int RDIFF_STRONG_LENGTH = 8;
+
+   /** Rdiff/rproxy signature magic. */
+   public static final int SIG_MAGIC = 0x72730136;
+
+   /** Rdiff/rproxy delta magic. */
+   public static final int DELTA_MAGIC = 0x72730236;
+
+   public static final byte OP_END = 0x00;
+
+   public static final byte OP_LITERAL_N1 = 0x41;
+   public static final byte OP_LITERAL_N2 = 0x42;
+   public static final byte OP_LITERAL_N4 = 0x43;
+   public static final byte OP_LITERAL_N8 = 0x44;
+
+   public static final byte OP_COPY_N4_N4 = 0x4f;
+
    /** The `signature' command. */
    public static final String SIGNATURE = "signature";
 
@@ -95,6 +117,8 @@ public class Rdiff implements RsyncConstants {
 
    /** The program name printed to the console. */
    public static final String PROGNAME = "rdiff";
+
+   public static final short CHAR_OFFSET = 31;
 
    /** Whether or not to trace to System.err. */
    protected static boolean verbose = false;
@@ -222,7 +246,7 @@ public class Rdiff implements RsyncConstants {
          } else if (verbose) {
             System.err.println("Reading basis from standard input.");
          }
-         Collection sums = rdiff.makeSignatures(in);
+         List sums = rdiff.makeSignatures(in);
          if (in != System.in) {
             in.close();
          }
@@ -283,7 +307,7 @@ public class Rdiff implements RsyncConstants {
                " --help' for more information.");
             System.exit(1);
          }
-         Collection sigs = rdiff.readSignatures(sigsIn);
+         List sigs = rdiff.readSignatures(sigsIn);
          sigsIn.close();
          if (showStats) {
             System.err.println(PROGNAME + ": loadsig statistics: " +
@@ -307,7 +331,7 @@ public class Rdiff implements RsyncConstants {
          } else if (verbose) {
             System.err.println("Reading new file from standard input.");
          }
-         Collection deltas = rdiff.makeDeltas(sigs, newIn);
+         List deltas = rdiff.makeDeltas(sigs, newIn);
          if (newIn != System.in) {
             newIn.close();
          }
@@ -411,7 +435,7 @@ public class Rdiff implements RsyncConstants {
          } else if (verbose) {
             System.err.println("Reading deltas from standard input.");
          }
-         Collection deltas = rdiff.readDeltas(deltasIn);
+         List deltas = rdiff.readDeltas(deltasIn);
          if (deltasIn != System.in) {
             deltasIn.close();
          }
@@ -484,7 +508,7 @@ public class Rdiff implements RsyncConstants {
     * @throws java.io.IOException If writing fails.
     */
    public void
-   writeSignatures(Collection sigs, OutputStream out) throws IOException {
+   writeSignatures(List sigs, OutputStream out) throws IOException {
       writeInt(SIG_MAGIC, out);
       writeInt(blockLength, out);
       writeInt(strongSumLength, out);
@@ -499,14 +523,14 @@ public class Rdiff implements RsyncConstants {
     * Make the signatures from data coming in through the input stream.
     *
     * @param in The input stream to generate signatures for.
-    * @return A Collection of signatures.
+    * @return A List of signatures.
     * @throws java.io.IOException If reading fails.
     */
-   public Collection makeSignatures(InputStream in)
+   public List makeSignatures(InputStream in)
    throws IOException, NoSuchAlgorithmException {
       Configuration c = new Configuration();
       c.strongSum = MessageDigest.getInstance("MD4");
-      c.weakSum = new Checksum32();
+      c.weakSum = new Checksum32(CHAR_OFFSET);
       c.blockLength = blockLength;
       c.strongSumLength = strongSumLength;
       return new Generator(c).generateSums(in);
@@ -519,8 +543,8 @@ public class Rdiff implements RsyncConstants {
     * @return A collection of {@link ChecksumPair}s read.
     * @throws java.io.IOException If the input stream is malformed.
     */
-   public Collection readSignatures(InputStream in) throws IOException {
-      Collection sigs = new LinkedList();
+   public List readSignatures(InputStream in) throws IOException {
+      List sigs = new LinkedList();
       int header = readInt(in);
       if (header != SIG_MAGIC) {
          throw new IOException("Bad signature header: 0x"
@@ -555,7 +579,7 @@ public class Rdiff implements RsyncConstants {
     * @throws java.io.IOException If writing fails.
     */
    public void
-   writeDeltas(Collection deltas, OutputStream out) throws IOException {
+   writeDeltas(List deltas, OutputStream out) throws IOException {
       writeInt(DELTA_MAGIC, out);
       for (Iterator i = deltas.iterator(); i.hasNext(); ) {
          Object o = i.next();
@@ -579,12 +603,12 @@ public class Rdiff implements RsyncConstants {
     *    file to the new.
     * @throws java.io.IOException If reading fails.
     */
-   public Collection
-   makeDeltas(Collection sums, InputStream in)
+   public List
+   makeDeltas(List sums, InputStream in)
    throws IOException, NoSuchAlgorithmException {
       Configuration c = new Configuration();
       c.strongSum = MessageDigest.getInstance("MD4");
-      c.weakSum = new Checksum32();
+      c.weakSum = new Checksum32(CHAR_OFFSET);
       c.blockLength = blockLength;
       c.strongSumLength = strongSumLength;
       return new Matcher(c).hashSearch(sums, in);
@@ -597,8 +621,8 @@ public class Rdiff implements RsyncConstants {
     * @return A collection of {@link Delta}s read.
     * @throws java.io.IOException If the input stream is malformed.
     */
-   public Collection readDeltas(InputStream in) throws IOException {
-      Collection deltas = new LinkedList();
+   public List readDeltas(InputStream in) throws IOException {
+      List deltas = new LinkedList();
       int header = readInt(in);
       if (header != DELTA_MAGIC) {
          throw new IOException("Bad delta header: 0x" +
@@ -653,7 +677,7 @@ public class Rdiff implements RsyncConstants {
     * @throws java.io.IOException If reading/writing fails.
     */
    public void
-   rebuildFile(File basis, Collection deltas, OutputStream out)
+   rebuildFile(File basis, List deltas, OutputStream out)
    throws IOException {
       File temp = Rebuilder.rebuildFile(basis, deltas);
       temp.deleteOnExit();
