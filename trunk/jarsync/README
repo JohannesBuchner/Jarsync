@@ -6,7 +6,7 @@ This is the source distribution of Jarsync, a library written in Java
 that implements the rsync algorithm---a method for syncing remote files
 by transmitting only the differences between the two files.
 
-Jarsync is beta software, and is not thoroughly tested. 
+Jarsync is beta software, and is not thoroughly tested.
 
 =======================================================================
 
@@ -15,7 +15,6 @@ CONTENTS
 1. About this library.
 2. Compilation.
 3. The API.
-4. Files in this distribution.
 
 =======================================================================
 
@@ -50,18 +49,11 @@ test programs, simply say
 	./configure
 	make
 
+Run `make check' to execute some regression tests. If all goes well,
+after a long while the script should print out `0 of XXX tests failed.'
+
 If this is a CVS checkout, first execute `autoconf' to make the
 configure script.
-
-There is also a Jakarta Ant build.xml file, which by executing
-
-	ant
-	ant test
-
-will build the same files as `make'.
-
-There is no `install' target yet; to use the test programs and the rdiff
-workalike program the Jar file `jarsync.jar' needs to be in your CLASSPATH.
 
 =======================================================================
 
@@ -72,35 +64,30 @@ functions in the rsync algorithm -- checksum generation, delta
 generation, and file patching. A higher-level interface may be added
 later.
 
-This is only an overview; see the API JavaDocs for more information.
-
   3.a. Checksum Generation.
 
   Checksum generation is handled with the `Generator' class, and comes
   in two basic flavors: generating over byte arrays and generating over
   files. All generation methods are called `generateSums', which will
-  all return a java.util.Collection of ChecksumPair objects.
+  all return a java.util.List of ChecksumPair objects.
 
-  The constructor can take a `Configuration' argument, which stores
+  The constructor takes a `Configuration' argument, which stores
   things such as the message digest algorithm, the block size, etc.
 
 
   3.b. Delta Generation
 
   Deltas are generated with the `Matcher' class, whose methods take
-  either a java.util.Collection of checksums or a TwoKeyMap generated
-  from the `buildHashtable' method, and either a byte array, a
-  java.io.File, or a java.io.InputStream. All methods are called
-  `hashSearch' and all return a java.util.Collection of `Delta' objects,
-  which are either of type `Offsets' or `DataBlock'.
+  either a java.util.List of checksums and produce a java.util.List of
+  `Delta' objects, which are either of type `Offsets' or `DataBlock'.
 
-  The Matcher class can take a `Configuration', similar to Generator.
+  The Matcher class takes a `Configuration', similar to Generator.
 
 
   3.c. File Patching
 
   Files are patched with the `Rebuilder' class, whose methods
-  `rebuildFile'  will either take a basis file and a java.util.Collection
+  `rebuildFile'  will either take a basis file and a java.util.List
   of Deltas and return a new, temporary file containing the patched
   file; or take two files and a java.util.Collection, patching into one
   of them. The `rebuildFileInPlace' will patch the file in-place, not
@@ -109,56 +96,21 @@ This is only an overview; see the API JavaDocs for more information.
   Since these methods are stateless, they are all static and do not
   depend upon a `Configuration'.
 
-  There are no equivalent InputStream/byte[] methods, as these methods
+  There are no equivalent InputStream methods, as these methods
   require random access.
 
-=======================================================================
 
-4. Files in this distribution.
+  3.d Streaming Implementations
 
-  AUTHORS      -  List of authors, roles, and contact information.
-  COPYING      -  The GNU General Public License.
-  ChangeLog    -  List of changes between versions.
-  LICENSE      -  Decription of this library's license.
-  Makefile.in  -  For producing Makefile with configure.
-  README       -  This file; notes &c.
-  TODO         -  A list of things yet to be done.
-  build.xml    -  Jakarta Ant XML build file.
-  configure    -  GNU configure script.
-  configure.ac -  GNU autoconf specification.
-  mutate.pl    -  Utility from librsync to make random modifications to files.
-  rdiff        -  Bash script to run org.metastatic.rsync.Rdiff.
-  rdiff.magic  -  Example (unofficial) magic(5) file for rdiff files.
-  test.java    -  A simple test of byte array based methods.
-  test2.java   -  A simple test of file-based methods.
+  In addition to the three classes mentioned above, the API provides
+  `streaming' analogues to each. This is implemented by a `Event -
+  Listener - Stream' triad for each operation, where you provide the
+  implementation of the Listener that the Stream will send Events to.
 
-In directory source/org/metastatic/rsync:
 
-  BrokenMD4.java        -  A mutation of MD4 that aims to be compatible
-                           with 
-  ChecksumPair.java     -  A pair of weak and strong checksums over a
-                           block of data.
-  Configuration.java    -  A context object.
-  DataBlock.java        -  A Delta that represents new data to be
-                           inserted into a file.
-  Delta.java            -  A generic change to data in the algorithm.
-  Generator.java        -  The checksum generation methods.
-  Matcher.java          -  The hash search and delta generation methods.
-  MessageDigest.java    -  Superclass for message digest algorithms.
-  MD4.java              -  The MD4 Message Digest algorithm, used to generate
-                           the "strong" checksum.
-  Offsets.java          -  A Delta that represents data that has simply
-                           moved.
-  Rdiff.java            -  rdiff(1)-workalike example program.
-  Rebuilder.java        -  Reconstructs files from deltas.
-  RollingChecksum.java  -  A simple checksum based on Adler32 that can
-                           be updated from either end.
-  TwoKeyMap.java        -  A java.util.Map that maps two keys, one an
-                           integer and the other a byte array.
-
-In directory getopt/gnu/getopt:
-
-  Aaron M. Renn's Java port of GNU Getopt.
+  The API may be better explained through the JavaDocs, which can be
+  made by executing `make docs'. Also see the test files in the
+  directory `test/gnu/testlet/org/metastatic/rsync'.
 
 =======================================================================
   $Id$
