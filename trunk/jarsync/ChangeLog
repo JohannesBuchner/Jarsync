@@ -2,6 +2,15 @@ ChangeLog for JARSYNC.
 
 $Id$
 
+2003-04-30   Casey Marshall  <rsdio@metastatic.org>
+
+	* source/org/metastatic/rsync/Matcher.java:
+	  (hashSearch(List, InputStream)) removed `off' field.
+	* source/org/metastatic/rsync/Rebuilder.java:
+	  (rebuildFileInPlace(File, List)): removed extraeneous
+	  debugging statements.
+	  (TopologicalSorter.DFS): likewise.
+
 2003-04-05 -- Casey Marshall <rsdio@metastatic.org>
   + Added streaming API for Generator and Rebuilder.
 
