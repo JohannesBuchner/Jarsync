@@ -157,11 +157,9 @@ public final class Matcher {
       matcher.reset();
       matcher.setChecksums(sums);
       byte[] buffer = new byte[chunkSize];
-      int len = 0, off = 0;
-      while ((len = in.read(buffer)) != -1) {
-         matcher.update(buffer, off, len);
-         off += len;
-      }
+      int len = 0;
+      while ((len = in.read(buffer)) != -1)
+         matcher.update(buffer, 0, len);
       matcher.doFinal();
       return new LinkedList(deltas);
    }
