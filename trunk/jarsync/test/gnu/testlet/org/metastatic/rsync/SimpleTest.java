@@ -77,8 +77,8 @@ public class SimpleTest implements Testlet, MatcherListener {
    // Instance methods.
    // -----------------------------------------------------------------------
 
-   public void update(Delta d) {
-      deltas.add(d);
+   public void update(MatcherEvent event) {
+      deltas.add(event.getDelta());
    }
 
    public void test(TestHarness harness) {
@@ -94,8 +94,6 @@ public class SimpleTest implements Testlet, MatcherListener {
          throw new Error(x);
       }
       conf.strongSumLength = conf.strongSum.getDigestLength();
-
-      assert conf.strongSumLength != 0;
 
       for (int i = 0; i < 50; i++) {
          conf.blockLength = rand.nextInt(1400) + 250;
