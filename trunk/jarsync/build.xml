@@ -66,6 +66,11 @@
          includes="org/metastatic/rsync/*.java" fork="yes"/>
    </target>
 
+   <target name="test" depends="jar">
+      <javac destdir="." debug="${debug}" optimize="${optimize}"
+         srcdir="." includes="test.java" classpath="lib/jarsync.jar:."/>
+   </target>
+
    <target name="dist" depends="${dist.dir}">
       <tar tarfile="${dist.dir}.tar" includes="${dist.dir}" basedir="."/>
       <bzip2 src="${dist.dir}.tar" zipfile="${dist.dir}.tar.bz2"/>
