@@ -44,7 +44,7 @@
 
    <property name="version.major" value="0"/>
    <property name="version.minor" value="0"/>
-   <property name="version.micro" value="7"/>
+   <property name="version.micro" value="0"/>
    <property name="dist.dir"
       value="jarsync-${version.major}.${version.minor}.${version.micro}"/>
 
@@ -68,7 +68,7 @@
 
    <target name="test" depends="jar">
       <javac destdir="." debug="${debug}" optimize="${optimize}"
-         srcdir="." includes="test.java, test2.java"
+         srcdir="." includes="test.java, test2.java, test3.java"
          classpath="lib/jarsync.jar:."/>
    </target>
 

@@ -12,7 +12,7 @@ compress = bzip2
 suffix = .bz2
 
 sources = $(wildcard source/org/metastatic/rsync/*.java)
-test_src = test.java test2.java
+test_src = test.java test2.java test3.java
 
 distfiles = $(sources) $(test_src) AUTHORS COPYING Makefile README TODO mutate.pl ChangeLog build.xml source/Makefile
 
@@ -34,6 +34,9 @@ test.class: test.java
 
 test2.class: test2.java
 	$(cc) $(ccopts) test2.java
+
+test3.class: test3.java
+	$(cc) $(ccopts) test3.java
 
 source/jarsync.jar:
 	make -C source
