@@ -1,0 +1,112 @@
+diff -Naurw jzlib-0.0.8/com/jcraft/jzlib/Deflate.java jzlib-0.0.8-mod/com/jcraft/jzlib/Deflate.java
+--- jzlib-0.0.8/com/jcraft/jzlib/Deflate.java	Fri Mar  8 09:18:53 2002
++++ jzlib-0.0.8-mod/com/jcraft/jzlib/Deflate.java	Wed Aug 28 12:35:06 2002
+@@ -23,6 +23,16 @@
+  * and contributors of zlib.
+  */
+ 
++/*
++ * This version is modified in a similar fashion to the zlib included
++ * with the rsync utility - it provides the Z_INSERT_ONLY flushing
++ * option, which allows the library to efficiently update the dictionary
++ * without emitting data.
++ *
++ * The only differences appear wherever the constant "Z_INSERT_ONLY"
++ * appears.
++ */
++
+ package com.jcraft.jzlib;
+ 
+ public 
+@@ -108,6 +118,7 @@
+   static final private int Z_SYNC_FLUSH=2;
+   static final private int Z_FULL_FLUSH=3;
+   static final private int Z_FINISH=4;
++  static final private int Z_INSERT_ONLY=5;
+ 
+   static final private int Z_OK=0;
+   static final private int Z_STREAM_END=1;
+@@ -1016,6 +1027,12 @@
+ 	head[ins_h]=(short)strstart;
+       }
+ 
++      if (flush == Z_INSERT_ONLY) {
++        strstart++;
++        lookahead--;
++        continue;
++      }
++
+       // Find the longest match, discarding those <= prev_length.
+       // At this point we have always match_length < MIN_MATCH
+ 
+@@ -1079,6 +1096,11 @@
+       }
+     }
+ 
++    if (flush == Z_INSERT_ONLY) {
++      block_start = strstart;
++      return NeedMore;
++    }
++
+     flush_block_only(flush == Z_FINISH);
+     if(strm.avail_out==0){
+       if(flush == Z_FINISH) return FinishStarted;
+@@ -1121,6 +1143,12 @@
+ 	head[ins_h]=(short)strstart;
+       }
+ 
++      if (flush == Z_INSERT_ONLY) {
++        strstart++;
++        lookahead--;
++        continue;
++      }
++
+       // Find the longest match, discarding those <= prev_length.
+       prev_length = match_length; prev_match = match_start;
+       match_length = MIN_MATCH-1;
+@@ -1204,6 +1232,11 @@
+       }
+     }
+ 
++    if (flush == Z_INSERT_ONLY) {
++      block_start = strstart;
++      return NeedMore;
++    }
++
+     if(match_available!=0) {
+       bflush=_tr_tally(0, window[strstart-1]&0xff);
+       match_available = 0;
+@@ -1468,7 +1501,7 @@
+   int deflate(ZStream strm, int flush){
+     int old_flush;
+ 
+-    if(flush>Z_FINISH || flush<0){
++    if(flush > Z_INSERT_ONLY || flush < 0){
+       return Z_STREAM_ERROR;
+     }
+ 
+diff -Naurw jzlib-0.0.8/com/jcraft/jzlib/JZlib.java jzlib-0.0.8-mod/com/jcraft/jzlib/JZlib.java
+--- jzlib-0.0.8/com/jcraft/jzlib/JZlib.java	Thu Mar  8 07:17:32 2001
++++ jzlib-0.0.8-mod/com/jcraft/jzlib/JZlib.java	Wed Aug 28 12:17:33 2002
+@@ -23,6 +23,13 @@
+  * and contributors of zlib.
+  */
+ 
++/*
++ * This version is modified in a similar fashion to the zlib included
++ * with the rsync utility - it provides the Z_INSERT_ONLY flushing
++ * option, which allows the library to efficiently update the dictionary
++ * without emitting data.
++ */
++
+ package com.jcraft.jzlib;
+ 
+ final public class JZlib{
+@@ -43,6 +50,7 @@
+   static final public int Z_SYNC_FLUSH=2;
+   static final public int Z_FULL_FLUSH=3;
+   static final public int Z_FINISH=4;
++  static final public int Z_INSERT_ONLY=5;
+ 
+   static final public int Z_OK=0;
+   static final public int Z_STREAM_END=1;

@@ -1,0 +1,34 @@
+# Makefile for Jarsync.
+# $Id$
+
+COMPILER = @COMPILER@
+CFLAGS = @CFLAGS@
+
+sources = \
+  gnu/getopt/Getopt.java \
+  gnu/getopt/LongOpt.java
+
+classes = \
+  ../classes/gnu/getopt/Getopt.class \
+  ../classes/gnu/getopt/LongOpt.class
+
+properties = \
+  gnu/getopt/MessagesBundle.properties \
+  gnu/getopt/MessagesBundle_cs.properties \
+  gnu/getopt/MessagesBundle_de.properties \
+  gnu/getopt/MessagesBundle_fr.properties \
+  gnu/getopt/MessagesBundle_nl.properties \
+  gnu/getopt/MessagesBundle_no.properties
+
+all: compile
+
+compile: $(classes) properties
+
+$(classes): ../classes/%.class: %.java
+	$(COMPILER) $(CFLAGS) $<
+
+properties:
+	cp --parents $(properties) ../classes
+
+clean:
+	rm -f $(classes)
