@@ -1,0 +1,115 @@
+ ----------------------------------------------------------------------
+|                        JARSYNC - RSYNC IN JAVA                       |
+ ----------------------------------------------------------------------
+
+This is the source distribution of Jarsync, a library written in Java
+that implements the rsync algorithm---a method for syncing remote files
+by transmitting only the differences between the two files.
+
+THIS IS ALPHA SOFTWARE. NOT EVERYTHING NEEDED IS YET IMPLEMENTED, AND
+THAT WHICH IS IMPLEMENTED PROBABLY IS STILL INCREDIBLY BUGGY. THIS
+DISTRIBUTION IS INTENDED FOR DEVELOPERS WHO WANT TO CONTRIBUTE, NOT FOR
+DEVELOPERS SEEKING TO USE THE RSYNC ALGORITHM IN ANOTHER PROJECT, AND
+CERTAINLY NOT FOR END USERS.
+
+=======================================================================
+
+CONTENTS
+
+1. About this library.
+2. Compilation.
+3. The API.
+4. Files in this distribution.
+
+=======================================================================
+
+1. About this library.
+
+The Rsync algorithm is a method for syncing two files on two different
+computers connected via a low-bandwidth high-latency bidirectional
+communications link. Instead of simply copying the new file onto the
+old, it computes and sends checksums of the old file---which are,
+altogether, possibly much smaller than the file itself---and the other
+machine then uses to compute the differences between the old file and
+the new. This machine then sends these differences back---again with
+the hope that the differences are far smaller than the new file---and
+the new file is recreated from these differences.
+
+This library implements the rsync algorithm in Java, and provides a
+simple API for using the algorithm.
+
+For a more complete description of the rsync algorithm, see the paper
+"The rsync algorithm", technical report TR-CS-96-05, by Andrew Tridgell
+and Paul Mackerras, available from the URL
+
+	http://rsync.samba.org/ftp/rsync/tech-report.ps
+
+=======================================================================
+
+2. Compilation.
+
+As the library is still incomplete, the included Makefile is still
+rather simple. Saying 'make' will build all the classes, plus a simple
+test program. Using 'ant' will do the same thing.
+
+The Makefile is a GNU Makefile and does require a recent version of GNU
+make.
+
+Right now you can use the program 'test.class' to test the checksum
+generation, hashtable building, and checksum search phases. For example,
+you can do something like this:
+
+	perl mutate.pl 42 42 <COPYING >COPYING.mut
+	java test COPYING COPYING.mut
+
+which will print out the checksum pairs for COPYING, a TwoKeyMap built
+from these, and finally the deltas between COPYING and COPYING.mut.
+
+Also note that running
+
+	java test COPYING COPYING
+
+should print out this as the final line: 
+
+	[ old=0 new=0 len=18009 ]
+
+=======================================================================
+
+3. The API.
+
+...
+
+=======================================================================
+
+4. Files in this distribution.
+
+  AUTHORS    -  List of authors, roles, and contact information.
+  COPYING    -  The GNU General Public License.
+  ChangeLog  -  List of changes between versions.
+  Makefile   -  GNU Makefile used for compilation.
+  README     -  This file; notes &c.
+  TODO       -  A list of things yet to be done.
+  build.xml  -  Jakarta Ant XML build file.
+  mutate.pl  -  Utility from librsync to make random modifications to files.
+  test.java  -  A simple test of some of the methods.
+
+In directory org/metastatic/rsync:
+
+  ChecksumPair.java     -  A pair of weak and strong checksums over a
+                           block of data.
+  DataBlock.java        -  A Delta that represents new data to be
+                           inserted into a file.
+  Delta.java            -  A generic change to data in the algorithm.
+  Generator.java        -  The checksum generation methods.
+  Matcher.java          -  The hash search and delta generation methods.
+  MD4.java              -  The MD4 Message Digest algorithm, used to generate
+                           the "strong" checksum.
+  Offsets.java          -  A Delta that represents data that has simply
+                           moved.
+  RollingChecksum.java  -  A simple checksum based on Adler32 that can
+                           be updated from either end.
+  TwoKeyMap.java        -  A java.util.Map that maps two keys, one an
+                           integer and the other a byte array.
+
+=======================================================================
+  $Id$
