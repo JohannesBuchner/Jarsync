@@ -81,6 +81,13 @@ Therefore if you do this:
 
 'COPYING.new' should be identical to 'COPYING'.
 
+The class 'test3' will reconstruct the new file in-place, so just say:
+
+	perl mutate.pl 42 42 <COPYING >COPYING.mut
+	java test2 COPYING COPYING.mut
+
+SHOULD make the two files identical.
+
 =======================================================================
 
 3. The API.
