@@ -9,12 +9,12 @@ ccopts = -g -classpath $$CLASSPATH:lib/jarsync.jar
 jar    = jar
 
 compress = bzip2
-suffix = .bz2
+suffix = bz2
 
 sources = $(wildcard source/org/metastatic/rsync/*.java)
 test_src = test.java test2.java test3.java
 
-distfiles = $(sources) $(test_src) AUTHORS COPYING Makefile README TODO mutate.pl ChangeLog build.xml source/Makefile lib/getopt.jar
+distfiles = $(sources) $(test_src) AUTHORS COPYING Makefile README TODO mutate.pl ChangeLog build.xml source/Makefile lib/getopt.jar rdiff
 
 version = 0.0.2
 package = jarsync
@@ -47,9 +47,9 @@ dist: $(distdir)
 	jar cMf $(distdir).jar $(distdir)
 	md5sum $(distdir).tar.$(suffix) > $(distdir).tar.$(suffix).md5
 	md5sum $(distdir).jar > $(distdir).jar.md5
-	gpg --detatch-sign --armor -o $(distdir).tar.$(suffix).sig \
+	gpg --detach-sign --armor -o $(distdir).tar.$(suffix).sig \
 	  $(distdir).tar.$(suffix)
-	gpg --detatch-sign --armor -o $(distdir).jar.sig $(distdir).jar
+	gpg --detach-sign --armor -o $(distdir).jar.sig $(distdir).jar
 	rm -rf $(distdir)
 
 $(distdir):
