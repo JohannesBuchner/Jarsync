@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class Util {
+public final class Util {
 
    // Constants and variables.
    // -----------------------------------------------------------------------
@@ -108,5 +108,28 @@ public class Util {
          throw new EOFException();
       }
       return s.toString();
+   }
+
+   // From gnu.crypto.util.Util
+
+   /** Hexadecimal digits. */
+   private static final char[] HEX_DIGITS = {
+      '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'
+   };
+
+   /**
+    * Convert a byte array to a big-endian ordered hexadecimal string.
+    *
+    * @param b The bytes to convert.
+    * @return A hexadecimal representation to <tt>b</tt>.
+    */
+   public static String toHexString(byte[] b) {
+      char[] buf = new char[b.length * 2];
+      for (int i = 0, j = 0, k; i < b.length; ) {
+         k = b[i++];
+         buf[j++] = HEX_DIGITS[(k >>> 4) & 0x0F];
+         buf[j++] = HEX_DIGITS[ k        & 0x0F];
+      }
+      return new String(buf);
    }
 }

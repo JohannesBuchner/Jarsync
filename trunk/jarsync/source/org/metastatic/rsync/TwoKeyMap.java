@@ -346,15 +346,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
       public String toString() {
          if (key == null)
             return "00";
-         String str = new String();
-         for (int i = 0; i < key.length; i++) {
-            String s = Integer.toHexString((int) key[i] & 0xff);
-            if (s.length() == 2)
-               str += s;
-            else
-               str += "0" + s;
-         }
-         return str;
+         return Util.toHexString(key);
       }
 
       /**

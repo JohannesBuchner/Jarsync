@@ -34,14 +34,24 @@ public class ConsoleClient {
 
    public static void main(String[] argv) throws Throwable {
       if (argv.length < 1) {
-         System.err.println("usage: ConsoleClient <host> {module}");
+         System.err.println("usage: ConsoleClient <host>[:port] [module]");
          System.exit(1);
+      }
+      String host = null;
+      int port = 873;
+      int ind = 0;
+      if ((ind = argv[0].lastIndexOf(':')) < 0) {
+         host = argv[0];
+      } else {
+         host = argv[0].substring(0, ind);
+         if (ind < argv[0].length())
+            port = Integer.parseInt(argv[0].substring(ind+1));
       }
       String module = null;
       if (argv.length >= 2) {
          module = argv[1];
       }
-      SocketClient c = SocketClient.connect(argv[0], module);
+      SocketClient c = SocketClient.connect(host, port, module);
       System.out.print(c.getMOTD());
       if (c.authRequired()) {
          System.out.print("user: ");
@@ -58,7 +68,7 @@ public class ConsoleClient {
          System.out.println("Modules:");
          for(Iterator modules = c.moduleList().iterator(); modules.hasNext(); )
             System.out.println(modules.next());
-      } else {
+      } else if (c.connected()) {
          c.exit();
       }
    }

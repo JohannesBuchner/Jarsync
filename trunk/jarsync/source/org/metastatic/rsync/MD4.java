@@ -120,7 +120,7 @@ public final class MD4 extends MessageDigest implements Cloneable {
     * @return true If the self-test suceeds.
     */
    public boolean selfTest() {
-      return DIGEST0.equals(toString(new MD4().digest()));
+      return DIGEST0.equals(Util.toHexString(new MD4().digest()));
    }
 
    /**

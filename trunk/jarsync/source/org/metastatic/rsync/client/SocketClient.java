@@ -34,7 +34,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 
 import java.util.LinkedList;
-import java.util.List;
+import java.util.ListIterator;
 
 import org.metastatic.rsync.*;
 
@@ -56,7 +56,13 @@ public class SocketClient implements RsyncConstants {
    protected String serverMOTD;
 
    /** The modules available on the server. */
-   protected List modules;
+   protected LinkedList modules;
+
+   /**
+    * The raw list of server messages, possibly the MOTD and the module
+    * list.
+    */
+   protected LinkedList serverMessages;
 
    /** Our connection status. */
    protected boolean connected;
@@ -91,6 +97,7 @@ public class SocketClient implements RsyncConstants {
       authReqd = false;
       serverMOTD = new String();
       modules = new LinkedList();
+      serverMessages = new LinkedList();
    }
 
    // Class methods.
@@ -136,15 +143,15 @@ public class SocketClient implements RsyncConstants {
 
       Util.writeASCII(out, RSYNCD_GREETING + PROTOCOL_VERSION + "\n");
       if (module == null) {
-         Util.writeASCII(out, "\n");
+         Util.writeASCII(out, "#list\n");
       } else {
          Util.writeASCII(out, module + '\n');
       }
 
       while (true) {
-         String str = null;
+         String line = null;
          try {
-            str = Util.readLine(in);
+            line = Util.readLine(in);
          } catch (EOFException eof) {
             if (c.remoteVersion < 25) { // no EXIT
                s.close();
@@ -155,48 +162,37 @@ public class SocketClient implements RsyncConstants {
             }
          }
 
-         if (str.startsWith(RSYNCD_AUTHREQD)) {
+         System.out.println(">>>" + line);
+         if (line.startsWith(RSYNCD_AUTHREQD)) {
             c.authReqd = true;
-            c.challenge = str.substring(RSYNCD_AUTHREQD.length());
+            c.challenge = line.substring(RSYNCD_AUTHREQD.length());
             break;
-         } else if (str.startsWith(RSYNCD_OK)) {
+         } else if (line.startsWith(RSYNCD_OK)) {
             break;
-         } else if (str.startsWith(RSYNCD_EXIT)) {
+         } else if (line.startsWith(RSYNCD_EXIT)) {
             s.close();
             c.connected = false;
             break;
-         } else if (str.startsWith(AT_ERROR)) {
-            c.error = str.substring(AT_ERROR.length());
-         } else if (str.length() == 0 && module == null) {
-            break;
+         } else if (line.startsWith(AT_ERROR)) {
+            c.error = line.substring(AT_ERROR.length());
+            c.connected = false;
+            return c;
          } else {
-            c.serverMOTD += str + System.getProperty("line.separator");
+            c.serverMessages.add(line);
          }
       }
 
-      if (module == null) {
-         while (true) {
-            String str = null;
-            try {
-               str = Util.readLine(in);
-            } catch (EOFException eof) {
-               if (c.remoteVersion < 25) { // no EXIT
-                  s.close();
-                  c.connected = false;
-                  break;
-               } else {
-                  throw eof;
-               }
-            }
-
-            if (str.startsWith(RSYNCD_EXIT)) {
-               s.close();
-               c.connected = false;
-               break;
-            } else {
-               c.modules.add(str);
-            }
+      ListIterator li = c.serverMessages.listIterator(
+         c.serverMessages.size());
+      if (module == null || module.equals("#list")) {
+         while (li.hasPrevious()) {
+            String msg = (String) li.previous();
+            if (msg.length() == 0) break;
+            c.modules.addFirst(msg);
          }
+      }
+      while (li.hasPrevious()) {
+         c.serverMOTD = ((String) li.previous()) + "\n" + c.serverMOTD;
       }
 
       return c;
@@ -243,7 +239,7 @@ public class SocketClient implements RsyncConstants {
     *
     * @return The server's module list.
     */
-   public List moduleList() {
+   public java.util.List moduleList() {
       return modules;
    }
 
@@ -266,12 +262,16 @@ public class SocketClient implements RsyncConstants {
    public boolean authenticate(String user, String pass) throws IOException {
       MD4 hash = new MD4();
       hash.update(new byte[4], 0, 4);
-      hash.update(pass.getBytes(), 0, pass.length());
-      hash.update(challenge.getBytes(), 0, challenge.length());
+      try {
+         hash.update(pass.getBytes("US-ASCII"), 0, pass.length());
+         hash.update(challenge.getBytes("US-ASCII"), 0, challenge.length());
+      } catch (java.io.UnsupportedEncodingException shouldNeverHappen) { }
       String response = Util.base64(hash.digest());
       Util.writeASCII(out, user + " " + response + '\n');
+      System.out.println("<<<" + user + " " + response);
 
       String reply = Util.readLine(in);
+      System.out.println(">>>" + reply);
       if (reply.startsWith(RSYNCD_OK)) {
          authReqd = false;
          return true;
@@ -301,7 +301,7 @@ public class SocketClient implements RsyncConstants {
       }
       out.write((byte)'\n');
    }
-
+/*
    public Client getClient(Configuration config) throws IOException {
       if (remoteVersion >= 12) {
          byte[] seed = new byte[4];
@@ -317,4 +317,5 @@ public class SocketClient implements RsyncConstants {
       out = null;
       return c;
    }
+ */
 }
