@@ -71,14 +71,11 @@ public final class MD4 extends MessageDigest implements Cloneable {
    /* The four chaining variables. */
    private int a, b, c, d;
 
-   /** Number of bytes processed so far. */
-   private long count;
-
    /** Word buffer for transforming. */
    private final int[] X = new int[16];
 
    /** The output of this message digest when no data has been input. */
-   private static final String DIGEST0 = "31D6CFE0D16AE931B73C59D7E0C089C0";
+   private static final String DIGEST0 = "31d6cfe0d16ae931b73c59d7e0c089c0";
 
  // Constructors.
    // -----------------------------------------------------------------
@@ -154,7 +151,7 @@ public final class MD4 extends MessageDigest implements Cloneable {
       int n = (int) (count % BLOCK_LENGTH);
       int padding = (n < 56) ? (56 - n) : (120 - n);
       byte[] pad = new byte[padding + 8];
-   
+
       pad[0] = (byte) 0x80;
       long bits = count << 3;
       pad[padding++] = (byte)  bits;
@@ -287,19 +284,4 @@ public final class MD4 extends MessageDigest implements Cloneable {
       a += aa; b += bb; c += cc; d += dd;
    }
 
-   // From gnu.crypto.util.Util
-
-   private static final char[] HEX_DIGITS = {
-      '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'
-   };
-
-   public static String toString(byte[] b) {
-      char[] buf = new char[b.length * 2];
-      for (int i = 0, j = 0, k; i < b.length; ) {
-         k = b[i++];
-         buf[j++] = HEX_DIGITS[(k >>> 4) & 0x0F];
-         buf[j++] = HEX_DIGITS[ k        & 0x0F];
-      }
-      return new String(buf);
-   }
 } 
