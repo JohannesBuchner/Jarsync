@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl $Id$
 
-AC_INIT(jarsync, 0.2.2, rsdio@metastatic.org)
+AC_INIT(jarsync, 0.3, rsdio@metastatic.org)
 AM_INIT_AUTOMAKE(dist-zip)
 AC_CONFIG_SRCDIR(source/org/metastatic/rsync/Configuration.java)
 
@@ -15,7 +15,7 @@ AC_CHECK_CLASSPATH
 AC_CHECK_PATH_SEPARATOR
 AC_CHECK_FILE_SEPARATOR
 
-DOUBLE_VERSION=0.22
+DOUBLE_VERSION=0.3
 AC_SUBST(DOUBLE_VERSION)
 
 AC_SUBST(JAVAFLAGS)

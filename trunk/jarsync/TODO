@@ -1,38 +1,31 @@
-Open tasks for jarsync, in order of importance:
+The current development of Jarsync is focused on the rsync-compatible
+client and server programs. The tasks in this area include:
 
-  * Implement a client and a server that are compatible with the
-    current C implementation of rsync, and/or invent our own protocol to
-    make things easier on ourselves.
+	* Implement the command-line version of the server (that rsync
+	  invokes over ssh/rsh).
 
-  * Rsync (the C program) uses UNIX-dependant file modes; how do
-    we get around this in Java? Filesystem support in Java's standard
-    library is lackluster at best, so what's to do?  Fake it? Native
-    implementations?
+	* Add local transfers.
 
-  * Implement a mechanism for syncing remote Java Objects. This will
-    probably make use of serialized data, but this depends upon how
-    well the algorithm can be appied to serialized objects.
+	* Add pure Java SSH and RSH tunneling (the former will probably
+	  use SSHTools; I would like to use my own HUSH codebase, but
+	  SSHTools looks more mature).
 
-  * Clean up and improve the code.
+	* Finish the blocking and nonblocking "socket" daemons.
 
-For the `rdiff' tool:
+	* Assert that the file-handling is compatible (or, at least,
+	  workalike).
 
-  * Implement the -I, -O options. I think this has to do with librsync's
-    "tube", and thus doesn't apply here. On a related note, perhaps
-    Jarsync needs its own "tube" for buffered output?
+	* Add ways to manipulate UID/GID, modes, links, devices, etc.
 
-  * Implement the -z, -i options. Since these aren't implemented in
-    librsync yet there's no big rush, and besides, we have no idea how
-    these options SHOULD be implemented (compress entire file, compress
-    LITERAL commands, what?).
+	* Implement compression in the delta encoding and decoding. See
+	  the PlainDelta*coder classes for the non-compressed version,
+	  and see token.c in the rsync distrubution.
 
-  * Implement the --paranoid option.
+	* Make sure the rsync methods can be accessed easily
+	  programmatically for new programs.
 
-  * Assert compatibility.
+	* Implement a GUI.
 
-  * librsync's rdiff encodes long LITERAL deltas in chunks, ie a single
-    long LITERAL is split into smaller ones. Is this a feature, or a
-    by-product of the tube?
 
-=======================================================================
-  $Id$
+Help is appreciated! From contributions of code, to bug reports, to mere
+suggestions are welcomed. Drop a line to <rsdio@metastatic.org>.

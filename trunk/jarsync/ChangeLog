@@ -2,6 +2,13 @@ ChangeLog for JARSYNC.
 
 $Id$
 
+2003-07-27   Casey Marshall  <rsdio@metastatic.org>
+
+	* Significant work done on the client/server programs. The
+	  client is able to reproduce the most basic behavior of the
+	  rsync program.
+	* Minor fixes to the core library.
+
 2003-04-30   Casey Marshall  <rsdio@metastatic.org>
 
 	* configure.ac:

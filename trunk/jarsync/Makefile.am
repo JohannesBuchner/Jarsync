@@ -4,7 +4,7 @@ JAVADOC = @JAVADOC@
 BREAKITERATOR = @BREAKITERATOR@
 
 EXTRA_DIST = LICENSE rdiff rdiff.magic COPYING.getopt ChangeLog.getopt \
-  README.getopt
+  README.getopt jarsync
 SUBDIRS = source test
 
 docs: FORCE

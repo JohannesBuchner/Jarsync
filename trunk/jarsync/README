@@ -31,7 +31,8 @@ the hope that the differences are far smaller than the new file---and
 the new file is recreated from these differences.
 
 This library implements the rsync algorithm in Java, and provides a
-simple API for using the algorithm.
+simple API for using the algorithm. A client and server compatible with
+the existing rsync program are in development.
 
 For a more complete description of the rsync algorithm, see the paper
 "The rsync algorithm", technical report TR-CS-96-05, by Andrew Tridgell
@@ -52,8 +53,17 @@ test programs, simply say
 Run `make check' to execute some regression tests. If all goes well,
 after a long while the script should print out `0 of XXX tests failed.'
 
-If this is a CVS checkout, first execute `autoconf' to make the
-configure script.
+If this is a CVS checkout, first do the magic auto-dance:
+
+	aclocal; automake -ac; autoconf
+
+There is a preliminary version of an rsync-compatible client program
+available; to build it, you must configure with:
+
+	./configure --enable-client-server
+
+The shell script `jarsync' launches this client. Be aware that this code
+is rather buggy, and is NOT, by any means, complete.
 
 =======================================================================
 

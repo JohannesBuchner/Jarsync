@@ -607,7 +607,21 @@ public class Options {
   }
 
   public static void version(String progname, PrintStream out) {
-    out.println(progname + " (Jarsync " + org.metastatic.rsync.version.VERSION + ")");
+    out.print(progname + " (Jarsync " + org.metastatic.rsync.version.VERSION + ")  ");
+    out.print("Java version " + System.getProperty("java.version") + " (");
+    try
+      {
+        Class.forName("java.nio.channels.SocketChannel");
+        out.print("nio, ");
+      }
+    catch (Exception x) { }
+    try
+      {
+        Class.forName("javax.net.ssl.SSLSocket");
+        out.print("ssl");
+      }
+    catch (Exception x) { }
+    out.println(")");
     out.println("Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>");
     out.println();
     out.println("Jarsync comes with NO WARRANTY, to the extent permitted by law.");
