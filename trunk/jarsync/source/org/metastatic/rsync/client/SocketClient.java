@@ -281,7 +281,40 @@ public class SocketClient implements RsyncConstants {
       return false;
    }
 
+   /**
+    * Get the last error message the server reported.
+    *
+    * @return The last error message.
+    */
    public String getError() {
       return error;
+   }
+
+   /**
+    * Send the "server args".
+    *
+    * @param sargv The server args.
+    */
+   public void serverArgs(String[] sargv) throws IOException {
+      for (int i = 0; i < sargv.length; i++) {
+         Util.writeASCII(out, sargv[i]);
+      }
+      out.write((byte)'\n');
+   }
+
+   public Client getClient(Configuration config) throws IOException {
+      if (remoteVersion >= 12) {
+         byte[] seed = new byte[4];
+         in.read(seed);
+         config.setChecksumSeed(seed);
+      }
+      if (remoteVersion >= 14) {
+         config.setStrongSumLength(2); // adaptive
+      }
+      Client c = new Client(config, in, out);
+      // Can't use these anymore.
+      in = null;
+      out = null;
+      return c;
    }
 }
