@@ -29,6 +29,7 @@ package org.metastatic.rsync;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -61,25 +62,61 @@ public class Generator implements RsyncConstants {
    // Instance methods.
    // ------------------------------------------------------------------------
 
+   /**
+    * Generate checksums over an entire byte array, with a base offset
+    * of 0.
+    *
+    * @param buf The byte buffer to checksum.
+    * @return A {@link java.util.Collection} of {@link ChecksumPair}s
+    *    generated from the array.
+    * @see #generateSums(byte[],int,int,long)
+    */
    public Collection generateSums(byte[] buf) {
       return generateSums(buf, 0, buf.length, 0);
    }
 
+   /**
+    * Generate checksums over a portion of a byte array, with a base
+    * offset of 0.
+    *
+    * @param buf The byte array to checksum.
+    * @param off The offset in <code>buf</code> to begin.
+    * @param len The number of bytes to checksum.
+    * @return A {@link java.util.Collection} of {@link ChecksumPair}s
+    *    generated from the array.
+    * @see #generateSums(byte[],int,int,long)
+    */
    public Collection generateSums(byte[] buf, int off, int len) {
       return generateSums(buf, off, len, 0);
    }
 
+   /**
+    * Generate checksums over an entire byte array, with a specified
+    * base offset. This <code>baseOffset</code> is added to the offset
+    * stored in each {@link ChecksumPair}.
+    *
+    * @param buf        The byte array to checksum.
+    * @param baseOffset The offset from whence this byte array came.
+    * @return A {@link java.util.Collection} of {@link ChecksumPair}s
+    *    generated from the array.
+    * @see #generateSums(byte[],int,int,long)
+    */
    public Collection generateSums(byte[] buf, long baseOffset) {
       return generateSums(buf, 0, buf.length, baseOffset);
    }
 
    /**
-    * Generate a list of checksums for the given buffer, generating
-    * approximately one checksum per <code>blockLength</code> bytes.
+    * Generate checksums over a portion of abyte array, with a specified
+    * base offset. This <code>baseOffset</code> is added to the offset
+    * stored in each {@link ChecksumPair}.
     *
-    * @param buf The data to generate sums for.
-    * @param baseOffset The original offset of this byte array.
-    * @return A list of {@link ChecksumPair}s computed from <code>buf</code>.
+    * @param buf        The byte array to checksum.
+    * @param off        From whence in <code>buf</code> to start.
+    * @param len        The number of bytes to check in
+    *                   <code>buf</code>.
+    * @param baseOffset The offset from whence this byte array came.
+    * @return A {@link java.util.Collection} of {@link ChecksumPair}s
+    *    generated from the array.
     */
    public Collection
    generateSums(byte[] buf, int off, int len, long baseOffset) {
@@ -101,6 +138,14 @@ public class Generator implements RsyncConstants {
       return sums;
    }
 
+   /**
+    * Generate checksums for an entire file.
+    *
+    * @param f The {@link java.io.File} to checksum.
+    * @return A {@link java.util.Collection} of {@link ChecksumPair}s
+    *    generated from the file.
+    * @throws java.io.IOException if <code>f</code> cannot be read from.
+    */
    public Collection generateSums(File f) throws IOException {
       long len = f.length();
       int count = (int) ((len+(config.blockLength+1)) / config.blockLength);
@@ -123,6 +168,32 @@ public class Generator implements RsyncConstants {
       }
 
       fin.close();
+      return sums;
+   }
+
+   /**
+    * Generate checksums for an InputStream.
+    *
+    * @param in The {@link java.io.InputStream} to checksum.
+    * @return A {@link java.util.Collection} of {@link ChecksumPair}s
+    *    generated from the bytes read.
+    * @throws java.io.IOException if reading fails.
+    */
+   public Collection generateSums(InputStream in) throws IOException {
+      Collection sums = null;
+      byte[] buf = new byte[config.blockLength*config.blockLength];
+      long offset = 0;
+      int len = 0;
+
+      while ((len = in.read(buf)) != -1) {
+         if (sums == null) {
+            sums = generateSums(buf, 0, len, offset);
+         } else {
+            sums.addAll(generateSums(buf, 0, len, offset));
+         }
+         offset += len;
+      }
+
       return sums;
    }
 

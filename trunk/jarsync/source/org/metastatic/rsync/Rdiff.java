@@ -481,19 +481,8 @@ public class Rdiff implements RsyncConstants {
     * @throws java.io.IOException If reading fails.
     */
    public Collection makeSignatures(InputStream in) throws IOException {
-      int len = 0;
-      long off = 0;
-      byte[] buf = new byte[blockLength*blockLength];
-      Collection sums = null;
       Generator gen = new Generator(new Configuration(new MD4(), blockLength));
-      while ((len = in.read(buf)) > 0) {
-         if (sums == null) {
-            sums = gen.generateSums(buf, 0, len);
-         } else {
-            sums.addAll(gen.generateSums(buf, 0, len));
-         }
-      }
-      return sums;
+      return gen.generateSums(in);
    }
 
    /**
@@ -565,22 +554,10 @@ public class Rdiff implements RsyncConstants {
     */
    public Collection
    makeDeltas(Collection sums, InputStream in) throws IOException {
-      Collection deltas = null;
-      int len = 0;
-      long offset = 0;
-      byte[] buf = new byte[blockLength*blockLength];
       Configuration config = new Configuration(blockLength);
       config.setStrongSumLength(strongSumLength);
       Matcher m = new Matcher(config);
-      while ((len = in.read(buf)) > 0) {
-         if (deltas == null) {
-            deltas = m.hashSearch(sums, buf, 0, len, offset);
-         } else {
-            deltas.addAll(m.hashSearch(sums, buf, 0, len, offset));
-         }
-         offset += len;
-      }
-      return deltas;
+      return m.hashSearch(sums, in);
    }
 
    /**
@@ -649,6 +626,7 @@ public class Rdiff implements RsyncConstants {
    rebuildFile(File basis, Collection deltas, OutputStream out)
    throws IOException {
       File temp = Rebuilder.rebuildFile(basis, deltas);
+      temp.deleteOnExit();
       FileInputStream fin = new FileInputStream(temp);
       byte[] buf = new byte[1024*1024];
       int len = 0;

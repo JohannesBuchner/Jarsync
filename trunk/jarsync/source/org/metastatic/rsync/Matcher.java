@@ -127,6 +127,18 @@ public final class Matcher implements RsyncConstants {
    }
 
    /**
+    * Search an input stream.
+    *
+    * @param m  The {@link TwoKeyMap} to search.
+    * @param in The input stream to search.
+    * @return A collection of {@link Delta}s derived from this search.
+    */
+   public Collection
+   hashSearch(Collection sums, InputStream in) throws IOException {
+      return hashSearch(buildHashtable(sums), in);
+   }
+
+   /**
     * Create a collection of deltas derived from the given file.
     *
     * @param m The map of checksums to search for.
@@ -208,6 +220,32 @@ public final class Matcher implements RsyncConstants {
          System.arraycopy(buf, j, b, 0, b.length);
          deltas.add(new DataBlock(j+baseOffset, b));
       }
+      return deltas;
+   }
+
+   /**
+    * Search an input stream.
+    *
+    * @param m  The {@link TwoKeyMap} to search.
+    * @param in The input stream to search.
+    * @return A collection of {@link Delta}s derived from this search.
+    */
+   public Collection
+   hashSearch(TwoKeyMap m, InputStream in) throws IOException {
+      Collection deltas = null;
+      byte[] buf = new byte[config.blockLength*config.blockLength];
+      long offset = 0;
+      int len = 0;
+
+      while ((len = in.read(buf)) != -1) {
+         if (deltas == null) {
+            deltas = hashSearch(m, buf, 0, len, offset);
+         } else {
+            deltas.addAll(hashSearch(m, buf, 0, len, offset));
+         }
+         offset += len;
+      }
+
       return deltas;
    }
 
@@ -307,7 +345,7 @@ public final class Matcher implements RsyncConstants {
          oldOffset = hashSearch(weak, f, i, n, m);
          if (oldOffset != null) {
             //System.err.println("third test succeeds; off=" + oldOffset);
-            if (j == i && !deltas.isEmpty()) {
+            if (j == i && !deltas.isEmpty() && config.doRunLength) {
                Offsets o = (Offsets) deltas.getLast();
                o.setBlockLength(o.getBlockLength() + n);
             } else if (i != j) {
