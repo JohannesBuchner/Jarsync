@@ -9,7 +9,7 @@ dnl Checks for programs.
 
 AC_PROG_JAVA
 AC_PROG_JAVAC
-AC_PROG_JAVAH
+AC_PROG_JAVADOC
 AC_PROG_MAKE_SET
 AC_CHECK_CLASSPATH
 AC_CHECK_PATH_SEPARATOR
@@ -20,6 +20,7 @@ AC_SUBST(PRE_VERSION)
 
 AC_SUBST(JAVAFLAGS)
 AC_SUBST(JAVACFLAGS)
+AC_SUBST(CHECKJAVACFLAGS)
 AC_SUBST(CFLAGS)
 AC_SUBST(COMPRESS)
 AC_SUBST(SHELL)
@@ -27,7 +28,7 @@ AC_SUBST(JAR)
 AC_SUBST(CC)
 AC_SUBST(JAVA)
 AC_SUBST(JAVAC)
-AC_SUBST(JAVAH)
+AC_SUBST(JAVADOC)
 AC_SUBST(MAKE_CLIENT)
 
 dnl --with and --enable arguments
@@ -78,14 +79,16 @@ AM_CONDITIONAL(MAKE_V2, test "x$make_v2" = "xyes")dnl
 dnl Check which Java compiler to use.
 case $JAVAC in
    *jikes|*javac)
-      JAVACFLAGS="-classpath $CLASSPATH -d ../classes $JAVACFLAGS"
+      CHECKJAVACFLAGS="-classpath $CLASSPATH:classes:\$(srcdir) $JAVACFLAGS"
+      JAVACFLAGS="-classpath $CLASSPATH:\$(srcdir) $JAVACFLAGS"
       ;;
    *gcj)
-      JAVACFLAGS="--classpath=$CLASSPATH -d ../classes $JAVACFLAGS"
+      CHECKJAVACFLAGS="-C --classpath=$CLASSPATH:classes:\$(srcdir) $JAVACFLAGS"
+      JAVACFLAGS="-C --classpath=$CLASSPATH:\$(srcdir) $JAVACFLAGS"
       ;;
 esac
 
-JAVAFLAGS="$JAVAFLAGS -classpath $CLASSPATH"
+JAVAFLAGS="$JAVAFLAGS -classpath $CLASSPATH:classes"
 
 AC_PATH_PROG(JAR, jar, no)
 if test $JAR = "no"; then
