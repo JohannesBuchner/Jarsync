@@ -19,6 +19,7 @@ main_jar = ../lib/$(PACKAGE).jar
 BUILT_SOURCES = $(main_jar)
 data_DATA = $(main_jar)
 EXTRA_DIST = $(sources) $(properties) $(rdiff_sources) \
+  $(client_sources) $(nio_sources) \
   $(srcdir)/org/metastatic/rsync/version.java.in \
   $(srcdir)/org/metastatic/rsync/package.html \
   $(srcdir)/org/metastatic/rsync/v2/package.html
@@ -42,9 +43,14 @@ endif
 if MAKE_V2
 client_sources = \
   org/metastatic/rsync/v2/BlockingDaemon.java \
+  org/metastatic/rsync/v2/ChecksumDecoder.java \
+  org/metastatic/rsync/v2/ChecksumEncoder.java \
+  org/metastatic/rsync/v2/Client.java \
   org/metastatic/rsync/v2/ConsoleClient.java \
   org/metastatic/rsync/v2/Constants.java \
   org/metastatic/rsync/v2/Daemon.java \
+  org/metastatic/rsync/v2/PlainDeltaDecoder.java \
+  org/metastatic/rsync/v2/PlainDeltaEncoder.java \
   org/metastatic/rsync/v2/FNMatch.java \
   org/metastatic/rsync/v2/FileInfo.java \
   org/metastatic/rsync/v2/FileList.java \
@@ -82,15 +88,20 @@ endif
 sources = \
   org/metastatic/rsync/BrokenMD4.java \
   org/metastatic/rsync/Checksum32.java \
+  org/metastatic/rsync/ChecksumDecoder.java \
+  org/metastatic/rsync/ChecksumEncoder.java \
   org/metastatic/rsync/ChecksumPair.java \
   org/metastatic/rsync/Configuration.java \
   org/metastatic/rsync/DataBlock.java \
   org/metastatic/rsync/Delta.java \
+  org/metastatic/rsync/DeltaDecoder.java \
+  org/metastatic/rsync/DeltaEncoder.java \
   org/metastatic/rsync/GeneratorEvent.java \
   org/metastatic/rsync/GeneratorListener.java \
   org/metastatic/rsync/GeneratorStream.java \
   org/metastatic/rsync/Generator.java \
   org/metastatic/rsync/JarsyncProvider.java \
+  org/metastatic/rsync/ListenerException.java \
   org/metastatic/rsync/MD4.java \
   org/metastatic/rsync/Matcher.java \
   org/metastatic/rsync/MatcherEvent.java \

@@ -27,12 +27,14 @@
 package org.metastatic.rsync.v2;
 
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.LineNumberReader;
+import java.io.RandomAccessFile;
 
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -46,10 +48,13 @@ import java.util.StringTokenizer;
 
 import org.apache.log4j.Logger;
 
+import javaunix.io.UnixFile;
+
 import org.metastatic.rsync.Configuration;
 import org.metastatic.rsync.GeneratorEvent;
 import org.metastatic.rsync.GeneratorListener;
 import org.metastatic.rsync.GeneratorStream;
+import org.metastatic.rsync.MappedRebuilderStream;
 import org.metastatic.rsync.RebuilderEvent;
 import org.metastatic.rsync.RebuilderListener;
 import org.metastatic.rsync.RebuilderStream;
@@ -58,12 +63,14 @@ final class NonblockingReceiver implements NonblockingTool, Constants,
    GeneratorListener, RebuilderListener
 {
 
-   // Fields.
+   // Constants and fields.
    // -----------------------------------------------------------------------
+
+   private static final int MAP_LIMIT = 32768;
+   private static final int MAP_SIZE  = 1048576;
 
    private final Configuration config;
    private final Options options;
-   private final Logger logger;
    private final List files;
    private final Map uids, gids;
    private final int remoteVersion;
@@ -76,17 +83,27 @@ final class NonblockingReceiver implements NonblockingTool, Constants,
    private int[] retries;
    private int retryIndex;
    private int nRetries;
+   private final int origBlockLength;
 
-   private FileInfo file;
+   // Generator process's data.
+   private FileInfo genFile;
+   private UnixFile sigFile;
+   private FileInputStream sigIn;
+   private byte[] genBuffer;
+
+   // Receiver process's data.
+   private FileInfo recvFile;
    private UnixFile basisFile;
    private RandomAccessFile basisIn;
-   private MappedByteBuffer basisMap;
    private UnixFile targetFile;
+   private File tempfile;
    private RandomAccessFile targetOut;
-   private MappedByteFile targetMap;
+   private MappedByteBuffer targetMap;
+   private long recvOffset = 0L;
+   private final byte[] recvBuffer = new byte[8192];
 
-   private GeneratorStream generator;
-   private MappedRebuilderStream rebuilder;
+   private final GeneratorStream generator;
+   private final MappedRebuilderStream rebuilder;
 
    private DuplexByteBuffer outBuffer;
    private ByteBuffer inBuffer;
@@ -111,6 +128,11 @@ final class NonblockingReceiver implements NonblockingTool, Constants,
       nRetries = 0;
       phase = 0;
       state = RECV_SEND_INDEX;
+      generator = new GeneratorStream(config);
+      generator.addListener(this);
+      rebuilder = new MappedRebuilderStream(config);
+      rebuilder.addListener(this);
+      origBlockLength = config.blockLength;
    }
 
    // NonblockingTool implementation.
@@ -123,7 +145,27 @@ final class NonblockingReceiver implements NonblockingTool, Constants,
 
    public void updateInput() throws Exception {
       switch (state & INPUT_MASK) {
-         case RECV_
+         case RECV_RECEIVE_INDEX:
+            recvIndex = inBuffer.getInt();
+            if (recvIndex == -1) {
+               if (phase > 0) {
+                  state = (state & OUTPUT_MASK) | RECV_RECEIVE_DONE;
+                  return false;
+               } // else in-state is still RECV_RECEIVE_INDEX.
+            } else {
+               state = (state & OUTPUT_MASK) | RECV_RECEIVE_DELTAS;
+            }
+            return true;
+
+         case RECV_RECEIVE_DELTAS:
+            receiveDeltas();
+            return true;
+
+         case RECV_RECEIVE_DONE:
+            return false;
+
+         default:
+            return true;
       }
    }
 
@@ -133,7 +175,7 @@ final class NonblockingReceiver implements NonblockingTool, Constants,
             if (phase == 0) {
                if (genIndex < files.size()) {
                   outBuffer.putInt(genIndex);
-                  state = RECV_SEND_SUMS | RECV_RECEIVE_DELTAS;
+                  state = RECV_SEND_SUMS | RECV_RECEIVE_INDEX;
                } else {
                   config.strongSumLength = SUM_LENGTH;
                   outBuffer.putInt(-1);
@@ -150,12 +192,51 @@ final class NonblockingReceiver implements NonblockingTool, Constants,
                   if (options.verbose > 2)
                      logger.info("receive files finished");
                   outBuffer.putInt(-1);
-                  state = RECV_DONE;
+                  state = (state * INPUT_MASK) | RECV_SEND_DONE;
                }
             }
             return true;
 
          case RECV_SEND_SUMS:
+            sendSums();
+            return true;
+
+         case RECV_SEND_DONE:
+            return false;
+
+         default:
+            return true;
+      }
+   }
+
+   // GeneratorListener implementation.
+   // -----------------------------------------------------------------------
+
+   public void update(GeneratorEvent event) {
+      ChecksumPair pair = event.getChecksumPair();
+      if (options.verbose > 3)
+         logger.info("updating sum=" + pair);
+      outBuffer.putInt(pair.getWeak());
+      outBuffer.put(pair.getStrong());
+   }
+
+   // ReceiverListener interface.
+   // -----------------------------------------------------------------------
+
+   public void update(RebuilderEvent event) {
+      long off = event.getOffset();
+      byte[] buf = event.getData();
+      if (targetMap != null) {
+         if (mapOffset < off ||
+             mapOffset + buf.length > mapOffset + targetMap.capacity()) {
+            targetMap = targetOut.map(FileChannel.MapMode.READ_WRITE,
+               off, MAP_SIZE);
+            mapOffset = off;
+         }
+         targetMap.position((int) (off - mapOffset)).put(buf);
+      } else {
+         targetOut.seek(off);
+         targetOut.write(buf);
       }
    }
 
@@ -163,28 +244,93 @@ final class NonblockingReceiver implements NonblockingTool, Constants,
    // -----------------------------------------------------------------------
 
    private void sendSums() {
-      if (file == null) {
-         file = files.get(genIndex);
+      if (genFile == null) {
+         genFile = files.get(genIndex);
          try {
             config.blockLength = origBlockLength;
-            config.blockLength = RsyncUtil.adaptBlockSize(config.blockLength);
-            basisFile = new UnixFile(path, file.dirname + File.separator
+            sigFile = new UnixFile(path, file.dirname + File.separator
                + file.basename);
-            basisIn = new FileInputStream(basisFile);
-            rebuilder.setBasisFile(basisFile);
-            tempfile = File.createTempFile("." + file.basename, "",
-               new File(path));
-            targetFile = new RandomAccessFile(tempfile);
-            if (file.length > MAP_LIMIT)
-               targetMap = targetFile.getChannel().map(
-                  FileChannel.MapMode.READ_WRITE, 0,
-                  Math.min(Integer.MAX_VALUE, file.length));
+            sigIn = new FileInputStream(basisFile);
+            config.blockLength = RsyncUtil.adaptBlockSize(sigFile,
+               config.blockLength);
+            if (genBuffer == null || genBuffer.length != config.blockLength)
+               genBuffer = new byte[Math.min(config.blockLength, 1024)];
+            int count = (int) (sigFile.length() + config.blockLength - 1)
+               / config.blockLength;
+            int remainder = (int) (basisFile.length() % config.blockLength);
+            if (options.verbose > 3)
+               logger.info("count=" + count + " rem=" + remainder + " n=" +
+                  config.blockLength + " flength=" + basisFile.length());
+            outBuffer.putInt(count);
+            outBuffer.putInt(config.blockLength);
+            outBuffer.putInt(remainder);
          } catch (FileNotFoundException ioe) {
+            genFile = null;
+            sigFile = null;
             outBuffer.putInt(0);
+            outBuffer.putInt(config.blockLength);
+            outBuffer.putInt(0);
+            state = (state & INPUT_MASK) | RECV_SEND_INDEX;
          }
       } else {
-         basisIn.read(genBuffer);
-         generator.update(
+         int len = basisIn.read(genBuffer);
+         if (len == -1) {
+            basisIn.close();
+            genFile = null;
+            state = (state & INPUT_MASK) | RECV_SEND_INDEX;
+            return;
+         }
+         generator.update(genBuffer, 0, len);
+      }
+   }
+
+   private void receiveDeltas() {
+      if (recvFile == null) {
+         recvFile = files.get(recvIndex);
+         basisFile = new UnixFile(path, recvFile.dirname + File.separator
+            + recvFile.baseName);
+         if (basisFile.exists())
+            rebulider.setBasisFile(basisFile);
+         else
+            rebuilder.setBasisFile(null);
+         tempfile = File.createTempFile("." + recvFile.basename, "",
+            new File(path));
+         targetOut = new RandomAccessFile(tempfile, "rw");
+         targetOut.setLength(recvFile.length);
+         if (recvFile.length > MAP_LIMIT) {
+            targetMap = targetOut.getChannel().map(
+               FileChannel.MapMode.READ_WRITE, 0, MAP_SIZE);
+            mapOffset = 0L;
+         }
+      } else {
+         if (residue > 0) {
+            int len = Math.min(residue, Math.min(inBuffer.remaining(),
+               recvBuffer.length));
+
+         } else {
+            int tag = inBuffer.getInt();
+            if (tag < 0) {
+               long offset = (-token + 1) * (long) config.blockLength;
+               int len = (int) (basisFile.length()-offset) < config.blockLength
+                  ? (int) (basisFile.length() - offset) : config.blockLength;
+               rebuilder.update(new Offsets(offset, recvOffset, len));
+               recvOffset += len;
+            } else if (tag > 0) {
+               residue = tag;
+               int len = Math.min(residue, Math.min(inBuffer().remaining,
+                  recvBuffer.length));
+               inBuffer.get(recvBuffer, 0, len);
+               if (len <= residue)
+                  residue -= len;
+               else
+                  residue = 0;
+               rebuilder.update(new DataBlock(recvOffset, recvBuffer, 0, len));
+               recvOffset += len;
+            } else {
+               targetOut.close();
+               tempfile.renameTo(basisFile);
+            }
+         }
       }
    }
 }

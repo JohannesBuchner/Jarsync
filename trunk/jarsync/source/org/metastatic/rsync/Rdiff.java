@@ -3,32 +3,32 @@
 
    Rdiff: rdiff workalike program.
    Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
-  
+
    This file is a part of Jarsync.
-  
+
    Jarsync is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
    Free Software Foundation; either version 2 of the License, or (at
    your option) any later version.
-  
+
    Jarsync is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
-  
+
    You should have received a copy of the GNU General Public License
    along with Jarsync; if not, write to the
-  
+
       Free Software Foundation, Inc.,
       59 Temple Place, Suite 330,
       Boston, MA  02111-1307
       USA
-  
+
    Linking Jarsync statically or dynamically with other modules is
    making a combined work based on Jarsync.  Thus, the terms and
    conditions of the GNU General Public License cover the whole
    combination.
-  
+
    As a special exception, the copyright holders of Jarsync give you
    permission to link Jarsync with independent modules to produce an
    executable, regardless of the license terms of these independent
@@ -48,6 +48,7 @@ import java.util.*;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
@@ -65,7 +66,7 @@ public class Rdiff {
    // -----------------------------------------------------------------
 
    /** The short options. */
-   protected static final String OPTSTRING = "b:I:i::S:sO:vVz::h";
+   protected static final String OPTSTRING = "b:I:i::pS:sO:vVz::h";
 
    /** The long options. */
    protected static final LongOpt[] LONGOPTS = new LongOpt[] {
@@ -75,7 +76,8 @@ public class Rdiff {
       new LongOpt("input-size",  LongOpt.REQUIRED_ARGUMENT, null, 'I'),
       new LongOpt("gzip",        LongOpt.OPTIONAL_ARGUMENT, null, 'z'),
       new LongOpt("output-size", LongOpt.REQUIRED_ARGUMENT, null, 'O'),
-      new LongOpt("paranoia",    LongOpt.NO_ARGUMENT, null, 'p'),
+      new LongOpt("paranoia",    LongOpt.NO_ARGUMENT, null, 'P'),
+      new LongOpt("pipe",        LongOpt.NO_ARGUMENT, null, 'p'),
       new LongOpt("statistics",  LongOpt.NO_ARGUMENT, null, 's'),
       new LongOpt("sum-size",    LongOpt.REQUIRED_ARGUMENT, null, 'S'),
       new LongOpt("verbose",     LongOpt.NO_ARGUMENT, null, 'v'),
@@ -84,6 +86,8 @@ public class Rdiff {
 
    /** The strong checksum length. */
    public static final int SUM_LENGTH = MD4.DIGEST_LENGTH;
+
+   public static final int CHUNK_SIZE = 32768;
 
    /** Rdiff/rproxy default block length. */
    public static final int RDIFF_BLOCK_LENGTH = 2048;
@@ -153,10 +157,13 @@ public class Rdiff {
     * @param argv The argument vector.
     */
    public static void main(String[] argv) throws Throwable {
+      Security.addProvider(new JarsyncProvider());
+
       Getopt g = new Getopt(PROGNAME, argv, OPTSTRING, LONGOPTS);
       int c;
       Rdiff rdiff = new Rdiff();
       boolean showStats = false;
+      boolean pipe = false;
 
       // parse the command line
       while ((c = g.getopt()) != -1) {
@@ -177,6 +184,10 @@ public class Rdiff {
                System.exit(0);
             case 'I': break;
             case 'i': break;
+            case 'P': break;
+            case 'p':
+               pipe = true;
+               break;
             case 'S':
                try {
                   rdiff.strongSumLength = Integer.parseInt(g.getOptarg());
@@ -246,10 +257,9 @@ public class Rdiff {
          } else if (verbose) {
             System.err.println("Reading basis from standard input.");
          }
-         List sums = rdiff.makeSignatures(in);
-         if (in != System.in) {
-            in.close();
-         }
+         //if (in != System.in) {
+         //   in.close();
+         //}
 
          if (argv.length > g.getOptind()+2) {
             try {
@@ -267,14 +277,22 @@ public class Rdiff {
          } else if (verbose) {
             System.err.println("Writing signatures to standard output.");
          }
-         rdiff.writeSignatures(sums, out);
+         if (pipe) {
+            rdiff.makeSignatures(in, out);
+         } else {
+            List sums = rdiff.makeSignatures(in);
+            rdiff.writeSignatures(sums, out);
+            if (showStats) {
+               System.err.println(PROGNAME + ": signature statistics: " +
+                  "signature[" + sums.size() + " blocks, " + rdiff.blockLength +
+                  " bytes per block]");
+            }
+         }
+         if (in != System.in) {
+            in.close();
+         }
          if (out != System.out) {
             out.close();
-         }
-         if (showStats) {
-            System.err.println(PROGNAME + ": signature statistics: " +
-               "signature[" + sums.size() + " blocks, " + rdiff.blockLength +
-               " bytes per block]");
          }
 
       // Command is `delta'; read signatures from the given file,
@@ -331,39 +349,6 @@ public class Rdiff {
          } else if (verbose) {
             System.err.println("Reading new file from standard input.");
          }
-         List deltas = rdiff.makeDeltas(sigs, newIn);
-         if (newIn != System.in) {
-            newIn.close();
-         }
-         if (showStats) {
-            int lit = 0;
-            long litBytes = 0;
-            int litCmdBytes = 0;
-            int copy = 0;
-            long copyBytes = 0;
-            System.err.print(PROGNAME + ": delta statistics:");
-            for (Iterator i = deltas.iterator(); i.hasNext(); ) {
-               Object o = i.next();
-               if (o instanceof Offsets) {
-                  copy++;
-                  copyBytes += ((Offsets) o).getBlockLength();
-               } else {
-                  lit++;
-                  litBytes += ((DataBlock) o).getBlockLength();
-                  litCmdBytes += 1 + integerLength(((DataBlock) o).getBlockLength());
-               }
-            }
-            if (lit > 0) {
-               System.err.print(" literal[" + lit + " cmds, " + litBytes
-                  + " bytes, " + litCmdBytes + " cmdbytes]");
-            }
-            if (copy > 0) {
-               System.err.print(" copy[" + copy + " cmds, " + copyBytes
-                  + " bytes, 0 false, " + copy*9 + " cmdbytes]");
-            }
-            System.err.println();
-         }
-
          if (argv.length > g.getOptind()+3) {
             try {
                out = new FileOutputStream(argv[g.getOptind()+3]);
@@ -380,7 +365,45 @@ public class Rdiff {
          } else if (verbose) {
             System.err.println("Writing deltas to standard output.");
          }
-         rdiff.writeDeltas(deltas, out);
+
+         if (pipe) {
+            rdiff.makeDeltas(sigs, newIn, out);
+         } else {
+            List deltas = rdiff.makeDeltas(sigs, newIn);
+            if (showStats) {
+               int lit = 0;
+               long litBytes = 0;
+               int litCmdBytes = 0;
+               int copy = 0;
+               long copyBytes = 0;
+               System.err.print(PROGNAME + ": delta statistics:");
+               for (Iterator i = deltas.iterator(); i.hasNext(); ) {
+                  Object o = i.next();
+                  if (o instanceof Offsets) {
+                     copy++;
+                     copyBytes += ((Offsets) o).getBlockLength();
+                  } else {
+                     lit++;
+                     litBytes += ((DataBlock) o).getBlockLength();
+                     litCmdBytes += 1 + integerLength(((DataBlock) o).getBlockLength());
+                  }
+               }
+               if (lit > 0) {
+                  System.err.print(" literal[" + lit + " cmds, " + litBytes
+                     + " bytes, " + litCmdBytes + " cmdbytes]");
+               }
+               if (copy > 0) {
+                  System.err.print(" copy[" + copy + " cmds, " + copyBytes
+                     + " bytes, 0 false, " + copy*9 + " cmdbytes]");
+               }
+               System.err.println();
+            }
+            rdiff.writeDeltas(deltas, out);
+         }
+
+         if (newIn != System.in) {
+            newIn.close();
+         }
          if (out != System.out) {
             out.close();
          }
@@ -435,38 +458,6 @@ public class Rdiff {
          } else if (verbose) {
             System.err.println("Reading deltas from standard input.");
          }
-         List deltas = rdiff.readDeltas(deltasIn);
-         if (deltasIn != System.in) {
-            deltasIn.close();
-         }
-         if (showStats) {
-            int lit = 0;
-            long litBytes = 0;
-            int litCmdBytes = 0;
-            int copy = 0;
-            long copyBytes = 0;
-            System.err.print(PROGNAME + ": patch statistics:");
-            for (Iterator i = deltas.iterator(); i.hasNext(); ) {
-               Object o = i.next();
-               if (o instanceof Offsets) {
-                  copy++;
-                  copyBytes += ((Offsets) o).getBlockLength();
-               } else {
-                  lit++;
-                  litBytes += ((DataBlock) o).getBlockLength();
-                  litCmdBytes += 1 + integerLength(((DataBlock) o).getBlockLength());
-               }
-            }
-            if (lit > 0) {
-               System.err.print(" literal[" + lit + " cmds, " + litBytes
-                  + " bytes, " + litCmdBytes + " cmdbytes]");
-            }
-            if (copy > 0) {
-               System.err.print(" copy[" + copy + " cmds, " + copyBytes
-                  + " bytes, 0 false, " + copy*9 + " cmdbytes]");
-            }
-            System.err.println();
-         }
 
          if (argv.length > g.getOptind()+3) {
             try {
@@ -484,10 +475,49 @@ public class Rdiff {
          } else if (verbose) {
             System.err.println("Writing new file to standard output.");
          }
-         rdiff.rebuildFile(basis, deltas, newFile);
+
+         if (pipe) {
+            rdiff.rebuildFile(basis, deltasIn, newFile);
+         } else {
+            List deltas = rdiff.readDeltas(deltasIn);
+            if (showStats) {
+               int lit = 0;
+               long litBytes = 0;
+               int litCmdBytes = 0;
+               int copy = 0;
+               long copyBytes = 0;
+               System.err.print(PROGNAME + ": patch statistics:");
+               for (Iterator i = deltas.iterator(); i.hasNext(); ) {
+                  Object o = i.next();
+                  if (o instanceof Offsets) {
+                     copy++;
+                     copyBytes += ((Offsets) o).getBlockLength();
+                  } else {
+                     lit++;
+                     litBytes += ((DataBlock) o).getBlockLength();
+                     litCmdBytes += 1 + integerLength(((DataBlock) o).getBlockLength());
+                  }
+               }
+               if (lit > 0) {
+                  System.err.print(" literal[" + lit + " cmds, " + litBytes
+                     + " bytes, " + litCmdBytes + " cmdbytes]");
+               }
+               if (copy > 0) {
+                  System.err.print(" copy[" + copy + " cmds, " + copyBytes
+                     + " bytes, 0 false, " + copy*9 + " cmdbytes]");
+               }
+               System.err.println();
+            }
+            rdiff.rebuildFile(basis, deltas, newFile);
+         }
+
+         if (deltasIn != System.in) {
+            deltasIn.close();
+         }
          if (newFile != System.out) {
             newFile.close();
          }
+
       } else {
          System.err.println(PROGNAME + ": you must specify an action: "
             + "`signature', `delta', or `patch'.");
@@ -499,6 +529,48 @@ public class Rdiff {
 
    // Public instance methods.
    // -----------------------------------------------------------------
+
+   /**
+    * Generate and write the signatures.
+    */
+   public void makeSignatures(InputStream in, final OutputStream out)
+      throws IOException, NoSuchAlgorithmException
+   {
+      Configuration c = new Configuration();
+      c.strongSum = MessageDigest.getInstance("MD4");
+      c.weakSum = new Checksum32(CHAR_OFFSET);
+      c.blockLength = blockLength;
+      c.strongSumLength = strongSumLength;
+      GeneratorStream gen = new GeneratorStream(c);
+      gen.addListener(new GeneratorListener() {
+         public void update(GeneratorEvent ev) throws ListenerException {
+            ChecksumPair pair = ev.getChecksumPair();
+            try {
+               Rdiff.writeInt(pair.getWeak(), out);
+               out.write(pair.getStrong(), 0, strongSumLength);
+            } catch (IOException ioe) {
+               throw new ListenerException(ioe);
+            }
+         }
+      });
+      writeInt(SIG_MAGIC, out);
+      writeInt(blockLength, out);
+      writeInt(strongSumLength, out);
+      int len = 0;
+      byte[] buf = new byte[CHUNK_SIZE];
+      while ((len = in.read(buf)) != -1) {
+         try {
+            gen.update(buf, 0, len);
+         } catch (ListenerException le) {
+            throw (IOException) le.getCause();
+         }
+      }
+      try {
+         gen.doFinal();
+      } catch (ListenerException le) {
+         throw (IOException) le.getCause();
+      }
+   }
 
    /**
     * Write the signatures to the specified output stream.
@@ -552,7 +624,7 @@ public class Rdiff {
       }
       long off = 0;
       blockLength = readInt(in);
-      strongSumLength = readInt(in); 
+      strongSumLength = readInt(in);
 
       int weak;
       byte[] strong = new byte[strongSumLength];
@@ -569,6 +641,43 @@ public class Rdiff {
          }
       } while(true);
       return sigs;
+   }
+
+   public void makeDeltas(List sums, InputStream in, final OutputStream out)
+      throws IOException, NoSuchAlgorithmException
+   {
+      Configuration c = new Configuration();
+      c.strongSum = MessageDigest.getInstance("MD4");
+      c.weakSum = new Checksum32(CHAR_OFFSET);
+      c.blockLength = blockLength;
+      c.strongSumLength = strongSumLength;
+      MatcherStream match = new MatcherStream(c);
+      match.setChecksums(sums);
+      writeInt(DELTA_MAGIC, out);
+      match.addListener(new MatcherListener() {
+         public void update(MatcherEvent me) throws ListenerException {
+            Delta d = me.getDelta();
+            try {
+               if (d instanceof Offsets) {
+                  Rdiff.writeCopy((Offsets) d, out);
+               } else if (d instanceof DataBlock) {
+                  Rdiff.writeLiteral((DataBlock) d, out);
+               }
+            } catch (IOException ioe) {
+               throw new ListenerException(ioe);
+            }
+         }
+      });
+      int len = 0;
+      byte[] buf = new byte[CHUNK_SIZE];
+      while ((len = in.read(buf)) != -1) {
+         try {
+            match.update(buf, 0, len);
+         } catch (ListenerException le) {
+            throw (IOException) le.getCause();
+         }
+      }
+      out.write(0);
    }
 
    /**
@@ -667,6 +776,76 @@ public class Rdiff {
       throw new IOException("Didn't recieve RS_OP_END.");
    }
 
+   public void rebuildFile(File basis, InputStream deltas, OutputStream out)
+      throws IOException
+   {
+      File temp = File.createTempFile(".rdiff", null);
+      temp.deleteOnExit();
+      final RandomAccessFile f = new RandomAccessFile(temp, "w");
+      RebuilderStream rs = new RebuilderStream();
+      rs.setBasisFile(basis);
+      rs.addListener(new RebuilderListener() {
+         public void update(RebuilderEvent re) throws ListenerException {
+            try {
+               f.seek(re.getOffset());
+               f.write(re.getData());
+            } catch (IOException ioe) {
+               throw new ListenerException(ioe);
+            }
+         }
+      });
+      int command;
+      long offset = 0;
+      byte[] buf;
+      boolean end = false;
+      read:while ((command = deltas.read()) != -1) {
+         try {
+            switch (command) {
+               case OP_END:
+                  end = true;
+                  break read;
+               case OP_LITERAL_N1:
+                  buf = new byte[(int) readInt(1, deltas)];
+                  deltas.read(buf);
+                  rs.update(new DataBlock(offset, buf));
+                  offset += buf.length;
+                  break;
+               case OP_LITERAL_N2:
+                  buf = new byte[(int) readInt(2, deltas)];
+                  deltas.read(buf);
+                  rs.update(new DataBlock(offset, buf));
+                  offset += buf.length;
+                  break;
+               case OP_LITERAL_N4:
+                  buf = new byte[(int) readInt(4, deltas)];
+                  deltas.read(buf);
+                  rs.update(new DataBlock(offset, buf));
+                  offset += buf.length;
+                  break;
+               case OP_COPY_N4_N4:
+                  int oldOff = (int) readInt(4, deltas);
+                  int bs = (int) readInt(4, deltas);
+                  rs.update(new Offsets(oldOff, offset, bs));
+                  offset += bs;
+                  break;
+               default:
+                  throw new IOException("Bad delta command: 0x" +
+                     Integer.toHexString(command));
+            }
+         } catch (ListenerException le) {
+            throw (IOException) le.getCause();
+         }
+      }
+      if (!end)
+         throw new IOException("Didn't recieve RS_OP_END.");
+      f.close();
+      FileInputStream fin = new FileInputStream(temp);
+      buf = new byte[CHUNK_SIZE];
+      int len = 0;
+      while ((len = fin.read(buf)) != -1)
+         out.write(buf, 0, len);
+   }
+
    /**
     * Patch the file <code>basis</code> using <code>deltas</code>,
     * writing the patched file to <code>out</code>.
@@ -682,7 +861,7 @@ public class Rdiff {
       File temp = Rebuilder.rebuildFile(basis, deltas);
       temp.deleteOnExit();
       FileInputStream fin = new FileInputStream(temp);
-      byte[] buf = new byte[1024*1024];
+      byte[] buf = new byte[CHUNK_SIZE];
       int len = 0;
       while ((len = fin.read(buf)) != -1) {
          out.write(buf, 0, len);
@@ -706,6 +885,7 @@ public class Rdiff {
       out.println("  -v, --verbose             Trace internal processing");
       out.println("  -V, --version             Show program version");
       out.println("  -h, --help                Show this help message");
+      out.println("  -p, --pipe                Keep less intermediate data in memory");
       out.println("  -s, --statistics          Show performance statistics");
       out.println("Delta-encoding options:");
       out.println("  -b, --block-size=BYTES    Signature block size");

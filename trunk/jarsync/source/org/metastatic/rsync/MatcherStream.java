@@ -1,45 +1,43 @@
-/* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
+/* MatcherStream: streaming alternative to Matcher.
    $Id$
   
-   MatcherStream: streaming alternative to Matcher.
-   Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
+Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
   
-   This file is a part of Jarsync.
+This file is a part of Jarsync.
   
-   Jarsync is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2 of the License, or (at
-   your option) any later version.
+Jarsync is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 2 of the License, or (at your
+option) any later version.
   
-   Jarsync is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+Jarsync is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
   
-   You should have received a copy of the GNU General Public License
-   along with Jarsync; if not, write to the
+You should have received a copy of the GNU General Public License along
+with Jarsync; if not, write to the
   
-      Free Software Foundation, Inc.,
-      59 Temple Place, Suite 330,
-      Boston, MA  02111-1307
-      USA
+   Free Software Foundation, Inc.,
+   59 Temple Place, Suite 330,
+   Boston, MA  02111-1307
+   USA
   
-   Linking Jarsync statically or dynamically with other modules is
-   making a combined work based on Jarsync.  Thus, the terms and
-   conditions of the GNU General Public License cover the whole
-   combination.
+Linking Jarsync statically or dynamically with other modules is making a
+combined work based on Jarsync.  Thus, the terms and conditions of the
+GNU General Public License cover the whole combination.
   
-   As a special exception, the copyright holders of Jarsync give you
-   permission to link Jarsync with independent modules to produce an
-   executable, regardless of the license terms of these independent
-   modules, and to copy and distribute the resulting executable under
-   terms of your choice, provided that you also meet, for each linked
-   independent module, the terms and conditions of the license of that
-   module.  An independent module is a module which is not derived from
-   or based on Jarsync.  If you modify Jarsync, you may extend this
-   exception to your version of it, but you are not obligated to do so.
-   If you do not wish to do so, delete this exception statement from
-   your version. */
+As a special exception, the copyright holders of Jarsync give you
+permission to link Jarsync with independent modules to produce an
+executable, regardless of the license terms of these independent
+modules, and to copy and distribute the resulting executable under terms
+of your choice, provided that you also meet, for each linked independent
+module, the terms and conditions of the license of that module.  An
+independent module is a module which is not derived from or based on
+Jarsync.  If you modify Jarsync, you may extend this exception to your
+version of it, but you are not obligated to do so.  If you do not wish
+to do so, delete this exception statement from your version.  */
+
 
 package org.metastatic.rsync;
 
@@ -166,7 +164,8 @@ public class MatcherStream {
     *
     * @param b The next byte
     */
-   public void update(byte b) {
+   public void update(byte b) throws ListenerException {
+      ListenerException exception = null, current = null;
       buffer[ndx++] = b;
       count++;
       if (ndx < config.blockLength) {
@@ -186,26 +185,62 @@ public class MatcherStream {
             Offsets o = new Offsets(oldOffset.longValue(),
                count-config.blockLength, config.blockLength);
             for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
-               MatcherListener l = (MatcherListener) it.next();
-               l.update(new MatcherEvent(d));
-               l.update(new MatcherEvent(o));
+               try {
+                  MatcherListener l = (MatcherListener) it.next();
+                  l.update(new MatcherEvent(d));
+                  l.update(new MatcherEvent(o));
+               } catch (ListenerException le) {
+                  if (exception != null) {
+                     current.setNext(le);
+                     current = le;
+                  } else {
+                     exception = le;
+                     current = le;
+                  }
+               }
             }
+            if (exception != null)
+               throw exception;
          } else {
             Offsets o = new Offsets(oldOffset.longValue(),
                count-config.blockLength, config.blockLength);
             for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
-               MatcherListener l = (MatcherListener) it.next();
-               l.update(new MatcherEvent(o));
+               try {
+                  MatcherListener l = (MatcherListener) it.next();
+                  l.update(new MatcherEvent(o));
+               } catch (ListenerException le) {
+                  if (exception != null) {
+                     current.setNext(le);
+                     current = le;
+                  } else {
+                     exception = le;
+                     current = le;
+                  }
+               }
             }
+            if (exception != null)
+               throw exception;
          }
          ndx = 0;
       } else if (ndx == buffer.length) {
          DataBlock d = new DataBlock(count - ndx, buffer, 0,
             buffer.length - (config.blockLength-1));
          for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
-            MatcherListener l = (MatcherListener) it.next();
-            l.update(new MatcherEvent(d));
+            try {
+               MatcherListener l = (MatcherListener) it.next();
+               l.update(new MatcherEvent(d));
+            } catch (ListenerException le) {
+               if (exception != null) {
+                  current.setNext(le);
+                  current = le;
+               } else {
+                  exception = le;
+                  current = le;
+               }
+            }
          }
+         if (exception != null)
+            throw exception;
          System.arraycopy(buffer, buffer.length - (config.blockLength-1),
             buffer, 0, config.blockLength-1);
          ndx = config.blockLength - 1;
@@ -219,7 +254,8 @@ public class MatcherStream {
     * @param off The offset to begin at.
     * @param len The number of bytes to update.
     */
-   public void update(byte[] buf, int off, int len) {
+   public void update(byte[] buf, int off, int len) throws ListenerException {
+      ListenerException exception = null, current = null;
       int n = Math.min(len, config.blockLength);
       Long oldOffset;
       int i = off;
@@ -243,26 +279,62 @@ public class MatcherStream {
                Offsets o = new Offsets(oldOffset.longValue(),
                   count-config.blockLength, config.blockLength);
                for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
-                  MatcherListener l = (MatcherListener) it.next();
-                  l.update(new MatcherEvent(d));
-                  l.update(new MatcherEvent(o));
+                  try {
+                     MatcherListener l = (MatcherListener) it.next();
+                     l.update(new MatcherEvent(d));
+                     l.update(new MatcherEvent(o));
+                  } catch (ListenerException le) {
+                     if (exception != null) {
+                        current.setNext(le);
+                        current = le;
+                     } else {
+                        exception = le;
+                        current = le;
+                     }
+                  }
                }
+               if (exception != null)
+                  throw exception;
             } else {
                Offsets o = new Offsets(oldOffset.longValue(),
                   count-config.blockLength, config.blockLength);
                for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
-                  MatcherListener l = (MatcherListener) it.next();
-                  l.update(new MatcherEvent(o));
+                  try {
+                     MatcherListener l = (MatcherListener) it.next();
+                     l.update(new MatcherEvent(o));
+                  } catch (ListenerException le) {
+                     if (exception != null) {
+                        current.setNext(le);
+                        current = le;
+                     } else {
+                        exception = le;
+                        current = le;
+                     }
+                  }
                }
             }
+            if (exception != null)
+               throw exception;
             ndx = 0;
          } else if (ndx == buffer.length) {
             DataBlock d = new DataBlock(count - ndx, buffer, 0,
                buffer.length - (config.blockLength-1));
             for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
-               MatcherListener l = (MatcherListener) it.next();
-               l.update(new MatcherEvent(d));
+               try {
+                  MatcherListener l = (MatcherListener) it.next();
+                  l.update(new MatcherEvent(d));
+               } catch (ListenerException le) {
+                  if (exception != null) {
+                     current.setNext(le);
+                     current = le;
+                  } else {
+                     exception = le;
+                     current = le;
+                  }
+               }
             }
+            if (exception != null)
+               throw exception;
             System.arraycopy(buffer, buffer.length - (config.blockLength-1),
                buffer, 0, config.blockLength-1);
             ndx = config.blockLength - 1;
@@ -275,14 +347,15 @@ public class MatcherStream {
     *
     * @param buf The next bytes.
     */
-   public void update(byte[] buf) {
+   public void update(byte[] buf) throws ListenerException {
       update(buf, 0, buf.length);
    }
 
    /**
     * Flush any buffered data and reset this instance.
     */
-   public void doFinal() {
+   public void doFinal() throws ListenerException {
+      ListenerException exception = null, current = null;
       if (ndx > 0) {
          int off = Math.max(0, ndx-config.blockLength);
          int len = Math.min(ndx, config.blockLength);
@@ -292,21 +365,57 @@ public class MatcherStream {
             if (off > 0) {
                DataBlock d = new DataBlock(count-ndx, buffer, 0, off);
                for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
-                  MatcherListener l = (MatcherListener) it.next();
-                  l.update(new MatcherEvent(d));
+                  try {
+                     MatcherListener l = (MatcherListener) it.next();
+                     l.update(new MatcherEvent(d));
+                  } catch (ListenerException le) {
+                     if (exception != null) {
+                        current.setNext(le);
+                        current = le;
+                     } else {
+                        exception = le;
+                        current = le;
+                     }
+                  }
                }
+               if (exception != null)
+                  throw exception;
             }
             Offsets o = new Offsets(oldOff.longValue(), count-len, len);
             for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
-               MatcherListener l = (MatcherListener) it.next();
-               l.update(new MatcherEvent(o));
+               try {
+                  MatcherListener l = (MatcherListener) it.next();
+                  l.update(new MatcherEvent(o));
+               } catch (ListenerException le) {
+                  if (exception != null) {
+                     current.setNext(le);
+                     current = le;
+                  } else {
+                     exception = le;
+                     current = le;
+                  }
+               }
             }
+            if (exception != null)
+               throw exception;
          } else {
             DataBlock d = new DataBlock(count-ndx, buffer, 0, ndx);
             for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
-               MatcherListener l = (MatcherListener) it.next();
-               l.update(new MatcherEvent(d));
+               try {
+                  MatcherListener l = (MatcherListener) it.next();
+                  l.update(new MatcherEvent(d));
+               } catch (ListenerException le) {
+                  if (exception != null) {
+                     current.setNext(le);
+                     current = le;
+                  } else {
+                     exception = le;
+                     current = le;
+                  }
+               }
             }
+            if (exception != null)
+               throw exception;
          }
       }
       reset();
@@ -325,8 +434,7 @@ public class MatcherStream {
     * @return The original offset of the given block if it was found in
     *    the map. null if it was not found.
     */
-   protected Long
-   hashSearch(byte[] block, int off, int len) {
+   protected Long hashSearch(byte[] block, int off, int len) {
       Integer weakSum = new Integer(config.weakSum.getValue());
       if (hashtable.containsKey(weakSum.intValue())) {
          if (hashtable.containsKey(weakSum)) {

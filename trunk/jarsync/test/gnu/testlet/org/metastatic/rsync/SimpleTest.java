@@ -117,8 +117,11 @@ public class SimpleTest implements Testlet, MatcherListener {
          MatcherStream mat = new MatcherStream(conf);
          mat.addListener(this);
          mat.setChecksums(sums);
-         mat.update(n3w);
-         mat.doFinal();
+         try {
+            mat.update(n3w);
+            mat.doFinal();
+         } catch (ListenerException wontHappen) {
+         }
          int copies = 0, inserts = 0;
          for (Iterator it = deltas.iterator(); it.hasNext(); ) {
             if (it.next() instanceof DataBlock)

@@ -26,7 +26,7 @@
 
 /*
  * Based on rsync-2.5.5.
- * 
+ *
  * Rsync Copyright (C) 1992-2001 Andrew Tridgell
  *                     1996 Paul Mackerras
  *                     2001, 2002 Martin Pool
@@ -35,8 +35,8 @@
 
 package org.metastatic.rsync.v2;
 
-import javaunix.io.FileStatus;
-import javaunix.io.UnixFile;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * Basic information about files that are being sent over the wire.
@@ -46,72 +46,67 @@ import javaunix.io.UnixFile;
  */
 public class FileInfo implements Constants {
 
-   // Fields.
-   // -----------------------------------------------------------------------
+  // Fields.
+  // -------------------------------------------------------------------------
 
-   public int flags;
-   public long modtime;
-   public long length;
-   public int inode;
-   public int rdev;
-   public int mode;
-   public int uid;
-   public int gid;
-   public String basename;
-   public String dirname;
-   public String link;
-   public byte[] sum;
+  public int flags;
+  public long modtime;
+  public long length;
+  public int inode;
+  public int rdev;
+  public int mode;
+  public int uid;
+  public int gid;
+  public String basename;
+  public String dirname;
+  public String link;
+  public byte[] sum;
 
-   // Constructors.
-   // -----------------------------------------------------------------------
+  // Constructors.
+  // -------------------------------------------------------------------------
 
-   public FileInfo() { }
+  public FileInfo() { }
 
-   public FileInfo(UnixFile file) throws java.io.IOException {
-      FileStatus fstat = file.getFileStatus();
-      modtime = fstat.st_mtime;
-      length = file.length();
-      mode = fstat.st_mode;
-      uid = fstat.st_uid;
-      gid = fstat.st_gid;
-      inode = fstat.st_ino;
-      rdev = fstat.st_rdev;
-      if (fstat.isLnk()) {
-         link = UnixFile.readLink(file.getPath());
-      }
-      dirname = file.getParent();
-      basename = file.getName();
-   }
+  public FileInfo(File f) throws IOException
+  {
+    f = f.getAbsoluteFile();
+    if (!f.isDirectory())
+      mode = _S_IFREG;
+    modtime = f.lastModified();
+    length = f.length();
+    dirname = f.getParent();
+    basename = f.getName();
+  }
 
-   // Class methods.
-   // -----------------------------------------------------------------------
+  // Class methods.
+  // -------------------------------------------------------------------------
 
-   public static boolean S_ISLNK(int mode) {
-      return (mode & _S_IFMT) == _S_IFLNK;
-   }
+  public static boolean S_ISLNK(int mode) {
+    return (mode & _S_IFMT) == _S_IFLNK;
+  }
 
-   public static boolean S_ISREG(int mode) {
-      return (mode & _S_IFMT) == _S_IFREG;
-   }
+  public static boolean S_ISREG(int mode) {
+    return (mode & _S_IFMT) == _S_IFREG;
+  }
 
-   // Intsance methods.
-   // -----------------------------------------------------------------------
+  // Intsance methods.
+  // -------------------------------------------------------------------------
 
-   public boolean S_ISLNK() {
-      return S_ISLNK(mode);
-   }
+  public boolean S_ISLNK() {
+    return S_ISLNK(mode);
+  }
 
-   public boolean S_ISREG() {
-      return S_ISREG(mode);
-   }
+  public boolean S_ISREG() {
+    return S_ISREG(mode);
+  }
 
-   public String toString() {
-      String s = dirname + UnixFile.separator + basename + " flags="
-         + Integer.toBinaryString(flags) + " modtime=" + modtime +
-         " length=" + length + " mode=" + Integer.toOctalString(mode) +
-         " uid=" + uid + " gid=" + gid + " inode=" + inode + " rdev=" + rdev;
-      if (S_ISLNK())
-         s += " link=" + link;
-      return s;
-   }
+  public String toString() {
+    String s = dirname + File.separator + basename + " flags="
+      + Integer.toBinaryString(flags) + " modtime=" + modtime +
+      " length=" + length + " mode=" + Integer.toOctalString(mode) +
+      " uid=" + uid + " gid=" + gid + " inode=" + inode + " rdev=" + rdev;
+    if (S_ISLNK())
+      s += " link=" + link;
+    return s;
+  }
 }

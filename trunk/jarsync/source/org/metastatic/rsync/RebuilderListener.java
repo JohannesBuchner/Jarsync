@@ -1,7 +1,6 @@
-/* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
+/* RebuilderListener: file rebuilder listener.
    $Id$
 
-   RebuilderListener: file rebuilder listener.
    Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
 
    This file is a part of Jarsync.
@@ -41,6 +40,7 @@
    If you do not wish to do so, delete this exception statement from
    your version.  */
 
+
 package org.metastatic.rsync;
 
 /**
@@ -57,5 +57,5 @@ public interface RebuilderListener extends java.util.EventListener {
     *
     * @param event The event.
     */
-   void update(RebuilderEvent event);
+   void update(RebuilderEvent event) throws ListenerException;
 }

@@ -59,21 +59,21 @@ public class Checksum32 implements RollingChecksum, Cloneable, java.io.Serializa
    // Constants and variables.
    // -----------------------------------------------------------------
 
-   private final short char_offset;
+   private final int char_offset;
 
    /**
     * The first half of the checksum.
     *
     * @since 1.1
     */
-   protected short a;
+   protected int a;
 
    /**
     * The second half of the checksum.
     *
     * @since 1.1
     */
-   protected short b;
+   protected int b;
 
    /**
     * The place from whence the current checksum has been computed.
@@ -119,14 +119,14 @@ public class Checksum32 implements RollingChecksum, Cloneable, java.io.Serializa
     * affects the output of this checksum; rsync uses a char offset of
     * 0, librsync 31.
     */
-   public Checksum32(short char_offset) {
+   public Checksum32(int char_offset) {
       this.char_offset = char_offset;
       a = b = 0;
       k = 0;
    }
 
    public Checksum32() {
-      this((short) 0);
+      this(0);
    }
 
    private Checksum32(Checksum32 that) {
@@ -151,7 +151,7 @@ public class Checksum32 implements RollingChecksum, Cloneable, java.io.Serializa
     * @since 1.1
     */
    public int getValue() {
-      return (a&0xffff) | (b << 16);
+      return (a & 0xffff) | (b << 16);
    }
 
    /**

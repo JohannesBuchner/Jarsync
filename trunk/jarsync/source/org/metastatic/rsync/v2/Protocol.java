@@ -102,7 +102,7 @@ public class Protocol implements Constants {
    protected boolean start_glob = false;
    protected String request;
 
-   protected BufferTool tool;
+   protected NonblockingTool tool;
 
    // Constructors.
    // -----------------------------------------------------------------------
@@ -197,7 +197,7 @@ public class Protocol implements Constants {
                argv.clear();
             if (options.verbose > 2)
                logger.info("server sender process starting");
-            tool = new BufferFileList(options, module.path, argv,
+            tool = new NonblockingFileList(options, module.path, argv,
                remoteVersion, logger, FLIST_SEND_FILES);
             state = STATE_SEND_FLIST;
          } else {
@@ -271,19 +271,19 @@ public class Protocol implements Constants {
       case STATE_SEND_FLIST:
          try {
             if (!tool.updateOutput()) {
-               fileList = ((BufferFileList) tool).getFileList();
-               uids = ((BufferFileList) tool).getUidList();
-               gids = ((BufferFileList) tool).getGidList();
+               fileList = ((NonblockingFileList) tool).getFileList();
+               uids = ((NonblockingFileList) tool).getUidList();
+               gids = ((NonblockingFileList) tool).getGidList();
                if (fileList.size() == 0) {
                   state = STATE_DONE;
                   module.connections--;
                   connected = false;
                   break;
                }
-               tool = new BufferSender(options, config, fileList,
+               tool = new NonblockingSender(options, config, fileList,
                   module.path, logger, remoteVersion);
                tool.setBuffers(duplex, inBuffer);
-               ((BufferSender) tool).setStatistics(stats);
+               ((NonblockingSender) tool).setStatistics(stats);
                state = STATE_SENDER;
                break;
             }
@@ -593,7 +593,7 @@ public class Protocol implements Constants {
             if (options.delete_mode && !options.delete_excluded) {
                state = STATE_RECEIVE_EXCLUDE;
             } else {
-               tool = new BufferFileList(options, module.path, argv,
+               tool = new NonblockingFileList(options, module.path, argv,
                   remoteVersion, logger, FLIST_RECEIVE_FILES);
                tool.setBuffers(duplex, inBuffer);
                state = STATE_RECEIVE_FLIST;
@@ -680,34 +680,10 @@ public class Protocol implements Constants {
       if (token.startsWith(base)) {
          token = token.substring(base.length());
       }
-      token = sanitizePath(token);
+      token = RsyncUtil.sanitizePath(token);
       if (token.length() == 0) {
          token = ".";
       }
       return token;
-   }
-
-   private String sanitizePath(String path) {
-      StringTokenizer tok = new StringTokenizer(path, File.separator);
-      LinkedList p = new LinkedList();
-      while (tok.hasMoreTokens()) {
-         String s = tok.nextToken();
-         if (s.equals("."))
-            continue;
-         if (s.equals("..")) {
-            if (p.size() > 0)
-               p.removeLast();
-            continue;
-         }
-         p.addLast(s);
-      }
-
-      StringBuffer result = new StringBuffer();
-      for (Iterator i = p.listIterator(); i.hasNext(); ) {
-         result.append((String) i.next());
-         if (i.hasNext() || path.endsWith(File.separator))
-            result.append(File.separator);
-      }
-      return result.toString();
    }
 }

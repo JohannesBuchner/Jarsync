@@ -1,45 +1,43 @@
-/* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
+/* RebuilderStream: streaming file reconstructor.
    $Id$
 
-   RebuilderStream: streaming file reconstructor.
-   Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
+Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
 
-   This file is a part of Jarsync.
+This file is a part of Jarsync.
 
-   Jarsync is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2 of the License, or (at
-   your option) any later version.
+Jarsync is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 2 of the License, or (at your
+option) any later version.
 
-   Jarsync is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+Jarsync is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with Jarsync; if not, write to the
+You should have received a copy of the GNU General Public License along
+with Jarsync; if not, write to the
 
-      Free Software Foundation, Inc.,
-      59 Temple Place, Suite 330,
-      Boston, MA  02111-1307
-      USA
+   Free Software Foundation, Inc.,
+   59 Temple Place, Suite 330,
+   Boston, MA  02111-1307
+   USA
 
-   Linking Jarsync statically or dynamically with other modules is
-   making a combined work based on Jarsync.  Thus, the terms and
-   conditions of the GNU General Public License cover the whole
-   combination.
+Linking Jarsync statically or dynamically with other modules is making a
+combined work based on Jarsync.  Thus, the terms and conditions of the
+GNU General Public License cover the whole combination.
 
-   As a special exception, the copyright holders of Jarsync give you
-   permission to link Jarsync with independent modules to produce an
-   executable, regardless of the license terms of these independent
-   modules, and to copy and distribute the resulting executable under
-   terms of your choice, provided that you also meet, for each linked
-   independent module, the terms and conditions of the license of that
-   module.  An independent module is a module which is not derived from
-   or based on Jarsync.  If you modify Jarsync, you may extend this
-   exception to your version of it, but you are not obligated to do so.
-   If you do not wish to do so, delete this exception statement from
-   your version.  */
+As a special exception, the copyright holders of Jarsync give you
+permission to link Jarsync with independent modules to produce an
+executable, regardless of the license terms of these independent
+modules, and to copy and distribute the resulting executable under terms
+of your choice, provided that you also meet, for each linked independent
+module, the terms and conditions of the license of that module.  An
+independent module is a module which is not derived from or based on
+Jarsync.  If you modify Jarsync, you may extend this exception to your
+version of it, but you are not obligated to do so.  If you do not wish
+to do so, delete this exception statement from your version.  */
+
 
 package org.metastatic.rsync;
 
@@ -75,7 +73,7 @@ public class RebuilderStream {
    // -----------------------------------------------------------------------
 
    /** The basis file. */
-   protected RandomAccessFile file;
+   protected RandomAccessFile basisFile;
 
    /** The list of {@link RebuilderListener}s. */
    protected final LinkedList listeners;
@@ -121,7 +119,12 @@ public class RebuilderStream {
     * @throws IOException If the file is not readable.
     */
    public void setBasisFile(File file) throws IOException {
-      this.file = new RandomAccessFile(file, "r");
+      if (basisFile != null) {
+         basisFile.close();
+         basisFile = null;  
+      }
+      if (file != null)
+         basisFile = new RandomAccessFile(file, "r");
    }
 
    /**
@@ -131,7 +134,12 @@ public class RebuilderStream {
     * @throws IOException If the file name is not the name of a readable file.
     */
    public void setBasisFile(String file) throws IOException {
-      this.file = new RandomAccessFile(file, "r");
+      if (basisFile != null) {
+         basisFile.close();
+         basisFile = null;
+      }
+      if (file != null)
+         basisFile = new RandomAccessFile(file, "r");
    }
 
    /**
@@ -141,20 +149,34 @@ public class RebuilderStream {
     * @throws IOException If there is an error reading from the basis
     *    file, or if no basis file has been specified.
     */
-   public void update(Delta delta) throws IOException {
-      if (file == null)
-         throw new IOException("no basis file specified");
+   public void update(Delta delta) throws IOException, ListenerException {
+      ListenerException exception = null, current = null;
       RebuilderEvent e = null;
       if (delta instanceof DataBlock) {
          e = new RebuilderEvent(((DataBlock) delta).getData(),
              delta.getWriteOffset());
       } else {
+         if (basisFile == null)
+            throw new IOException("offsets found but no basis file specified");
          byte[] buf = new byte[delta.getBlockLength()];
-         file.seek(((Offsets) delta).getOldOffset());
-         file.readFully(buf);
+         basisFile.seek(((Offsets) delta).getOldOffset());
+         basisFile.readFully(buf);
          e = new RebuilderEvent(buf, delta.getWriteOffset());
       }
-      for (Iterator i = listeners.iterator(); i.hasNext(); )
-         ((RebuilderListener) i.next()).update(e);
+      for (Iterator i = listeners.iterator(); i.hasNext(); ) {
+         try {
+            ((RebuilderListener) i.next()).update(e);
+         } catch (ListenerException le) {
+            if (exception != null) {
+               current.setNext(le);
+               current = le;
+            } else {
+               exception = le;
+               current = le;
+            }
+         }
+      }
+      if (exception != null)
+         throw exception;
    }
 }

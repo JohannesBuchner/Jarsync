@@ -1,45 +1,43 @@
-/* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
+/* GeneratorStream: streaming alternative to Generator.
    $Id$
   
-   GeneratorStream: streaming alternative to Generator.
-   Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
+Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
   
-   This file is a part of Jarsync.
+This file is a part of Jarsync.
   
-   Jarsync is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2 of the License, or (at
-   your option) any later version.
+Jarsync is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 2 of the License, or (at your
+option) any later version.
   
-   Jarsync is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+Jarsync is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
   
-   You should have received a copy of the GNU General Public License
-   along with Jarsync; if not, write to the
+You should have received a copy of the GNU General Public License along
+with Jarsync; if not, write to the
   
-      Free Software Foundation, Inc.,
-      59 Temple Place, Suite 330,
-      Boston, MA  02111-1307
-      USA
+   Free Software Foundation, Inc.,
+   59 Temple Place, Suite 330,
+   Boston, MA  02111-1307
+   USA
   
-   Linking Jarsync statically or dynamically with other modules is
-   making a combined work based on Jarsync.  Thus, the terms and
-   conditions of the GNU General Public License cover the whole
-   combination.
+Linking Jarsync statically or dynamically with other modules is making a
+combined work based on Jarsync.  Thus, the terms and conditions of the
+GNU General Public License cover the whole combination.
   
-   As a special exception, the copyright holders of Jarsync give you
-   permission to link Jarsync with independent modules to produce an
-   executable, regardless of the license terms of these independent
-   modules, and to copy and distribute the resulting executable under
-   terms of your choice, provided that you also meet, for each linked
-   independent module, the terms and conditions of the license of that
-   module.  An independent module is a module which is not derived from
-   or based on Jarsync.  If you modify Jarsync, you may extend this
-   exception to your version of it, but you are not obligated to do so.
-   If you do not wish to do so, delete this exception statement from
-   your version. */
+As a special exception, the copyright holders of Jarsync give you
+permission to link Jarsync with independent modules to produce an
+executable, regardless of the license terms of these independent
+modules, and to copy and distribute the resulting executable under terms
+of your choice, provided that you also meet, for each linked independent
+module, the terms and conditions of the license of that module.  An
+independent module is a module which is not derived from or based on
+Jarsync.  If you modify Jarsync, you may extend this exception to your
+version of it, but you are not obligated to do so.  If you do not wish
+to do so, delete this exception statement from your version.  */
+
 
 package org.metastatic.rsync;
 
@@ -125,12 +123,26 @@ public class GeneratorStream {
     *
     * @param b The next byte
     */
-   public void update(byte b) {
+   public void update(byte b) throws ListenerException {
+      ListenerException exception = null, current = null;
       buffer[ndx++] = b;
       if (ndx == buffer.length) {
          ChecksumPair p = generateSum(buffer, 0, buffer.length);
-         for (Iterator it = listeners.listIterator(); it.hasNext(); )
-            ((GeneratorListener) it.next()).update(new GeneratorEvent(p));
+         for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
+            try {
+               ((GeneratorListener) it.next()).update(new GeneratorEvent(p));
+            } catch (ListenerException le) {
+               if (exception != null) {
+                  current.setNext(le);
+                  current = le;
+               } else {
+                  exception = le;
+                  current = le;
+               }
+            }
+         }
+         if (exception != null)
+            throw exception;
          ndx = 0;
       }
    }
@@ -142,7 +154,8 @@ public class GeneratorStream {
     * @param off The offset to begin at.
     * @param len The number of bytes to update.
     */
-   public void update(byte[] buf, int off, int len) {
+   public void update(byte[] buf, int off, int len) throws ListenerException {
+      ListenerException exception = null, current = null;
       int i = off;
       do {
          int l = Math.min(len - (i - off), buffer.length - ndx);
@@ -151,8 +164,21 @@ public class GeneratorStream {
          ndx += l;
          if (ndx == buffer.length) {
             ChecksumPair p = generateSum(buffer, 0, buffer.length);
-            for (Iterator it = listeners.listIterator(); it.hasNext(); )
-               ((GeneratorListener) it.next()).update(new GeneratorEvent(p));
+            for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
+               try {
+                  ((GeneratorListener) it.next()).update(new GeneratorEvent(p));
+               } catch (ListenerException le) {
+                  if (exception != null) {
+                     current.setNext(le);
+                     current = le;
+                  } else {
+                     exception = le;
+                     current = le;
+                  }
+               }
+            }
+            if (exception != null)
+               throw exception;
             ndx = 0;
          }
       } while (i < off + len);
@@ -163,7 +189,7 @@ public class GeneratorStream {
     *
     * @param buf The next bytes.
     */
-   public void update(byte[] buf) {
+   public void update(byte[] buf) throws ListenerException {
       update(buf, 0, buf.length);
    }
 
@@ -171,11 +197,25 @@ public class GeneratorStream {
     * Finish generating checksums, flushing any buffered data and
     * resetting this instance.
     */
-   public void doFinal() {
+   public void doFinal() throws ListenerException {
+      ListenerException exception = null, current = null;
       if (ndx > 0) {
          ChecksumPair p = generateSum(buffer, 0, ndx);
-         for (Iterator it = listeners.listIterator(); it.hasNext(); )
-            ((GeneratorListener) it.next()).update(new GeneratorEvent(p));
+         for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
+            try {
+               ((GeneratorListener) it.next()).update(new GeneratorEvent(p));
+            } catch (ListenerException le) {
+               if (exception != null) {
+                  current.setNext(le);
+                  current = le;
+               } else {
+                  exception = le;
+                  current = le;
+               }
+            }
+         }
+         if (exception != null)
+            throw exception;
       }
       reset();
    }

@@ -46,9 +46,6 @@
 
 package org.metastatic.rsync;
 
-import java.security.DigestException;
-import java.security.MessageDigestSpi;
-
 /**
  * <p>An implementation of Ron Rivest's MD4 message digest algorithm.
  * MD4 was the precursor to the stronger MD5

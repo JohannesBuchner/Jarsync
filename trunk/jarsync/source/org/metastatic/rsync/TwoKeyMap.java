@@ -843,44 +843,19 @@ public class TwoKeyMap implements java.io.Serializable, Map {
     * @since 1.1
     */
    public String toString() {
-      String str = "(";
+      StringBuffer str = new StringBuffer("{");
       for (int i = 0; i < tables.length; i++) {
          if (tables[i] == null) continue;
          SubTable entry = tables[i];
-         str += ((str.length() != 1) ? (", ") : (" "));
-         str += Integer.toHexString(i) + " => [ ";
+         str.append((str.length() != 1) ? (", ") : (" "));
+         str.append(Integer.toHexString(i) + " => { ");
          while (entry != null) {
-            str += entry.toString();
+            str.append(entry.toString());
             entry = entry.next;
-            str += ((entry == null) ? ("]") : (", "));
+            str.append((entry == null) ? ("}") : (", "));
          }
       }
-      str += ")";
-      return str;
-   }
-
-   /**
-    * Output this table to the given PrintStream; this avoids creating
-    * gigantic Strings with toString() for large maps.
-    */
-   public void DEBUG_printTo(java.io.PrintStream out) {
-      out.print("[");
-      boolean output_yet = false;
-      for (int i = 0; i < tables.length; i++) {
-         if (tables[i] == null) continue;
-         SubTable entry = tables[i];
-         if (output_yet) {
-            out.print(',');
-         }
-         out.print(" (");
-         while (entry != null) {
-            out.print(entry.toString());
-            entry = entry.next;
-            if (entry == null) out.print(')');
-            else out.print(", ");
-         }
-         output_yet = true;
-      }
-      out.println(']');
+      str.append("}");
+      return str.toString();
    }
 }

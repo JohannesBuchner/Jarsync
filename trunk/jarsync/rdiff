@@ -31,4 +31,4 @@ else
     CLASSPATH=lib/jarsync.jar
 fi
 
-java -classpath $CLASSPATH org.metastatic.rsync.Rdiff "$@"
+java -Xmx100M -classpath $CLASSPATH org.metastatic.rsync.Rdiff "$@"

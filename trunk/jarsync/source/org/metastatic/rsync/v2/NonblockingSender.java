@@ -168,9 +168,6 @@ final class NonblockingSender implements NonblockingTool, Constants,
             sendDeltas();
             return true;
 
-         case SENDER_SEND_FILE:
-            
-
          case SENDER_DONE:
             return false;
 

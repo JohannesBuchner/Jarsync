@@ -134,4 +134,11 @@ public interface Constants {
    public static final int SENDER_RECEIVE_SUMS  = 0x02;
    public static final int SENDER_SEND_DELTAS   = 0x10;
    public static final int SENDER_SEND_FILE     = 0x20;
+
+   // Receiver states.
+   public static final int RECV_WAIT            = 0x00;
+   public static final int RECV_RECEIVE_INDEX   = 0x01;
+   public static final int RECV_RECEIVE_DELTAS  = 0x02;
+   public static final int RECV_SEND_INDEX      = 0x10;
+   public static final int RECV_SEND_SUMS       = 0x20;
 }

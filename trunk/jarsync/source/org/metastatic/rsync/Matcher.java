@@ -45,7 +45,6 @@ package org.metastatic.rsync;
 
 import java.io.*;
 
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -115,8 +114,11 @@ public final class Matcher {
       deltas.clear();
       matcher.reset();
       matcher.setChecksums(sums);
-      matcher.update(buf, off, len);
-      matcher.doFinal();
+      try {
+         matcher.update(buf, off, len);
+         matcher.doFinal();
+      } catch (ListenerException shouldNotHappen) {
+      }
       return new LinkedList(deltas);
    }
 
@@ -158,9 +160,12 @@ public final class Matcher {
       matcher.setChecksums(sums);
       byte[] buffer = new byte[chunkSize];
       int len = 0;
-      while ((len = in.read(buffer)) != -1)
-         matcher.update(buffer, 0, len);
-      matcher.doFinal();
+      try {
+         while ((len = in.read(buffer)) != -1)
+            matcher.update(buffer, 0, len);
+         matcher.doFinal();
+      } catch (ListenerException shouldNeverHappen) {
+      }
       return new LinkedList(deltas);
    }
 

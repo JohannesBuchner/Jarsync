@@ -57,7 +57,7 @@ import org.apache.log4j.Logger;
 
 import org.metastatic.rsync.*;
 
-public class BlockingDaemon implements Runnable, Constants {
+class BlockingDaemon implements Runnable, Constants {
 
    // Constants and fields.
    // -----------------------------------------------------------------------
@@ -84,7 +84,7 @@ public class BlockingDaemon implements Runnable, Constants {
    // Constructors.
    // -----------------------------------------------------------------------
 
-   public BlockingDaemon(Socket socket, Map modules, String motdFile)
+   BlockingDaemon(Socket socket, Map modules, String motdFile)
    throws IOException
    {
       this.socket = socket;
@@ -202,7 +202,7 @@ public class BlockingDaemon implements Runnable, Constants {
             remoteVersion >= 17);
 
          if (options == null) {
-            mout.writeMessage(mout.FERROR, "...");
+            mout.writeMessage(MultiplexedIO.FERROR, "...");
          }
 
          synchronized (module) {

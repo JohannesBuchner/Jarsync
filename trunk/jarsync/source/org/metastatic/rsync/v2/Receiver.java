@@ -26,7 +26,7 @@
 
 /*
  * Based on rsync-2.5.5.
- * 
+ *
  * Rsync Copyright (C) 1992-2001 Andrew Tridgell
  *                     1996 Paul Mackerras
  *                     2001, 2002 Martin Pool
@@ -35,20 +35,32 @@
 
 package org.metastatic.rsync.v2;
 
-import org.metastatic.rsync.*;
-
 import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+
+import org.metastatic.rsync.Configuration;
+import org.metastatic.rsync.Delta;
+import org.metastatic.rsync.DeltaDecoder;
+import org.metastatic.rsync.GeneratorEvent;
+import org.metastatic.rsync.GeneratorListener;
+import org.metastatic.rsync.GeneratorStream;
+import org.metastatic.rsync.ListenerException;
+import org.metastatic.rsync.RebuilderEvent;
+import org.metastatic.rsync.RebuilderListener;
+import org.metastatic.rsync.RebuilderStream;
 
 /**
  * The receiver process. The receiver is the one who generates the
@@ -59,282 +71,352 @@ import java.util.List;
  *
  * @version $Revision$
  */
-public class Receiver implements Constants
+public class Receiver implements Constants, GeneratorListener, RebuilderListener
 {
 
-   // Constants and fields.
-   // -----------------------------------------------------------------------
+  // Constants and fields.
+  // -----------------------------------------------------------------------
 
-   private static final Logger logger =
-      Logger.getLogger(Receiver.class.getName());
+  private static final Logger logger =
+    Logger.getLogger(Receiver.class.getName());
 
-   private final MultiplexedInputStream in;
-   private final MultiplexedOutputStream out;
+  private final MultiplexedInputStream in;
+  private final MultiplexedOutputStream out;
 
-   private Statistics stats;
+  private final Object recvLock = new Object();
 
-   private final Configuration config;
+  private Statistics stats;
 
-   private final Generator generator;
+  private final Configuration config;
 
-   private final int remoteVersion;
+  private final int remoteVersion;
 
-   private int[] retry;
+  private int[] retry;
 
-   private int retryIndex;
+  private int retryIndex;
 
-   private int genPhase = 0, recvPhase = 0;
+  private int genPhase = 0, recvPhase = 0;
+  private int saveBlockLength;
 
-   // Constructors.
-   // -----------------------------------------------------------------------
+  private RandomAccessFile rebuildFile;
 
-   /**
-    * Create a new receiver object.
-    *
-    * @param in       The input stream from the Sender.
-    * @param out      The output stream to the Sender.
-    * @param config   The configuration to use.
-    * @param amServer true if this is the server process.
-    */
-   public Receiver(MultiplexedInputStream in, MultiplexedOutputStream out,
-                   Configuration config, int remoteVersion, boolean amServer)
-   {
-      this.in = in;
-      this.out = out;
-      if (amServer)
-         logger.addAppender(new RsyncAppender(out));
-      this.config = config;
-      generator = new Generator(config);
-      this.remoteVersion = remoteVersion;
-      stats = new Statistics();
-   }
+  private ChecksumEncoder checkOut;
+  private DeltaDecoder deltasIn;
 
-   // Instance methods.
-   // -----------------------------------------------------------------------
+  // Constructors.
+  // -----------------------------------------------------------------------
 
-   /**
-    * Return the statistics for this session.
-    *
-    * @return The statistics.
-    */
-   public Statistics getStatistics()
-   {
-      return stats;
-   }
+  /**
+   * Create a new receiver object.
+   *
+   * @param in       The input stream from the Sender.
+   * @param out      The output stream to the Sender.
+   * @param config   The configuration to use.
+   * @param amServer true if this is the server process.
+   */
+  public Receiver(MultiplexedInputStream in, MultiplexedOutputStream out,
+                  Configuration config, int remoteVersion, boolean amServer)
+  {
+    this.in = in;
+    this.out = out;
+    if (amServer)
+      logger.addAppender(new RsyncAppender(out));
+    this.config = config;
+    this.remoteVersion = remoteVersion;
+    stats = new Statistics();
+  }
 
-   /**
-    * Set the pre-initialized statistics object fer this session.
-    *
-    * @param stats The statistics object to use.
-    */
-   public void setStatistics(Statistics stats)
-   {
-      if (stats != null) this.stats = stats;
-   }
+  // Instance methods.
+  // -----------------------------------------------------------------------
 
-   /**
-    * Generate the checksums for a list of files and send them to the
-    * other side.
-    *
-    * @param files The files to generate the checksums for.
-    * @throws IOException If an I/O error occurs.
-    */
-   public void generateFiles(List files) throws IOException 
-   {
-      logger.info("generateFiles starting thread=" + Thread.currentThread());
-      genPhase = 0;
+  /**
+   * Return the statistics for this session.
+   *
+   * @return The statistics.
+   */
+  public Statistics getStatistics()
+  {
+    return stats;
+  }
 
-      retryIndex = 0;
-      retry = new int[files.size()];
-      for (int i = 0; i < retry.length; i++)
-         retry[i] = -1;
+  /**
+   * Set the pre-initialized statistics object fer this session.
+   *
+   * @param stats The statistics object to use.
+   */
+  public void setStatistics(Statistics stats)
+  {
+    if (stats != null) this.stats = stats;
+  }
 
-      for (int i = 0; i <= files.size(); i++) {
-         sendSums((File) files.get(i), i);
+  /**
+   * Generate the checksums for a list of files and send them to the
+   * other side.
+   *
+   * @param files The files to generate the checksums for.
+   * @throws IOException If an I/O error occurs.
+   */
+  public void generateFiles(List files) throws IOException
+  {
+    logger.info("generateFiles starting thread=" + Thread.currentThread());
+    genPhase = 0;
+
+    retryIndex = 0;
+    retry = new int[files.size()];
+    for (int i = 0; i < retry.length; i++)
+      retry[i] = -1;
+
+    for (int i = 0; i <= files.size(); i++)
+      {
+        FileInfo f = (FileInfo) files.get(i);
+        sendSums(new File(f.dirname + File.separator + f.basename), i);
       }
 
-      genPhase++;
-      out.writeInt(-1);
-      logger.info("generateFiles phase=" + genPhase);
-      config.strongSumLength = SUM_LENGTH;
+    genPhase++;
+    out.writeInt(-1);
+    logger.info("generateFiles phase=" + genPhase);
+    config.strongSumLength = SUM_LENGTH;
 
-      if (remoteVersion >= 13) {
-         while (recvPhase == 0) {
-            try {
-               Thread.sleep(100);
-            } catch (InterruptedException ignore) { }
-         }
-         // in newer versions of the protocol the files can cycle
-         // through the system more than once to catch initial checksum
-         // errors.
-         //
-         // Rsync uses a socket with two processes talking to one
-         // another. Here, since we are running two threads with the
-         // same object, we just use an array of integers.
-         for (int i = 0; i < retryIndex && retry[i] != -1; i++) {
-            sendSums((File) files.get(retry[i]), retry[i]);
-         }
-         genPhase++;
-         logger.info("generateFiles phase=" + genPhase);
-         out.writeInt(-1);
+    if (remoteVersion >= 13)
+      {
+        while (recvPhase == 0)
+          {
+            try
+              {
+                synchronized (recvLock)
+                  {
+                    recvLock.wait();
+                  }
+              }
+            catch (InterruptedException ignore) { }
+          }
+        // in newer versions of the protocol the files can cycle
+        // through the system more than once to catch initial checksum
+        // errors.
+        //
+        // Rsync uses a socket with two processes talking to one
+        // another. Here, since we are running two threads with the
+        // same object, we just use an array of integers.
+        for (int i = 0; i < retryIndex && retry[i] != -1; i++)
+          {
+            FileInfo f = (FileInfo) files.get(retry[i]);
+            sendSums(new File(f.dirname + File.separator + f.basename), retry[i]);
+          }
+        genPhase++;
+        logger.info("generateFiles phase=" + genPhase);
+        out.writeInt(-1);
       }
-   }
+  }
 
-   /**
-    * Recieve the deltas from the other side, and rebuild the target
-    * files.
-    *
-    * @param files The list of {@link java.io.File}s to be received.
-    * @throws IOException If an I/O error occurs.
-    */
-   public void receiveFiles(List files) throws IOException
-   {
-      logger.info("receiveFiles starting thread=" + Thread.currentThread());
-      
-      recvPhase = 0;
+  /**
+   * Recieve the deltas from the other side, and rebuild the target
+   * files.
+   *
+   * @param files The list of {@link java.io.File}s to be received.
+   * @throws IOException If an I/O error occurs.
+   */
+  public void receiveFiles(List files) throws IOException
+  {
+    logger.info("receiveFiles starting thread=" + Thread.currentThread());
+    recvPhase = 0;
 
-      while (true) {
-         int i = in.readInt();
-         if (i == -1) {
-            if (recvPhase == 0 && remoteVersion >= 13) {
-               recvPhase++;
-               logger.info("receiveFiles phase=" + recvPhase);
-               continue;
-            }
+    while (true)
+      {
+        int i = in.readInt();
+        if (i == -1)
+          {
+            if (recvPhase == 0 && remoteVersion >= 13)
+              {
+                recvPhase++;
+                logger.info("receiveFiles phase=" + recvPhase);
+                synchronized (recvLock)
+                  {
+                    recvLock.notify();
+                  }
+                continue;
+              }
             break;
-         }
+          }
 
-         if (i < 0 || i >= files.size()) {
+        if (i < 0 || i >= files.size())
+          {
             String msg = "Invalid file index " + i + " in receiveFiles count="
                + files.size();
             logger.fatal(msg);
             throw new IOException(msg);
-         }
+          }
 
-         File f = (File) files.get(i);
+        FileInfo finfo = (FileInfo) files.get(i);
+        File f = new File(finfo.dirname + File.separator + finfo.basename);
 
-         stats.num_transferred_files++;
-         stats.total_transferred_size += f.length();
+        stats.num_transferred_files++;
+        stats.total_transferred_size += f.length();
 
-         if (!receiveData(f)) {
-            if (config.strongSumLength == SUM_LENGTH) {
-               logger.error("File corruption in " + f.getName()
-                  + ". File changed during transfer?");
-            } else {
-               // We need to retry this file. See the generateFiles
-               // method above for how these integers are used.
-               logger.warn("redoing " + f.getName() + "(" + i + ")");
-               retry[retryIndex++] = i;
-            }
-         }
+        if (!receiveData(f))
+          {
+            if (config.strongSumLength == SUM_LENGTH)
+              {
+                logger.error("File corruption in " + f.getName()
+                             + ". File changed during transfer?");
+              }
+            else
+              {
+                // We need to retry this file. See the generateFiles
+                // method above for how these integers are used.
+                logger.warn("redoing " + f.getName() + "(" + i + ")");
+                retry[retryIndex++] = i;
+              }
+          }
       }
 
-      logger.info("receiveFiles finished");
-   }
+    logger.info("receiveFiles finished");
+  }
 
- // Own methods.
-   // -----------------------------------------------------------------------
-
-   /**
-    * Generate and send the checksums for a file.
-    *
-    * @param f The file to generate the checksums for.
-    * @param i The index of this file.
-    * @throws IOException If an I/O error occurs.
-    */
-   private void sendSums(File f, int i) throws IOException
-   {
-      // XXX fiddle with permissions.
-      if (config.blockLength == BLOCK_LENGTH) {
-         int l = (int) (f.length() / 10000) & ~15;
-         if (l < config.blockLength)
-            l = config.blockLength;
-         if (l > CHUNK_SIZE / 2)
-            l = CHUNK_SIZE / 2;
-         config.blockLength = l;
+  public void update(GeneratorEvent e) throws ListenerException
+  {
+    try
+      {
+        checkOut.write(e.getChecksumPair());
       }
-      int rem = (int) (f.length() % config.blockLength);
-      Collection sums = generator.generateSums(f);
-
-      out.writeInt(i);
-
-      if (f.exists()) {
-         out.writeInt(sums.size());
-         out.writeInt(config.blockLength);
-         out.writeInt(rem);
-
-         for (Iterator it = sums.iterator(); it.hasNext(); ) {
-            ChecksumPair p = (ChecksumPair) it.next();
-            out.writeInt(p.getWeak());
-            out.write(p.getStrong());
-         }
-      } else {
-         out.writeInt(0);
-         out.writeInt(config.blockLength);
-         out.writeInt(0);
+    catch (IOException ioe)
+      {
+        throw new ListenerException(ioe);
       }
-   }
+  }
 
-   /**
-    * Receive the deltas for a file, and rebuild it.
-    *
-    * @param f The file to rebuild.
-    * @throws IOException If an I/O error occurs.
-    */
-   private boolean receiveData(File f) throws IOException
-   {
-      int count = in.readInt();
-      int n = in.readInt();
-      int remainder = in.readInt();
-      long offset = 0;
-      byte[] file_sum1, file_sum2;
-      byte[] data = new byte[CHUNK_SIZE];
-      List deltas = new LinkedList();
+  public void update(RebuilderEvent e) throws ListenerException
+  {
+    try
+      {
+        rebuildFile.seek(e.getOffset());
+        rebuildFile.write(e.getData());
+      }
+    catch (IOException ioe)
+      {
+        throw new ListenerException(ioe);
+      }
+  }
 
-      for (int i = receiveToken(data); i != 0; i = receiveToken(data)) {
-         if (i > 0) {
-            logger.debug("data received " + i + " at " + offset);
-            deltas.add(new DataBlock(offset, data, 0, i));
-            offset += i;
-            stats.literal_data += i;
-         } else {
-            i = -(i+1);
-            long offset2 = (long) i * (long) n;
-            int len = n;
-            if (i == count - 1 && remainder != 0)
-               len = remainder;
+// Own methods.
+  // -------------------------------------------------------------------------
 
-            logger.debug("chunk[" + i + "] of size " + len + " at "
-               + offset2 + " offset=" + offset);
-            deltas.add(new Offsets(offset, offset2, len));
-            offset += len;
-            stats.matched_data += len;
-         }
+  /**
+   * Generate and send the checksums for a file.
+   *
+   * @param f The file to generate the checksums for.
+   * @param i The index of this file.
+   * @throws IOException If an I/O error occurs.
+   */
+  private void sendSums(File f, int i) throws IOException
+  {
+    int blen = config.blockLength;
+    if (config.blockLength == BLOCK_LENGTH)
+      {
+        int l = (int) (f.length() / 10000) & ~15;
+        if (l < config.blockLength)
+          l = config.blockLength;
+        if (l > CHUNK_SIZE / 2)
+          l = CHUNK_SIZE / 2;
+        config.blockLength = l;
       }
 
-      File newf = Rebuilder.rebuildFile(f, deltas);
-      newf.renameTo(f);
+    out.writeInt(i);
+    if (f.exists())
+      {
+        int count = (int) (f.length() / config.blockLength);
+        int rem = (int) (f.length() % config.blockLength);
+        out.writeInt(count);
+        out.writeInt(config.blockLength);
+        out.writeInt(rem);
 
-      if (remoteVersion >= 14) {
-         MessageDigest md = null;
-         try {
+        FileInputStream fin = new FileInputStream(f);
+        byte[] buf = new byte[CHUNK_SIZE];
+        int len = 0;
+        checkOut = new ChecksumEncoder(config, out);
+        GeneratorStream gen = new GeneratorStream(config);
+        gen.addListener(this);
+        try
+          {
+            while ((len = in.read(buf)) < 0)
+              {
+                gen.update(buf, 0, len);
+              }
+            gen.doFinal();
+          }
+        catch (ListenerException le)
+          {
+            throw (IOException) le.getCause();
+          }
+      }
+    else
+      {
+        out.writeInt(0);
+        out.writeInt(config.blockLength);
+        out.writeInt(0);
+      }
+    config.blockLength = blen;
+  }
+
+  /**
+   * Receive the deltas for a file, and rebuild it.
+   *
+   * @param f The file to rebuild.
+   * @throws IOException If an I/O error occurs.
+   */
+  private boolean receiveData(File f) throws IOException
+  {
+    int count = in.readInt();
+    int n = in.readInt();
+    int remainder = in.readInt();
+    long offset = 0;
+    byte[] file_sum1, file_sum2;
+    byte[] data = new byte[CHUNK_SIZE];
+
+    DeltaDecoder deltasIn = new PlainDeltaDecoder(config, in);
+    RebuilderStream rebuilder = new RebuilderStream();
+    rebuilder.addListener(this);
+    Delta delta = null;
+    File newf = File.createTempFile(".jarsync", ".tmp", f.getParentFile());
+    rebuildFile = new RandomAccessFile(newf, "rw");
+    try
+      {
+        while ((delta = deltasIn.read()) != null)
+          {
+            rebuilder.update(delta);
+          }
+      }
+    catch (ListenerException le)
+      {
+        throw (IOException) le.getCause();
+      }
+    rebuildFile.close();
+    newf.renameTo(f);
+
+    if (remoteVersion >= 14)
+      {
+        MessageDigest md = null;
+        try
+          {
             md = MessageDigest.getInstance("BrokenMD4");
-         } catch (NoSuchAlgorithmException nsae) {
+          }
+        catch (NoSuchAlgorithmException nsae)
+          {
             throw new Error(nsae);
-         }
-         FileInputStream fin = new FileInputStream(f);
-         int i = 0;
-         while ((i = fin.read(data)) != -1) {
+          }
+        FileInputStream fin = new FileInputStream(f);
+        int i = 0;
+        while ((i = fin.read(data)) != -1)
+          {
             md.update(data, 0, i);
-         }
-         file_sum1 = md.digest();
-         file_sum2 = new byte[file_sum1.length];
-         in.read(file_sum2);
-         return Arrays.equals(file_sum1, file_sum2);
+          }
+        file_sum1 = md.digest();
+        file_sum2 = new byte[file_sum1.length];
+        in.read(file_sum2);
+        return Arrays.equals(file_sum1, file_sum2);
       }
 
-      return true;
-   }
+    return true;
+  }
 
    /** Partial byte count in {@link #receiveToken(byte[])}. */
    private int residue = 0;

@@ -58,5 +58,5 @@ public interface MatcherListener extends EventListener {
     *
     * @param event The next delta event.
     */
-   void update(MatcherEvent event);
+   void update(MatcherEvent event) throws ListenerException;
 }

@@ -15,7 +15,7 @@ AC_CHECK_CLASSPATH
 AC_CHECK_PATH_SEPARATOR
 AC_CHECK_FILE_SEPARATOR
 
-DOUBLE_VERSION=0.21
+DOUBLE_VERSION=0.22
 AC_SUBST(DOUBLE_VERSION)
 
 AC_SUBST(JAVAFLAGS)
@@ -35,9 +35,9 @@ dnl --with and --enable arguments
 dnl AC_ARG_ENABLE([native], AC_HELP_STRING([--enable-native],
 dnl	[Compile to native code with GCJ.]),
 dnl	[make_native=yes], [make_native=no])
-dnl AC_ARG_ENABLE([client-server], AC_HELP_STRING([--enable-client-server],
-dnl	[Build rsync-compatible client/server]),
-dnl	[make_v2=yes], [make_v2=no])
+AC_ARG_ENABLE([client-server], AC_HELP_STRING([--enable-client-server],
+	[Build rsync-compatible client/server]),
+	[make_v2=yes], [make_v2=no])
 dnl AC_ARG_WITH(log4j-jar, AC_HELP_STRING([--with-log4j-jar=PATH],
 dnl 	[Specify the location of log4j jar]),
 dnl	[log4j_jar=$withval], [log4j_jar=no])
@@ -63,7 +63,11 @@ AM_CONDITIONAL(MAKE_NATIVE, test "x$make_native" = "xyes")
 
 dnl Checks for classes.
 
-dnl AC_CHECK_CLASS(org.apache.log4j.Logger, [have_log4j=yes], [have_log4j=no])
+if test "x$make_v2" = "xyes"; then
+  AC_CHECK_CLASS(org.apache.log4j.Logger, [have_log4j=yes],
+                 AC_MSG_ERROR([Log4j is required to build the client and server]))
+fi
+
 dnl AC_CHECK_CLASS(javaunix.io.UnixFile, [have_javaunix=yes], [have_javaunix=no])
 AC_CHECK_CLASS(java.nio.channels.SocketChannel, [have_nio=yes], [have_nio=no])
 
