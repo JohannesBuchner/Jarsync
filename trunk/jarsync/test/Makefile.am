@@ -8,6 +8,9 @@ JAVA = @JAVA@
 JAVAFLAGS = @JAVAFLAGS@
 SHELL = @SHELL@
 
+EXTRA_DIST = $(mauve_sources) $(test_sources) choose-classes \
+  gnu/testlet/config.java.in
+
 mauve_sources = \
   gnu/testlet/ResourceNotFoundException.java \
   gnu/testlet/SimpleTestHarness.java \
