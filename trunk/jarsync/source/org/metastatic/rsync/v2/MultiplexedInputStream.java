@@ -31,178 +31,199 @@ import java.io.InputStream;
 
 import org.apache.log4j.Logger;
 
+import org.metastatic.rsync.Util;
+
 /**
  * Handle multiplexed I/O for the rsync protocol.
  *
  * @version $Revision$
  */
 public class MultiplexedInputStream extends InputStream
-implements MultiplexedIO
+  implements MultiplexedIO
 {
 
    // Constants and variables.
    // -----------------------------------------------------------------------
 
-   private static Logger logger =
-      Logger.getLogger(MultiplexedInputStream.class.getName());
+  private static Logger logger =
+    Logger.getLogger(MultiplexedInputStream.class.getName());
 
-   /** The underlying input stream. */
-   protected InputStream in;
+  /** The underlying input stream. */
+  protected InputStream in;
 
-   /** Whether or not to actually multiplex. */
-   protected boolean multiplex;
+  /** Whether or not to actually multiplex. */
+  protected boolean multiplex;
 
-   // Constructors.
-   // -----------------------------------------------------------------------
+  /** Used in readUnbuffered. */
+  protected int remaining;
 
-   public MultiplexedInputStream(InputStream in, boolean multiplex) {
-      this.in = in;
-      this.multiplex = multiplex;
-   }
+  // Constructors.
+  // -----------------------------------------------------------------------
 
-   // Instance methods.
-   // -----------------------------------------------------------------------
+  public MultiplexedInputStream(InputStream in, boolean multiplex) {
+    this.in = in;
+    this.multiplex = multiplex;
+  }
 
-   public void setMultiplex(boolean multiplex) {
-      this.multiplex = multiplex;
-   }
+  // Instance methods.
+  // -----------------------------------------------------------------------
 
-   public int read() throws IOException {
-      byte[] b = new byte[1];
-      readFully(b);
-      return b[0];
-   }
+  public void setMultiplex(boolean multiplex) {
+    this.multiplex = multiplex;
+  }
 
-   /**
-    * Attempt to fully read <tt>len</tt> bytes, blocking until all data
-    * is read.
-    *
-    * @param buf The buffer to read into.
-    * @param off From whence to start storage in <tt>buf</tt>.
-    * @param len The number of bytes to read.
-    */
-   public void readFully(byte[] buf, int off, int len) throws IOException {
-      int ret = 0, total = 0;
+  public int read() throws IOException {
+    byte[] b = new byte[1];
+    read(b);
+    return b[0];
+  }
 
-      while (total < len) {
-         if (multiplex) {
-            ret = read(buf, off+total, len-total);
-         } else {
+  /**
+   * Attempt to fully read <tt>len</tt> bytes, blocking until all data
+   * is read.
+   *
+   * @param buf The buffer to read into.
+   * @param off From whence to start storage in <tt>buf</tt>.
+   * @param len The number of bytes to read.
+   */
+  public int read(byte[] buf, int off, int len) throws IOException {
+    int ret = 0, total = 0;
+
+    while (total < len)
+      {
+        if (multiplex)
+          {
+            ret = readUnbuffered(buf, off+total, len-total);
+          }
+        else
+          {
             ret = in.read(buf, off+total, len-total);
-         }
-         total += ret;
+          }
+        total += ret;
       }
-   }
+    return total;
+  }
 
-   /**
-    * Attempt to read as many bytes as will fit into the buffer,
-    * blocking until it has been filled.
-    *
-    * @param buf The buffer to read into.
-    */
-   public void readFully(byte[] buf) throws IOException {
-      readFully(buf, 0, buf.length);
-   }
+  /**
+   * Attempt to read as many bytes as will fit into the buffer,
+   * blocking until it has been filled.
+   *
+   * @param buf The buffer to read into.
+   */
+  public int read(byte[] buf) throws IOException
+  {
+    return read(buf, 0, buf.length);
+  }
 
-   /**
-    * Read <tt>len</tt> bytes, returning them as a {@link
-    * java.lang.String} interpreted as US-ASCII.
-    *
-    * @param len The number of bytes to read.
-    * @return An ASCII string of the bytes read.
-    */
-   public String readString(int len) throws IOException {
-      if (len < 1)
-         return null;
-      byte[] buf = new byte[len];
-      readFully(buf);
-      return new String(buf, "US-ASCII");
-   }
+  /**
+   * Read <tt>len</tt> bytes, returning them as a {@link
+   * java.lang.String} interpreted as US-ASCII.
+   *
+   * @param len The number of bytes to read.
+   * @return An ASCII string of the bytes read.
+   */
+  public String readString(int len) throws IOException
+  {
+    if (len < 1)
+      return null;
+    byte[] buf = new byte[len];
+    read(buf);
+    return new String(buf, "US-ASCII");
+  }
 
-   /**
-    * Read a little-endian ordered 32-bit integer.
-    *
-    * @return The integer read.
-    */
-   public int readInt() throws IOException {
-      byte[] buf = new byte[4];
-      readFully(buf);
-      return (buf[3] << 24 & 0xFF) | (buf[2] << 16 & 0xFF)
-           | (buf[1] <<  8 & 0xFF) | (buf[0] & 0xFF);
-   }
+  /**
+   * Read a little-endian ordered 32-bit integer.
+   *
+   * @return The integer read.
+   */
+  public int readInt() throws IOException
+  {
+    byte[] buf = new byte[4];
+    read(buf);
+    return (buf[3] & 0xFF) << 24 | (buf[2] & 0xFF) << 16
+         | (buf[1] & 0xFF) <<  8 | (buf[0] & 0xFF);
+  }
 
-   /**
-    * Read a little-endian ordered 64-bit long integer.
-    *
-    * @return The long integer read.
-    */
-   public long readLong() throws IOException {
-      int ret = readInt();
-      if (ret != 0xffffffff) {
-         return ret;
+  /**
+   * Read a little-endian ordered 64-bit long integer.
+   *
+   * @return The long integer read.
+   */
+  public long readLong() throws IOException
+  {
+    int ret = readInt();
+    if (ret != 0xffffffff)
+      {
+        return ret;
       }
-      byte[] buf = new byte[8];
-      readFully(buf);
-      return (buf[7] << 56 & 0xFF) | (buf[6] << 48 & 0xFF)
-           | (buf[5] << 40 & 0xFF) | (buf[4] << 32 & 0xFF) 
-           | (buf[3] << 24 & 0xFF) | (buf[2] << 16 & 0xFF)
-           | (buf[1] <<  8 & 0xFF) | (buf[0] & 0xFF);
-   }
+    byte[] buf = new byte[8];
+    read(buf);
+    return (buf[7] & 0xFF) << 56 | (buf[6] & 0xFF) << 48
+         | (buf[5] & 0xFF) << 40 | (buf[4] & 0xFF) << 32
+         | (buf[3] & 0xFF) << 24 | (buf[2] & 0xFF) << 16
+         | (buf[1] & 0xFF) <<  8 | (buf[0] & 0xFF);
+  }
 
-   /**
-    * Do an unbuffered read from the multiplexed input stream, putting
-    * normal data into the byte buffer and sending error stream data to
-    * {@link #err}.
-    *
-    * @param buf The byte buffer to read into.
-    * @param off From whence in the buffer to begin.
-    * @param len The number of bytes to attempt to read.
-    * @return The number of bytes read.
-    */
-   public int read(byte[] buf, int off, int len) throws IOException {
-      int remaining = 0, ret = 0;
-      int tag;
-      byte[] line = new byte[1024];
+  /**
+   * Do an unbuffered read from the multiplexed input stream, putting
+   * normal data into the byte buffer and sending error stream data to
+   * {@link #err}.
+   *
+   * @param buf The byte buffer to read into.
+   * @param off From whence in the buffer to begin.
+   * @param len The number of bytes to attempt to read.
+   * @return The number of bytes read.
+   */
+  protected int readUnbuffered(byte[] buf, int off, int len) throws IOException {
+    int ret = 0;
+    int tag;
+    byte[] line = new byte[1024];
 
-      while (ret == 0) {
-         if (remaining > 0) {
+    while (ret == 0)
+      {
+        if (remaining > 0)
+          {
             len = Math.min(len, remaining);
             ret = in.read(buf, off, len);
+            logger.debug("len=" + len + " ret=" + ret + " remaining=" + remaining);
             off += ret;
             remaining -= ret;
             continue;
-         }
+          }
 
-         in.read(line, 0, 4);
-         tag = line[3] & 0xFF;
+        in.read(line, 0, 4);
+        tag = line[3] & 0xFF;
 
-         remaining  = line[0] & 0xFF;
-         remaining |= line[1] <<  8 & 0xFF;
-         remaining |= line[2] << 16 & 0xFF;
+        remaining  =  line[0] & 0xFF;
+        remaining |= (line[1] & 0xFF) <<  8;
+        remaining |= (line[2] & 0xFF) << 16;
 
-         if (tag == MPLEX_BASE) {
+        logger.debug("bytes=" + Util.toHexString(line, 0, 4) +
+                     " tag=" + tag + " remaining=" + remaining);
+
+        if (tag == MPLEX_BASE)
             continue;
-         }
 
-         tag -= MPLEX_BASE;
+        tag -= MPLEX_BASE;
 
-         if (tag != FERROR && tag != FINFO) {
-            logger.fatal("illegal tag " + tag);
+        if (tag != FERROR && tag != FINFO)
+          {
             throw new IOException("illegal tag " + tag);
-         }
+          }
 
-         if (remaining > line.length - 1) {
+        if (remaining > line.length - 1)
+          {
             logger.fatal("multiplexing overflow " + remaining);
             throw new IOException("multiplexing overflow " + remaining);
-         }
+          }
 
-         in.read(line, 0, remaining);
-         if (tag == FERROR)
-            logger.error(new String(line, 0, remaining));
-         else
-            logger.info(new String(line, 0, remaining));
-         remaining = 0;
+        in.read(line, 0, remaining);
+        if (tag == FERROR)
+          logger.error(new String(line, 0, remaining));
+        else
+          logger.info(new String(line, 0, remaining));
+        remaining = 0;
       }
-      return ret;
-   }
+    return ret;
+  }
 }
