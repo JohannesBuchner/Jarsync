@@ -1,0 +1,44 @@
+# Makefile for Jarsync.
+# $Id$
+
+COMPILER = @COMPILER@
+CFLAGS = @CFLAGS@
+
+sources = org/metastatic/rsync/ChecksumPair.java \
+  org/metastatic/rsync/Configuration.java \
+  org/metastatic/rsync/DataBlock.java \
+  org/metastatic/rsync/Delta.java \
+  org/metastatic/rsync/Generator.java \
+  org/metastatic/rsync/MD4.java \
+  org/metastatic/rsync/Matcher.java \
+  org/metastatic/rsync/MessageDigest.java \
+  org/metastatic/rsync/Offsets.java \
+  org/metastatic/rsync/Rdiff.java \
+  org/metastatic/rsync/Rebuilder.java \
+  org/metastatic/rsync/RollingChecksum.java \
+  org/metastatic/rsync/RsyncConstants.java \
+  org/metastatic/rsync/TwoKeyMap.java
+classes = ../classes/org/metastatic/rsync/ChecksumPair.class \
+  ../classes/org/metastatic/rsync/Configuration.class \
+  ../classes/org/metastatic/rsync/DataBlock.class \
+  ../classes/org/metastatic/rsync/Delta.class \
+  ../classes/org/metastatic/rsync/Generator.class \
+  ../classes/org/metastatic/rsync/MD4.class \
+  ../classes/org/metastatic/rsync/Matcher.class \
+  ../classes/org/metastatic/rsync/MessageDigest.class \
+  ../classes/org/metastatic/rsync/Offsets.class \
+  ../classes/org/metastatic/rsync/Rdiff.class \
+  ../classes/org/metastatic/rsync/Rebuilder.class \
+  ../classes/org/metastatic/rsync/RollingChecksum.class \
+  ../classes/org/metastatic/rsync/RsyncConstants.class \
+  ../classes/org/metastatic/rsync/TwoKeyMap.class
+
+all: compile
+
+compile: $(classes)
+
+$(classes): ../classes/%.class: %.java
+	$(COMPILER) $(CFLAGS) $<
+
+clean:
+	rm -f $(classes) $(inner)
