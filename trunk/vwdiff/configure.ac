@@ -16,22 +16,9 @@ AC_SUBST(JAR)
 AC_PATH_PROG(SHELL, sh)
 AC_SUBST(SHELL)
 
-dnl --with arguments
-AC_ARG_WITH([jarsync-jar], AC_HELP_STRING([--with-jarsync-jar=PATH],
-	[Specify location of Jarsync library jar.]),
-	[jarsync_jar=$withval], [jarsync_jar=no])
-
 dnl Checks for classes.
-if test "x$jarsync_jar" = "yes" -o "x$jarsync_jar" = "no"
-then
-	AC_MSG_ERROR([You must specify the path to jarsync.jar])
-fi
-CLASSPATH=${CLASSPATH}${PATH_SEPARATOR}${jarsync_jar}
-AC_CHECK_CLASS(org.metastatic.rsync.Configuration, [have_jarsync=yes],
+AC_CHECK_CLASS(org.metastatic.rsync.Configuration, ,
 	AC_MSG_ERROR([Jarsync library not found]))
-JARSYNC_JAR=$jarsync_jar
-AC_SUBST(JARSYNC_JAR)
-
 AC_CHECK_CLASS(org.apache.log4j.Logger, ,
 	AC_MSG_ERROR([Log4j is not available.]))
 
