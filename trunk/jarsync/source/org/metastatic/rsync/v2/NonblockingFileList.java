@@ -26,7 +26,8 @@
 
 package org.metastatic.rsync.v2;
 
-import java.io.FileInputStream ;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 
 import java.nio.BufferUnderflowException;
@@ -39,9 +40,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import javaunix.UnixSystem;
-import javaunix.io.UnixFile;
 
 import org.apache.log4j.Logger;
 
@@ -211,9 +209,9 @@ final class NonblockingFileList implements NonblockingTool, Constants {
          if (lastname.length() > 0 && l1 > 0)
             thisname = lastname.substring(0, l1) + thisname;
 
-         thisname = thisname.replace('/', UnixFile.separatorChar);
+         thisname = thisname.replace('/', File.separatorChar);
          int p = 0;
-         if ((p = thisname.lastIndexOf(UnixFile.separatorChar)) > 0) {
+         if ((p = thisname.lastIndexOf(File.separatorChar)) > 0) {
             if (lastdir != null && thisname.startsWith(lastdir)) {
                file.dirname = lastdir;
             } else {
@@ -230,7 +228,7 @@ final class NonblockingFileList implements NonblockingTool, Constants {
          file.length = BufferUtil.getLong(inBuffer);
          entryLen += (file.length > 0x7FFFFFFF) ? 12 : 4;
          if ((flags & SAME_TIME) == 0) {
-            file.modtime = inBuffer.getInt() & 0xFFFFFFFFL;
+            file.modtime = inBuffer.getInt();
             entryLen += 4;
          } else {
             file.modtime = lastfile.modtime;
@@ -292,7 +290,7 @@ final class NonblockingFileList implements NonblockingTool, Constants {
          state = FLIST_SEND_DONE;
          return;
       }
-      UnixFile f = new UnixFile(path, (String) argv.get(index));
+      File f = new File(path, (String) argv.get(index));
       if (f.isDirectory() && !options.recurse) {
          logger.info("skipping directory " + f.getName());
          if (++index < argv.size()) {
@@ -354,10 +352,10 @@ final class NonblockingFileList implements NonblockingTool, Constants {
       logger.debug("sending file entry: " + file);
 
       String fname = file.dirname;
-      if (fname.startsWith(UnixFile.separator))
+      if (fname.startsWith(File.separator))
          fname = fname.substring(1);
       if (fname.length() > 0)
-         fname += UnixFile.separator;
+         fname += File.separator;
       fname += file.basename;
       int l1;
       for (l1 = 0; l1 < fname.length() && l1 < lastname.length() &&
@@ -382,11 +380,11 @@ final class NonblockingFileList implements NonblockingTool, Constants {
       if ((file.flags & LONG_NAME) != 0)
          outBuffer.putString(
             fname.substring(fname.length() - l2)
-                 .replace(UnixFile.separatorChar, '/'));
+                 .replace(File.separatorChar, '/'));
       else
          outBuffer.putShortString(
             fname.substring(fname.length() - l2)
-                 .replace(UnixFile.separatorChar, '/'));
+                 .replace(File.separatorChar, '/'));
 
       outBuffer.putLong(file.length);
       if ((file.flags & SAME_TIME) == 0)
@@ -394,25 +392,25 @@ final class NonblockingFileList implements NonblockingTool, Constants {
       if ((file.flags & SAME_MODE) == 0)
          outBuffer.putInt(toWireMode(file.mode));
       if (options.preserve_uid && (file.flags & SAME_UID) == 0) {
-         try {
+        //try {
             Integer uid = new Integer(file.uid);
-            String user = UnixSystem.getPasswordByUid(file.uid).pw_name;
+            String user = "user";
             if (!uids.containsKey(uid))
                uids.put(uid, user);
-         } catch (IOException ioe) {
-            io_error = 1;
-         }
+            //} catch (IOException ioe) {
+            //io_error = 1;
+            //}
          outBuffer.putInt(file.uid);
       }
       if (options.preserve_gid && (file.flags & SAME_GID) == 0) {
-         try {
+        //try {
             Integer gid = new Integer(file.gid);
-            String group = UnixSystem.getGroupByGid(file.gid).gr_name;
+            String group = "group";
             if (!gids.containsKey(gid))
                gids.put(gid, group);
-         } catch (IOException ioe) {
-            io_error = 1;
-         }
+            //} catch (IOException ioe) {
+            //io_error = 1;
+            //}
          outBuffer.putInt(file.gid);
       }
       if (options.preserve_links && file.S_ISLNK()) {
@@ -483,21 +481,21 @@ final class NonblockingFileList implements NonblockingTool, Constants {
     * Expand the given directory, adding its entries (minus ones we
     * ignore) to the list.
     */
-   private void expandDirectory(UnixFile dir) {
+   private void expandDirectory(File dir) {
       String dirname = dir.getPath();
       logger.debug("dirname=" + dirname);
       if (dirname.startsWith(path))
          dirname = dirname.substring(path.length());
-      if (dirname.startsWith(UnixFile.separator))
+      if (dirname.startsWith(File.separator))
          dirname = dirname.substring(1);
       if (dirname.startsWith("."))
          dirname = dirname.substring(1);
       logger.debug("dirname=" + dirname);
       String[] list = dir.list(new Glob(options.exclude, false,
-         path + UnixFile.separator + argv.get(0)));
+         path + File.separator + argv.get(0)));
       if (list != null) {
          for (int i = 0; i < list.length; i++) {
-            argv.add(index+1, dirname + UnixFile.separator + list[i]);
+            argv.add(index+1, dirname + File.separator + list[i]);
          }
       }
    }
