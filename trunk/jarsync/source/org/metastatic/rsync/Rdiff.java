@@ -508,7 +508,7 @@ public class Rdiff implements RsyncConstants {
       c.strongSum = MessageDigest.getInstance("MD4");
       c.weakSum = new Checksum32();
       c.blockLength = blockLength;
-      c.strongSumLength = c.strongSumLength;
+      c.strongSumLength = strongSumLength;
       return new Generator(c).generateSums(in);
    }
 

@@ -104,11 +104,10 @@ public class TestOfBrokenMD4 implements Testlet {
 
       // Input >= 2^32 bits has bad padding.
       try {
-         harness.verbose("NOTE: The next test may take a while.");
+         harness.verbose("NOTE: This test may take a while.");
          for (int i = 0; i < 536870913; i++) algorithm.update((byte) 'a');
          byte[] md = algorithm.digest();
          String exp = "b6cea9f528a85963f7529a9e3a2153db";
-         System.err.println(Util.toHexString(md));
          harness.check(exp.equals(Util.toHexString(md)), "test536870913A");
       } catch (Exception x) {
          harness.debug(x);

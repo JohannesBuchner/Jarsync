@@ -89,6 +89,9 @@ public class TestOfMD4 implements Testlet {
          throw new Error(x);
       }
 
+      // The next two vectors were generated with OpenSSL 0.9.6g.
+
+      // Correct padding when input is a multiple of the block size?
       try {
          for (int i = 0; i < 64; i++) algorithm.update((byte) 'a');
          byte[] md = algorithm.digest();
@@ -97,13 +100,13 @@ public class TestOfMD4 implements Testlet {
       } catch (Exception x) {
          harness.debug(x);
          harness.fail("TestOfMD4.provider");
-      } 
+      }
 
+      // Correct padding for input larger that 2^32 bits?
       try {
-         harness.verbose("NOTE: The next test may take a while.");
+         harness.verbose("NOTE: This test may take a while.");
          for (int i = 0; i < 536870913; i++) algorithm.update((byte) 'a');
          byte[] md = algorithm.digest();
-         System.err.println(Util.toHexString(md));
          String exp = "47d01fa6657f903280232d30b98da482";
          harness.check(exp.equals(Util.toHexString(md)), "test536870913A");
       } catch (Exception x) {

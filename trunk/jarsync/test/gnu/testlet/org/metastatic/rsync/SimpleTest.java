@@ -53,6 +53,13 @@ import java.security.*;
 import java.util.*;
 import org.metastatic.rsync.*;
 
+/**
+ * Exercise the rsync algorithm 50 times, each time with randomly
+ * generated data sets and differences, and with a random message digest
+ * algorithm.
+ *
+ * @version $Revision $
+ */
 public class SimpleTest implements Testlet {
 
    // Fields.
@@ -75,8 +82,10 @@ public class SimpleTest implements Testlet {
       harness.checkPoint("rsyncTest");
       Security.addProvider(new JarsyncProvider());
       Configuration conf = new Configuration();
+
+      // Make sure we use our MD4 at least once!
       try {
-         conf.strongSum = MessageDigest.getInstance("MD4");
+         conf.strongSum = MessageDigest.getInstance("MD4", "JARSYNC");
       } catch (Exception x) {
          throw new Error(x);
       }
@@ -111,9 +120,14 @@ public class SimpleTest implements Testlet {
    // Own methods.
    // -----------------------------------------------------------------------
 
+   /**
+    * Derived from `mutate.pl' from librsync, (C) 1999, 2000 by Martin
+    * Pool and (C) 1999 by Andrew Tridgell.
+    */
    private byte[] mutate(byte[] b, TestHarness harness) {
       StringBuffer corpus = new StringBuffer(new String(b));
-      int nmuts = Math.abs(rand.nextInt(30));
+      int nmuts = 1 + rand.nextInt(30);
+      harness.verbose("\t" + nmuts + " mutations");
       while (--nmuts > 0) {
          int from_off = rand.nextInt(corpus.length());
          int from_len = (int)(rand.nextDouble()
@@ -147,7 +161,7 @@ public class SimpleTest implements Testlet {
       HashSet algs = new HashSet();
       String[] tries = {
          "md2", "md4", "md5", "sha-1", "ripemd128", "ripemd160",
-         "tiger", "whirlpool"
+         "tiger", "whirlpool", "brokenmd4"
       };
       for (int i = 0; i < tries.length; i++) {
          try {
