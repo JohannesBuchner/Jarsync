@@ -1,47 +1,45 @@
-// vim:set tw=72 expandtab softtabstop=3 shiftwidth=3 tabstop=3:
-// $Id$
-//
-// Generator: Checksum and file list generation methods.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
-//
-// This file is a part of Jarsync.
-//
-// Jarsync is free software; you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option) any
-// later version.
-//
-// Jarsync is distributed in the hope that it will be useful, but
-// WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with Jarsync; see the file COPYING.  If not, write to the
-//
-//    Free Software Foundation Inc.,
-//    59 Temple Place - Suite 330,
-//    Boston, MA 02111-1307
-//    USA
-//
-// Linking this library statically or dynamically with other modules is
-// making a combined work based on this library.  Thus, the terms and
-// conditions of the GNU General Public License cover the whole
-// combination.
-//
-// As a special exception, the copyright holders of this library give
-// you permission to link this library with independent modules to
-// produce an executable, regardless of the license terms of these
-// independent modules, and to copy and distribute the resulting
-// executable under terms of your choice, provided that you also meet,
-// for each linked independent module, the terms and conditions of the
-// license of that module.  An independent module is a module which is
-// not derived from or based on this library.  If you modify this
-// library, you may extend this exception to your version of the
-// library, but you are not obligated to do so.  If you do not wish to
-// do so, delete this exception statement from your version.
-//
-// --------------------------------------------------------------------
+/* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
+   $Id$
+  
+   Generator: Checksum generation methods.
+   Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
+  
+   This file is a part of Jarsync.
+  
+   Jarsync is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by the
+   Free Software Foundation; either version 2 of the License, or (at
+   your option) any later version.
+  
+   Jarsync is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+  
+   You should have received a copy of the GNU General Public License
+   along with Jarsync; if not, write to the
+  
+      Free Software Foundation, Inc.,
+      59 Temple Place, Suite 330,
+      Boston, MA  02111-1307
+      USA
+  
+   Linking Jarsync statically or dynamically with other modules is
+   making a combined work based on Jarsync.  Thus, the terms and
+   conditions of the GNU General Public License cover the whole
+   combination.
+  
+   As a special exception, the copyright holders of Jarsync give you
+   permission to link Jarsync with independent modules to produce an
+   executable, regardless of the license terms of these independent
+   modules, and to copy and distribute the resulting executable under
+   terms of your choice, provided that you also meet, for each linked
+   independent module, the terms and conditions of the license of that
+   module.  An independent module is a module which is not derived from
+   or based on Jarsync.  If you modify Jarsync, you may extend this
+   exception to your version of it, but you are not obligated to do so.
+   If you do not wish to do so, delete this exception statement from
+   your version.  */
 
 package org.metastatic.rsync;
 
@@ -51,14 +49,14 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.List;
 
 /**
- * Checksum generation methods.
+ * Checksum generation methods. 
  * 
  * @version $Revision$
  */
-public class Generator implements RsyncConstants {
+public class Generator {
 
    // Constants and variables.
    // ------------------------------------------------------------------------
@@ -73,7 +71,7 @@ public class Generator implements RsyncConstants {
    // ------------------------------------------------------------------------
 
    public Generator(Configuration config) {
-      this.config = config;
+      this.config = (Configuration) config.clone();
    }
 
    // Instance methods.
@@ -84,11 +82,11 @@ public class Generator implements RsyncConstants {
     * of 0.
     *
     * @param buf The byte buffer to checksum.
-    * @return A {@link java.util.Collection} of {@link ChecksumPair}s
+    * @return A {@link java.util.List} of {@link ChecksumPair}s
     *    generated from the array.
     * @see #generateSums(byte[],int,int,long)
     */
-   public Collection generateSums(byte[] buf) {
+   public List generateSums(byte[] buf) {
       return generateSums(buf, 0, buf.length, 0);
    }
 
@@ -99,11 +97,11 @@ public class Generator implements RsyncConstants {
     * @param buf The byte array to checksum.
     * @param off The offset in <code>buf</code> to begin.
     * @param len The number of bytes to checksum.
-    * @return A {@link java.util.Collection} of {@link ChecksumPair}s
+    * @return A {@link java.util.List} of {@link ChecksumPair}s
     *    generated from the array.
     * @see #generateSums(byte[],int,int,long)
     */
-   public Collection generateSums(byte[] buf, int off, int len) {
+   public List generateSums(byte[] buf, int off, int len) {
       return generateSums(buf, off, len, 0);
    }
 
@@ -114,11 +112,11 @@ public class Generator implements RsyncConstants {
     *
     * @param buf        The byte array to checksum.
     * @param baseOffset The offset from whence this byte array came.
-    * @return A {@link java.util.Collection} of {@link ChecksumPair}s
+    * @return A {@link java.util.List} of {@link ChecksumPair}s
     *    generated from the array.
     * @see #generateSums(byte[],int,int,long)
     */
-   public Collection generateSums(byte[] buf, long baseOffset) {
+   public List generateSums(byte[] buf, long baseOffset) {
       return generateSums(buf, 0, buf.length, baseOffset);
    }
 
@@ -132,15 +130,14 @@ public class Generator implements RsyncConstants {
     * @param len        The number of bytes to check in
     *                   <code>buf</code>.
     * @param baseOffset The offset from whence this byte array came.
-    * @return A {@link java.util.Collection} of {@link ChecksumPair}s
+    * @return A {@link java.util.List} of {@link ChecksumPair}s
     *    generated from the array.
     */
-   public Collection
-   generateSums(byte[] buf, int off, int len, long baseOffset) {
+   public List generateSums(byte[] buf, int off, int len, long baseOffset) {
       int count = (len+(config.blockLength-1)) / config.blockLength;
       int remainder = len % config.blockLength;
       int offset = off;
-      Collection sums = new ArrayList(count);
+      List sums = new ArrayList(count);
 
       for (int i = 0; i < count; i++) {
          int n = Math.min(len, config.blockLength);
@@ -159,16 +156,16 @@ public class Generator implements RsyncConstants {
     * Generate checksums for an entire file.
     *
     * @param f The {@link java.io.File} to checksum.
-    * @return A {@link java.util.Collection} of {@link ChecksumPair}s
+    * @return A {@link java.util.List} of {@link ChecksumPair}s
     *    generated from the file.
     * @throws java.io.IOException if <code>f</code> cannot be read from.
     */
-   public Collection generateSums(File f) throws IOException {
+   public List generateSums(File f) throws IOException {
       long len = f.length();
       int count = (int) ((len+(config.blockLength+1)) / config.blockLength);
       long offset = 0;
       FileInputStream fin = new FileInputStream(f);
-      Collection sums = new ArrayList(count);
+      List sums = new ArrayList(count);
       int n = (int) Math.min(len, config.blockLength);
       byte[] buf = new byte[n];
 
@@ -192,12 +189,12 @@ public class Generator implements RsyncConstants {
     * Generate checksums for an InputStream.
     *
     * @param in The {@link java.io.InputStream} to checksum.
-    * @return A {@link java.util.Collection} of {@link ChecksumPair}s
+    * @return A {@link java.util.List} of {@link ChecksumPair}s
     *    generated from the bytes read.
     * @throws java.io.IOException if reading fails.
     */
-   public Collection generateSums(InputStream in) throws IOException {
-      Collection sums = null;
+   public List generateSums(InputStream in) throws IOException {
+      List sums = null;
       byte[] buf = new byte[config.blockLength*config.blockLength];
       long offset = 0;
       int len = 0;
