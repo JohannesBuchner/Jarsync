@@ -177,7 +177,7 @@ public class Rebuilder {
          f.write(db.getData());
       }
       if (f.length() > newFileLength) {
-         f.setLength(newFileLength);
+         // f.setLength(newFileLength);
       }
 
       f.close();

@@ -147,12 +147,15 @@ public class Generator implements RsyncConstants {
     * @param fileOffset The original offset of this byte array.
     * @return A {@link ChecksumPair} for this byte array.
     */
-   public ChecksumPair generateSum(byte[] buf, int off, int len, long fileOffset) {
+   public ChecksumPair
+   generateSum(byte[] buf, int off, int len, long fileOffset) {
       ChecksumPair p = new ChecksumPair();
       weakSum.check(buf, off, len);
       config.strongSum.update(buf, off, len);
       p.weak = new Integer(weakSum.getValue());
-      p.strong = config.strongSum.digest();
+      p.strong = new byte[config.strongSumLength];
+      System.arraycopy(config.strongSum.digest(), 0, p.strong, 0,
+         p.strong.length);
       p.offset = new Long(fileOffset);
       p.length = len;
       return p;

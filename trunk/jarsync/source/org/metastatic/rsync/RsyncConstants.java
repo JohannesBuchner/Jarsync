@@ -33,15 +33,38 @@ package org.metastatic.rsync;
  */
 public interface RsyncConstants {
 
+   public static final String JARSYNC_VERSION = "0.0.1";
+
    /** The strong checksum length. */
    public static final int SUM_LENGTH = MD4.DIGEST_LENGTH;
 
    /** The default block size. */
    public static final int BLOCK_LENGTH = 700;
 
+   /** Rdiff/rproxy default block length. */
+   public static final int RDIFF_BLOCK_LENGTH = 2048;
+
+   /** Rdiff/rproxy default sum length. */
+   public static final int RDIFF_STRONG_LENGTH = 8;
+
    /** The default port for rsyncd connections. */
    public static final int RSYNC_PORT = 873;
 
    /** The greeting. */
    public static final String RSYNCD_GREETING = "@RSYNCD: ";
+
+   /** Rdiff/rproxy signature magic. */
+   public static final int SIG_MAGIC = 0x72730136;
+
+   /** Rdiff/rproxy delta magic. */
+   public static final int DELTA_MAGIC = 0x72730236;
+
+   public static final byte OP_END = 0x00;
+
+   public static final byte OP_LITERAL_N1 = 0x41;
+   public static final byte OP_LITERAL_N2 = 0x42;
+   public static final byte OP_LITERAL_N4 = 0x43;
+   public static final byte OP_LITERAL_N8 = 0x44;
+
+   public static final byte OP_COPY_N4_N4 = 0x4f;
 }

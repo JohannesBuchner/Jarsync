@@ -46,6 +46,8 @@ public abstract class MessageDigest {
 
    public static final String RCS_ID = "$Id$";
 
+   private static int BUFFER_LENGTH = 20*1024;
+
    /** The name of this digest. */
    protected String name;
 
@@ -177,7 +179,7 @@ public abstract class MessageDigest {
    public byte[] fileChecksum(File f) throws IOException {
       reset();
       FileInputStream in = new FileInputStream(f);
-      byte[] buf = new byte[blockSize];
+      byte[] buf = new byte[BUFFER_LENGTH];
       int len;
       while ((len = in.read(buf)) != -1) {
          update(buf, 0, len);

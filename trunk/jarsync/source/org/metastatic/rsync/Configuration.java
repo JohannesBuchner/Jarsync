@@ -47,7 +47,17 @@ public class Configuration implements RsyncConstants {
    /**
     * The length of blocks to checksum.
     */
-   int blockLength;   
+   int blockLength;
+
+   /**
+    * The effective length of the strong sum.
+    */
+   int strongSumLength;
+
+   /**
+    * Whether or not to do run-length encoding when making Deltas.
+    */
+   boolean doRunLength;
 
    // Constructors.
    // ------------------------------------------------------------------------
@@ -62,13 +72,42 @@ public class Configuration implements RsyncConstants {
    /**
     * Create a configuration with a particular strong checksum and a
     * block length of 700.
+    *
+    * @param strongSum The {@link MessageDigest} to use.
     */
    public Configuration(MessageDigest strongSum) {
       this(strongSum, BLOCK_LENGTH);
    }
 
+   /**
+    * Create a configuration with a particular block length and the MD4
+    * message digest algorithm.
+    *
+    * @param blockLength The size of blocks to checksum.
+    */
+   public Configuration(int blockLength) {
+      this(new MD4(), blockLength);
+   }
+
+   /**
+    * Create a configuration with a particular block length and message
+    * digest.
+    *
+    * @param strongSum The {@link MessageDigest} to use.
+    * @param blockLength The block length to use.
+    */
    public Configuration(MessageDigest strongSum, int blockLength) {
       this.strongSum = strongSum;
       this.blockLength = blockLength;
+      strongSumLength = SUM_LENGTH;
+      doRunLength = false;
+   }
+
+   public void setDoRunLength(boolean doRunLength) {
+      this.doRunLength = doRunLength;
+   }
+
+   public void setStrongSumLength(int strongSumLength) {
+      this.strongSumLength = strongSumLength;
    }
 }
