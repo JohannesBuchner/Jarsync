@@ -19,8 +19,8 @@ sources = org/metastatic/rsync/ChecksumPair.java \
   org/metastatic/rsync/RsyncConstants.java \
   org/metastatic/rsync/TwoKeyMap.java \
   org/metastatic/rsync/Util.java \
-  org/metastatic/rsync/client/ConsoleClient.java \
-  org/metastatic/rsync/client/SocketClient.java
+  org/metastatic/rsync/v2/ConsoleClient.java \
+  org/metastatic/rsync/v2/SocketClient.java
 
 classes = ../classes/org/metastatic/rsync/ChecksumPair.class \
   ../classes/org/metastatic/rsync/Configuration.class \
@@ -37,8 +37,8 @@ classes = ../classes/org/metastatic/rsync/ChecksumPair.class \
   ../classes/org/metastatic/rsync/RsyncConstants.class \
   ../classes/org/metastatic/rsync/TwoKeyMap.class \
   ../classes/org/metastatic/rsync/Util.class \
-  ../classes/org/metastatic/rsync/client/ConsoleClient.class \
-  ../classes/org/metastatic/rsync/client/SocketClient.class
+  ../classes/org/metastatic/rsync/v2/ConsoleClient.class \
+  ../classes/org/metastatic/rsync/v2/SocketClient.class
 
 all: compile
 

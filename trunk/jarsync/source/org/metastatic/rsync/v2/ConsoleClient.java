@@ -24,7 +24,7 @@
 //
 // ---------------------------------------------------------------------------
 
-package org.metastatic.rsync.client;
+package org.metastatic.rsync.v2;
 
 import java.util.Iterator;
 

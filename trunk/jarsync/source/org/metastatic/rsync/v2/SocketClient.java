@@ -24,7 +24,7 @@
 //
 // ---------------------------------------------------------------------------
 
-package org.metastatic.rsync.client;
+package org.metastatic.rsync.v2;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -38,6 +38,13 @@ import java.util.ListIterator;
 
 import org.metastatic.rsync.*;
 
+/**
+ * A SocketClient connects to rsync servers over TCP port 873. This
+ * version of SocketClient connects in the same fashion as rsync-2.*
+ * series clients, using protocol version 26.
+ *
+ * @version $Revision$
+ */
 public class SocketClient implements RsyncConstants {
 
    // Constants and variables.
@@ -88,7 +95,12 @@ public class SocketClient implements RsyncConstants {
    // Constructors.
    // -----------------------------------------------------------------------
 
-   private
+   /**
+    * This class cannot be directly instatiated. Use either {@link
+    * #connect(java.lang.String,java.lang.String)} or {@link
+    * #connect(java.lang.String,int,java.lang.String)}.
+    */
+   protected
    SocketClient(Socket socket, InputStream in, OutputStream out) {
       this.socket = socket;
       this.in = in;
@@ -100,11 +112,18 @@ public class SocketClient implements RsyncConstants {
       serverMessages = new LinkedList();
    }
 
-   // Class methods.
+ // Class methods.
    // -----------------------------------------------------------------------
 
    /**
-    * 
+    * Connect to <tt>host</tt> over port 873, asking for
+    * <tt>module</tt>.
+    *
+    * @param host   The host to connect to.
+    * @param module The module to use on the host, or can be either
+    *    <tt>null</tt> or <tt>"#list"</tt> to fetch a listing of
+    *    modules.
+    * @return A new SocketClient.
     */
    public static SocketClient
    connect(String host, String module) throws IOException {
@@ -112,7 +131,15 @@ public class SocketClient implements RsyncConstants {
    }
 
    /**
+    * Connect to <tt>host</tt> over <tt>port</tt>, asking for
+    * <tt>module</tt>.
     *
+    * @param host   The host to connect to.
+    * @param port   The port to connect to.
+    * @param module The module to use on the host, or can be either
+    *    <tt>null</tt> or <tt>"#list"</tt> to fetch a listing of
+    *    modules.
+    * @return A new SocketClient.
     */
    public static SocketClient
    connect(String host, int port, String module) throws IOException {
@@ -162,7 +189,6 @@ public class SocketClient implements RsyncConstants {
             }
          }
 
-         System.out.println(">>>" + line);
          if (line.startsWith(RSYNCD_AUTHREQD)) {
             c.authReqd = true;
             c.challenge = line.substring(RSYNCD_AUTHREQD.length());
@@ -182,42 +208,22 @@ public class SocketClient implements RsyncConstants {
          }
       }
 
-      ListIterator li = c.serverMessages.listIterator(
-         c.serverMessages.size());
-      if (module == null || module.equals("#list")) {
-         while (li.hasPrevious()) {
-            String msg = (String) li.previous();
-            if (msg.length() == 0) break;
-            c.modules.addFirst(msg);
-         }
-      }
-      while (li.hasPrevious()) {
-         c.serverMOTD = ((String) li.previous()) + "\n" + c.serverMOTD;
-      }
+      // XXX this version of the rsync protocol has no way to reliably
+      // seperate the MOTD from the module list.
+      //
+      // If there were, we SHOULD split serverMessages into the MOTD and
+      // the module list.
 
       return c;
    }
 
-   // Instance methods.
+ // Instance methods.
    // -----------------------------------------------------------------------
 
    /**
-    * Terminate the connection, sending <tt>@RSYNCD: EXIT</tt> if the
-    * remote server supports it.
-    *
-    * @throws java.io.IOException If there underlying socket cannot be
-    *    closed.
-    */
-   public void exit() throws IOException {
-      if (remoteVersion >= 25) {
-         Util.writeASCII(out, RSYNCD_EXIT);
-      }
-      socket.close();
-      connected = false;
-   }
-
-   /**
-    * See if we are connected.
+    * See if we are connected. There is no way to terminate the
+    * connection if we are the client during this initial phase; the
+    * server ends the session only if we send an erronous module name,
     *
     * @return <tt>true</tt> If we are connected.
     */
@@ -226,25 +232,18 @@ public class SocketClient implements RsyncConstants {
    }
 
    /**
-    * Get the server's message-of-the-day.
+    * Get the messages the server sends during connection. This includes
+    * the message-of-the-day, and possibly a listing of available
+    * modules.
     *
-    * @return The MOTD.
-    */
-   public String getMOTD() {
-      return serverMOTD;
+    * @return The server's messages, in order.
+   public List getServerMessages() {
+      return java.util.Collections.unmodifiableList(serverMessages);
    }
 
    /**
-    * Get the server's module list.
-    *
-    * @return The server's module list.
-    */
-   public java.util.List moduleList() {
-      return modules;
-   }
-
-   /**
-    * Test if authentication is required.
+    * Test if authentication is required. A {@link Rsync} object cannot
+    * be obtained if this method returns true.
     *
     * @reutrn <tt>true</tt> If the user must authenticate herself.
     */
@@ -257,7 +256,8 @@ public class SocketClient implements RsyncConstants {
     *
     * @param user The username.
     * @param pass The password.
-    * @return <tt>true</tt> If authentication succeeds.
+    * @return <tt>true</tt> If authentication succeeds. The connection
+    *    will be closed if this method returns false.
     */
    public boolean authenticate(String user, String pass) throws IOException {
       MD4 hash = new MD4();
@@ -268,10 +268,8 @@ public class SocketClient implements RsyncConstants {
       } catch (java.io.UnsupportedEncodingException shouldNeverHappen) { }
       String response = Util.base64(hash.digest());
       Util.writeASCII(out, user + " " + response + '\n');
-      System.out.println("<<<" + user + " " + response);
 
       String reply = Util.readLine(in);
-      System.out.println(">>>" + reply);
       if (reply.startsWith(RSYNCD_OK)) {
          authReqd = false;
          return true;
@@ -301,8 +299,13 @@ public class SocketClient implements RsyncConstants {
       }
       out.write((byte)'\n');
    }
-/*
-   public Client getClient(Configuration config) throws IOException {
+
+   /**
+    * Create an {@link Rsync} object, which will be used from now on to
+    * communicate with the server.
+    *
+    * @param config The {@link Configuration} to use.
+   public Rsync startClient(Configuration config) throws IOException {
       if (remoteVersion >= 12) {
          byte[] seed = new byte[4];
          in.read(seed);
@@ -311,11 +314,10 @@ public class SocketClient implements RsyncConstants {
       if (remoteVersion >= 14) {
          config.setStrongSumLength(2); // adaptive
       }
-      Client c = new Client(config, in, out);
+      Rsync c = new Rsync(config, in, out);
       // Can't use these anymore.
       in = null;
       out = null;
       return c;
    }
- */
 }

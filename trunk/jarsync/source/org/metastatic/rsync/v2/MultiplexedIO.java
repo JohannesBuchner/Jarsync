@@ -24,11 +24,18 @@
 //
 // --------------------------------------------------------------------------
 
-package org.metastatic.rsync;
+package org.metastatic.rsync.v2;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import org.metastatic.rsync.*;
+
+/**
+ * Handle multiplexed I/O for the rsync protocol.
+ *
+ * @version $Revision$
+ */
 public class MultiplexedIO {
 
    // Constants and variables.
@@ -39,12 +46,19 @@ public class MultiplexedIO {
    public static final int FINFO  = 2;
    public static final int FLOG   = 3;
    public static final int MPLEX_BASE = 7;
+   public static final int OUTPUT_BUFFER_SIZE = 4092;
 
    /** The underlying input stream. */
    protected InputStream in;
 
    /** The underlying output stream. */
    protected OutputStream out;
+
+   /** Our output buffer. */
+   protected byte[] outputBuffer;
+
+   /** The number of bytes written to the buffer. */
+   protected int bufferCount;
 
    /** Whether or not to actually multiplex. */
    protected boolean multiplex;
@@ -54,8 +68,10 @@ public class MultiplexedIO {
 
    public MultiplexedIO(InputStream in, OutputStream out, boolean multiplex) {
       this.in = in;
-      this.out = out;
-      this.multiplex = multiplex
+      this.out = new OutputStream(out);
+      this.multiplex = multiplex;
+      outputBuffer = new byte[OUTPUT_BUFFER_SIZE];
+      bufferPos = 0;
    }
 
    // Input methods.
@@ -188,11 +204,78 @@ public class MultiplexedIO {
    // Output methods.
    // -----------------------------------------------------------------------
 
-   public void write(int logcode, byte[] buf) throws IOException {
+   /**
+    * Write a message to the multiplexed error stream.
+    *
+    * @param logcode The log code.
+    * @param message The message.
+    */
+   public void writeMessage(int logcode, String message) throws IOException {
+      if (!multiplex) return;
+      flushOut();
+      write(logcode, message.getBytes("US-ASCII"));
+   }
+
+   public void flushOut() throws IOException {
+      if (bufferCount == 0) return;
+      if (multiplex) {
+         write(FNONE, outputBuffer, 0, bufferCount);
+      } else {
+         out.write(outputBuffer, 0, bufferCount);
+      }
+      bufferCount = 0;
+   }
+
+   public void write(byte[] buf) throws IOException {
+      write(buf, 0, buf.length);
+   }
+
+   public void write(byte[] buf, int off, int len) throws IOException {
+      while (bufferCount + len >= outputBuffer.length) {
+         int count = Math.min(outputBuffer.length - bufferCount, len);
+         System.arraycopy(buf, off, outputBuffer, bufferCount, count);
+         flushOut();
+         off += count;
+         len -= count;
+         bufferCount = 0;
+      }
+      System.arraycopy(buf, off, outputBuffer, bufferCount, len);
+      if (bufferCount == outputBuffer.length) {
+         flushOut();
+      }
+   }
+
+   public void writeInt(int i) throws IOException {
+      byte[] b = new byte[4];
+      b[0] = (byte) (i >>> 24 & 0xff);
+      b[1] = (byte) (i >>> 16 & 0xff);
+      b[2] = (byte) (i >>>  8 & 0xff);
+      b[3] = (byte) (i & 0xff);
+      write(b);
+   }
+
+   public void writeLong(long l) throws IOException {
+      byte[] b = new byte[8];
+      b[0] = (byte) (l >>> 56 & 0xff);
+      b[1] = (byte) (l >>> 48 & 0xff);
+      b[2] = (byte) (l >>> 40 & 0xff);
+      b[3] = (byte) (l >>> 32 & 0xff);
+      b[4] = (byte) (l >>> 24 & 0xff);
+      b[5] = (byte) (l >>> 16 & 0xff);
+      b[6] = (byte) (l >>>  8 & 0xff);
+      b[7] = (byte) (l & 0xff);
+      write(b);
+   }
+
+   public void writeString(String s) throws IOException {
+      write(s.getBytes("US-ASCII"));
+   }
+
+   protected void write(int logcode, byte[] buf) throws IOException {
       write(logcode, buf, 0, buf.length);
    }
 
-   public void
+   protected synchronized void
    write(int logcode, byte[] buf, int off, int len) throws IOException {
       byte[] code = new byte[4];
       code[0] = (byte) (logcode + MPLEX_BASE & 0xff);
@@ -200,6 +283,9 @@ public class MultiplexedIO {
       code[2] = (byte) (len >>>  8 & 0xff);
       code[3] = (byte) (len & 0xff);
 
-      write(code);
+      out.write(code, 0, 4);
+      out.write(buf, off, len);
    }
+
+
 }
