@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl $Id$
 
-AC_INIT(jarsync, 0.2, rsdio@metastatic.org)
+AC_INIT(jarsync, 0.2.1, rsdio@metastatic.org)
 AM_INIT_AUTOMAKE(dist-zip)
 AC_CONFIG_SRCDIR(source/org/metastatic/rsync/Configuration.java)
 
@@ -15,8 +15,8 @@ AC_CHECK_CLASSPATH
 AC_CHECK_PATH_SEPARATOR
 AC_CHECK_FILE_SEPARATOR
 
-PRE_VERSION=
-AC_SUBST(PRE_VERSION)
+DOUBLE_VERSION=0.21
+AC_SUBST(DOUBLE_VERSION)
 
 AC_SUBST(JAVAFLAGS)
 AC_SUBST(JAVACFLAGS)
@@ -32,29 +32,39 @@ AC_SUBST(JAVADOC)
 AC_SUBST(MAKE_CLIENT)
 
 dnl --with and --enable arguments
+dnl AC_ARG_ENABLE([native], AC_HELP_STRING([--enable-native],
+dnl	[Compile to native code with GCJ.]),
+dnl	[make_native=yes], [make_native=no])
 dnl AC_ARG_ENABLE([client-server], AC_HELP_STRING([--enable-client-server],
 dnl	[Build rsync-compatible client/server]),
 dnl	[make_v2=yes], [make_v2=no])
-AC_ARG_WITH(log4j-jar, AC_HELP_STRING([--with-log4j-jar=PATH],
-	[Specify the location of log4j jar]),
-	[log4j_jar=$withval], [log4j_jar=no])
-AC_ARG_WITH(javaunix, AC_HELP_STRING([--with-javaunix-jar],
-	[Specify the location of the JavaUnix jar]),
-	[javaunix_jar=$withval], [javaunix_jar=no])
+dnl AC_ARG_WITH(log4j-jar, AC_HELP_STRING([--with-log4j-jar=PATH],
+dnl 	[Specify the location of log4j jar]),
+dnl	[log4j_jar=$withval], [log4j_jar=no])
+dnl AC_ARG_WITH(javaunix, AC_HELP_STRING([--with-javaunix-jar],
+dnl	[Specify the location of the JavaUnix jar]),
+dnl	[javaunix_jar=$withval], [javaunix_jar=no])
 
 dnl Append extra jars to CLASSPATH
 CLASSPATH=$CLASSPATH${PATH_SEPARATOR}..${FILE_SEPARATOR}classes
-if test $log4j_jar != "yes" -a $log4j_jar != "no"; then
-   CLASSPATH=${CLASSPATH}${PATH_SEPARATOR}${log4j_jar}
-fi
-if test $javaunix_jar != "yes" -a $javaunix_jar != "no"; then
-   CLASSPATH=${CLASSPATH}${PATH_SEPARATOR}${javaunix_jar}
-fi
+dnl if test $log4j_jar != "yes" -a $log4j_jar != "no"; then
+dnl    CLASSPATH=${CLASSPATH}${PATH_SEPARATOR}${log4j_jar}
+dnl fi
+dnl if test $javaunix_jar != "yes" -a $javaunix_jar != "no"; then
+dnl    CLASSPATH=${CLASSPATH}${PATH_SEPARATOR}${javaunix_jar}
+dnl fi
+
+dnl if test "x$make_native" = "xyes"; then
+dnl    AM_PROG_LIBTOOL
+dnl    AM_PROG_GCJ
+dnl fi
+	
+AM_CONDITIONAL(MAKE_NATIVE, test "x$make_native" = "xyes")
 
 dnl Checks for classes.
 
-AC_CHECK_CLASS(org.apache.log4j.Logger, [have_log4j=yes], [have_log4j=no])
-AC_CHECK_CLASS(javaunix.io.UnixFile, [have_javaunix=yes], [have_javaunix=no])
+dnl AC_CHECK_CLASS(org.apache.log4j.Logger, [have_log4j=yes], [have_log4j=no])
+dnl AC_CHECK_CLASS(javaunix.io.UnixFile, [have_javaunix=yes], [have_javaunix=no])
 AC_CHECK_CLASS(java.nio.channels.SocketChannel, [have_nio=yes], [have_nio=no])
 
 AM_CONDITIONAL(HAVE_NIO, test "x$have_nio" = "xyes")
