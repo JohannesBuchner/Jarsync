@@ -12,7 +12,7 @@ docs: FORCE
 	  -sourcepath $(srcdir)/source/:$(srcdir)/getopt/ \
 	  -windowtitle "Jarsync $(VERSION)$(PRE_VERSION) documentation" \
 	  -doctitle "Jarsync $(VERSION)$(PRE_VERSION)" \
-	  -link http://java.sun.com/j2se/1.4.1/docs/api/package-list \
+	  -link http://java.sun.com/j2se/1.4.1/docs/api/ \
 	  -group "Jarsync API" org.metastatic.rsync \
 	  -group "Jarsync Client and Server" org.metastatic.rsync.v2 \
 	  -group "Java Getopt" gnu.getopt org.metastatic.rsync \
