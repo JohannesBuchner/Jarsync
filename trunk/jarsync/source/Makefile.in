@@ -21,7 +21,8 @@ sources = \
   org/metastatic/rsync/RollingChecksum.java \
   org/metastatic/rsync/RsyncConstants.java \
   org/metastatic/rsync/TwoKeyMap.java \
-  org/metastatic/rsync/Util.java
+  org/metastatic/rsync/Util.java \
+  org/metastatic/rsync/version.java
 
 classes = $(patsubst %.java,../classes/%.class,$(sources))
 

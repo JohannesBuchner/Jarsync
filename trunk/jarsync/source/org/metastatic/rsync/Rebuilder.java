@@ -2,7 +2,7 @@
 // $Id$
 //
 // Rebuilder -- File reconstruction from deltas.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -45,8 +45,10 @@
 
 package org.metastatic.rsync;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
 
 import java.util.*;
@@ -68,8 +70,89 @@ public class Rebuilder
    /** The suffix for temporary files. */
    private static final String TMP_SUFFIX = ".temp";
 
+   // Inner class.
+   // -----------------------------------------------------------------------
+
+   public static interface OutputCallback {
+
+      /**
+       * Write <i>len</i> bytes from <i>buf</i> at offset <i>offset</i>.
+       */
+      void write(long offset, byte[] buf, int len);
+   }
+
    // Class methods.
    // -----------------------------------------------------------------------
+
+   /**
+    * Reconstruct data into a new byte array.
+    *
+    * @param buf The original data.
+    * @param deltas The deltas to apply.
+    * @return The reconstructed data.
+    */
+   public static byte[] rebuild(byte[] buf, Collection deltas) {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      try {
+         rebuild(baos, buf, deltas);
+      } catch (IOException shouldNotHappen) {
+      }
+      return baos.toByteArray();
+   }
+
+   /**
+    * Reconstruct data into an output stream.
+    *
+    * @param out The sink for reconstructed data.
+    * @param buf The original data.
+    * @param deltas The deltas to apply.
+    */
+   public static void rebuild(OutputStream out, byte[] buf, Collection deltas)
+   throws IOException
+   {
+      Delta[] darray = (Delta[]) deltas.toArray(new Delta[0]);
+      Arrays.sort(darray, new OffsetComparator());
+      
+      for (int i = 0; i < darray.length; i++) {
+         if (darray[i] instanceof DataBlock) {
+            out.write(((DataBlock) darray[i]).getData());
+         } else {
+            out.write(buf, (int) ((Offsets) darray[i]).getOldOffset(),
+                      darray[i].getBlockLength());
+         }
+      }
+   }
+
+   /**
+    * Reconstruct a file into an output stream.
+    *
+    * @param out     The sink for reconstructed data.
+    * @param oldFile The original file.
+    * @param deltas  The deltas to apply.
+    */
+   public static void
+   rebuild(OutputStream out, File oldFile, Collection deltas)
+   throws IOException
+   {
+      RandomAccessFile f = new RandomAccessFile(oldFile, "r");
+      Delta[] darray = (Delta[]) deltas.toArray(new Delta[0]);
+      Arrays.sort(darray, new OffsetComparator());
+      byte[] buf = new byte[1024];
+      
+      for (int i = 0; i < darray.length; i++) {
+         if (darray[i] instanceof DataBlock) {
+            out.write(((DataBlock) darray[i]).getData());
+         } else {
+            f.seek(((Offsets) darray[i]).getOldOffset());
+            int len = 0, total = 0;
+            do {
+               len = f.read(buf);
+               total += len;
+               out.write(buf, 0, len);
+            } while (total < darray[i].getBlockLength());
+         }
+      }
+   }
 
    /**
     * Reconstruct a file into a new file created with {@link
@@ -247,7 +330,7 @@ public class Rebuilder
                + o2.getBlockLength());
    }
 
- // Inner classes.
+ // Private inner classes.
    // -----------------------------------------------------------------------
 
    /**

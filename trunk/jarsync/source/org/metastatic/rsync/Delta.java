@@ -2,7 +2,7 @@
 // $Id$
 //
 // Delta: An update to a file.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -50,6 +50,8 @@ package org.metastatic.rsync;
  * of bytes and an offset, or (2) a pair of offsets, one old and one
  * new.
  *
+ * @see DataBlock
+ * @see Offsets
  * @version $Revision$
  */
 public interface Delta {

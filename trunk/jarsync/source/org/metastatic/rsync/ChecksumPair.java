@@ -158,14 +158,30 @@ public class ChecksumPair implements java.io.Serializable {
       return strong;
    }
 
+   /**
+    * Return the offset from where this checksum pair was generated.
+    *
+    * @return The offset.
+    */
    public long getOffset() {
       return offset;
    }
 
+   /**
+    * Return the length of the data for which this checksum pair was
+    * generated.
+    *
+    * @return The length.
+    */
    public int getLength() {
       return length;
    }
 
+   /**
+    * Return the sequence number of this checksum pair, if any.
+    *
+    * @return The sequence number.
+    */
    public int getSequence() {
       return seq;
    }

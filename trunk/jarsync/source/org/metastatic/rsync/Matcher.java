@@ -65,13 +65,15 @@ public final class Matcher implements RsyncConstants {
    // -----------------------------------------------------------------
 
    /** Our configuration. */
-   protected Configuration config;
+   protected final Configuration config;
 
    // Constructors.
    // -----------------------------------------------------------------
 
    /**
     * Create a matcher with the specified configuration.
+    *
+    * @param config The {@link Configuration} for this Matcher.
     */
    public Matcher(Configuration config) {
       this.config = config;

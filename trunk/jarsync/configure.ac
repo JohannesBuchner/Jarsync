@@ -1,7 +1,10 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl $Id$
 
-AC_INIT(jarsync, 0.1)
+AC_INIT(jarsync, 0.2)
+
+PRE_VERSION='pre1'
+AC_SUBST(PRE_VERSION)
 
 AC_SUBST(COMPILER)
 AC_SUBST(TEST_CFLAGS)
@@ -9,6 +12,8 @@ AC_SUBST(CFLAGS)
 AC_SUBST(JAR)
 AC_SUBST(COMPRESS)
 AC_SUBST(COMPRESS_SUFFIX)
+AC_SUBST(SHELL)
+AC_SUBST(JAVA)
 AC_PROG_MAKE_SET
 
 dnl --with arguments
@@ -60,10 +65,30 @@ elif test $compress_prog = "bzip2" -a -z "$COMPRESS_SUFFIX"; then
 	COMPRESS_SUFFIX=bz2
 fi
 
-AC_PATH_PROG(COMPRESS, $compress_prog, no)
+AC_PATH_PROG(COMPRESS, $compress_prog, [no])
 if test $COMPRESS = "no"; then 
 	AC_MSG_WARN([no `$compress_prog' found, this will break `make dist'])
 	unset COMPRESS
 fi
 
-AC_OUTPUT(Makefile source/Makefile getopt/Makefile)
+AC_PATH_PROG(JAVA,  [java], [no])
+AC_PATH_PROG(SHELL, [sh],   [no])
+
+dnl  For Mauve.
+SRCDIR=.
+TMPDIR=/tmp
+CHECK_PATH_SEPARATOR=':'
+CHECK_FILE_SEPARATOR='/'
+AC_SUBST(SRCDIR)
+AC_SUBST(TMPDIR)
+AC_SUBST(CHECK_PATH_SEPARATOR)
+AC_SUBST(CHECK_FILE_SEPARATOR)
+
+AC_OUTPUT([
+  Makefile
+  getopt/Makefile
+  source/Makefile
+  source/org/metastatic/rsync/version.java
+  test/Makefile
+  test/gnu/testlet/config.java
+])

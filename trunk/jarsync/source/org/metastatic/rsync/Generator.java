@@ -67,7 +67,7 @@ public class Generator implements RsyncConstants {
     * Our configuration. Contains such things as our rolling checksum
     * and message digest.
     */
-   protected Configuration config;
+   protected final Configuration config;
 
    // Constructors.
    // ------------------------------------------------------------------------

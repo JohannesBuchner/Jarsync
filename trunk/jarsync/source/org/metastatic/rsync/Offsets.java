@@ -2,7 +2,7 @@
 // $Id$
 //
 // Offsets: A block of data that has simply moved.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -58,8 +58,6 @@ public class Offsets implements Delta, java.io.Serializable {
 
  // Constants and variables
    // ------------------------------------------------------------------------
-
-   public static final String RCSID = "$Id$";
 
    private static final long serialVersionUID = 2787420454508237262L;
 

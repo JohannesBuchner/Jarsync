@@ -2,7 +2,7 @@
 // $Id$
 // 
 // TwoKeyMap: Two-key Map implementation.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -97,15 +97,13 @@ public class TwoKeyMap implements java.io.Serializable, Map {
    // Constants and variables.
    // -----------------------------------------------------------------
 
-   public static final String RCSID = "$Id$";
-
    /**
     * The sub-tables whose keys are the larger, stronger keys. The
     * index of this array is the shorter, weaker key.
     *
     * @since 1.1
     */
-   protected SubTable[] tables;
+   protected final SubTable[] tables;
 
    // Inner classes.
    // -----------------------------------------------------------------

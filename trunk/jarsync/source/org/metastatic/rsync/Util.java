@@ -6,7 +6,7 @@
 //
 // Util -- Basic utility functions.
 // Copyright (C) 2001,2002  The Free Software Foundation, Inc.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //

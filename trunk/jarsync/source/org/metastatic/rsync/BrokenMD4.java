@@ -5,7 +5,7 @@
 //
 // MD4: The MD4 message digest algorithm.
 // Copyright (C) 2002 The Free Software Foundation, Inc.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -81,8 +81,6 @@ public final class BrokenMD4 extends MD4 implements Cloneable {
    // Constants and variables.
    // -----------------------------------------------------------------
  
-   public static final String RCSID = "$Id";
-
  // Constructors.
    // -----------------------------------------------------------------
 
@@ -104,7 +102,7 @@ public final class BrokenMD4 extends MD4 implements Cloneable {
       this.c = that.c;
       this.d = that.d;
       this.count = that.count;
-      this.buffer = (byte[]) that.buffer.clone();
+      System.arraycopy(that.buffer, 0, this.buffer, 0, BLOCK_LENGTH);
    }
 
    // java.lang.Cloneable interface implementation --------------------
@@ -147,7 +145,7 @@ public final class BrokenMD4 extends MD4 implements Cloneable {
       byte[] pad = new byte[padding + 8];
 
       pad[0] = (byte) 0x80;
-      long bits = count << 3;
+      int bits = (int)(count << 3);
       pad[padding++] = (byte)  bits;
       pad[padding++] = (byte) (bits >>>  8);
       pad[padding++] = (byte) (bits >>> 16);

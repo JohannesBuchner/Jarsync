@@ -27,6 +27,7 @@ SOURCES = \
   source/org/metastatic/rsync/RsyncConstants.java \
   source/org/metastatic/rsync/TwoKeyMap.java \
   source/org/metastatic/rsync/Util.java \
+  source/org/metastatic/rsync/version.java \
   source/org/metastatic/rsync/v2/ConsoleClient.java \
   source/org/metastatic/rsync/v2/Logger.java \
   source/org/metastatic/rsync/v2/MultiplexedInputStream.java \
@@ -48,7 +49,8 @@ TEST_PROG = test.class test2.class test3.class
 distfiles = $(SOURCES) $(TEST_SRC) AUTHORS COPYING ChangeLog LICENSE \
   Makefile.in README TODO configure configure.ac mutate.pl ChangeLog \
   build.xml source/Makefile.in rdiff rdiff.magic getopt/COPYING getopt/README \
-  getopt/Makefile.in getopt/ChangeLog
+  getopt/Makefile.in getopt/ChangeLog \
+  source/org/metastatic/rsync/version.java.in
 
 version = @PACKAGE_VERSION@
 package = @PACKAGE_NAME@
@@ -62,12 +64,12 @@ lib/jarsync.jar: $(SOURCES)
 	-mkdir classes
 	$(MAKE) -C getopt compile
 	$(MAKE) -C source compile
-	cd classes && $(JAR) cf ../lib/jarsync.jar org gnu
+	cd classes && $(JAR) cf ../lib/jarsync.jar org gnu/getopt
 
 test: lib/jarsync.jar $(TEST_PROG)
 
-$(TEST_PROG): %.class: %.java
-	$(COMPILER) $(CFLAGS) $<
+check: lib/jarsync.jar
+	$(MAKE) -C test check
 
 dist: $(distdir)
 	tar cf $(distdir).tar $(distdir)

@@ -2,7 +2,7 @@
 // $Id$
 //
 // Rdiff - rdiff workalike program.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -71,17 +71,17 @@ public class Rdiff implements RsyncConstants {
 
    /** The long options. */
    protected static final LongOpt[] LONGOPTS = new LongOpt[] {
-      new LongOpt("block-size", LongOpt.REQUIRED_ARGUMENT, null, 'b'),
-      new LongOpt("bzip2", LongOpt.OPTIONAL_ARGUMENT, null, 'i'),
-      new LongOpt("help", LongOpt.NO_ARGUMENT, null, 'h'),
-      new LongOpt("input-size", LongOpt.REQUIRED_ARGUMENT, null, 'I'),
-      new LongOpt("gzip", LongOpt.OPTIONAL_ARGUMENT, null, 'z'),
+      new LongOpt("block-size",  LongOpt.REQUIRED_ARGUMENT, null, 'b'),
+      new LongOpt("bzip2",       LongOpt.OPTIONAL_ARGUMENT, null, 'i'),
+      new LongOpt("help",        LongOpt.NO_ARGUMENT, null, 'h'),
+      new LongOpt("input-size",  LongOpt.REQUIRED_ARGUMENT, null, 'I'),
+      new LongOpt("gzip",        LongOpt.OPTIONAL_ARGUMENT, null, 'z'),
       new LongOpt("output-size", LongOpt.REQUIRED_ARGUMENT, null, 'O'),
-      new LongOpt("paranoia", LongOpt.NO_ARGUMENT, null, 'p'),
-      new LongOpt("statistics", LongOpt.NO_ARGUMENT, null, 's'),
-      new LongOpt("sum-size", LongOpt.REQUIRED_ARGUMENT, null, 'S'),
-      new LongOpt("verbose", LongOpt.NO_ARGUMENT, null, 'v'),
-      new LongOpt("version", LongOpt.NO_ARGUMENT, null, 'V')
+      new LongOpt("paranoia",    LongOpt.NO_ARGUMENT, null, 'p'),
+      new LongOpt("statistics",  LongOpt.NO_ARGUMENT, null, 's'),
+      new LongOpt("sum-size",    LongOpt.REQUIRED_ARGUMENT, null, 'S'),
+      new LongOpt("verbose",     LongOpt.NO_ARGUMENT, null, 'v'),
+      new LongOpt("version",     LongOpt.NO_ARGUMENT, null, 'V')
    };
 
    /** The `signature' command. */
@@ -504,9 +504,12 @@ public class Rdiff implements RsyncConstants {
     */
    public Collection makeSignatures(InputStream in)
    throws IOException, NoSuchAlgorithmException {
-      Generator gen = new Generator(new Configuration(
-         MessageDigest.getInstance("MD4"), new Checksum32(), blockLength));
-      return gen.generateSums(in);
+      Configuration c = new Configuration();
+      c.strongSum = MessageDigest.getInstance("MD4");
+      c.weakSum = new Checksum32();
+      c.blockLength = blockLength;
+      c.strongSumLength = c.strongSumLength;
+      return new Generator(c).generateSums(in);
    }
 
    /**
@@ -579,11 +582,12 @@ public class Rdiff implements RsyncConstants {
    public Collection
    makeDeltas(Collection sums, InputStream in)
    throws IOException, NoSuchAlgorithmException {
-      Configuration config = new Configuration(
-         MessageDigest.getInstance("MD4"), new Checksum32(), blockLength);
-      config.setStrongSumLength(strongSumLength);
-      Matcher m = new Matcher(config);
-      return m.hashSearch(sums, in);
+      Configuration c = new Configuration();
+      c.strongSum = MessageDigest.getInstance("MD4");
+      c.weakSum = new Checksum32();
+      c.blockLength = blockLength;
+      c.strongSumLength = strongSumLength;
+      return new Matcher(c).hashSearch(sums, in);
    }
 
    /**
@@ -696,7 +700,7 @@ public class Rdiff implements RsyncConstants {
     * @param out The PrintStream to write to.
     */
    private static void version(PrintStream out) {
-      out.println(PROGNAME + " (Jarsync " + JARSYNC_VERSION + ")");
+      out.println(PROGNAME + " (Jarsync " + version.VERSION + ")");
       out.println("Copyright (C) 2002 Casey Marshall.");
       out.println();
       out.println("Jarsync comes with NO WARRANTY, to the extent permitted by law.");

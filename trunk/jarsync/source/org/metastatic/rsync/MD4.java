@@ -5,7 +5,7 @@
 //
 // MD4: The MD4 message digest algorithm.
 // Copyright (C) 2002 The Free Software Foundation, Inc.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -76,8 +76,6 @@ public class MD4 extends MessageDigestSpi implements Cloneable {
    // Constants and variables.
    // -----------------------------------------------------------------
  
-   public static final String RCSID = "$Id$";
- 
    /**
     * An MD4 message digest is always 128-bits long, or 16 bytes.
     */
@@ -96,12 +94,12 @@ public class MD4 extends MessageDigestSpi implements Cloneable {
    /* The four chaining variables. */
    protected int a, b, c, d;
 
-   protected int count;
+   protected long count;
 
-   protected byte[] buffer;
+   protected final byte[] buffer;
 
    /** Word buffer for transforming. */
-   private final int[] X = new int[DIGEST_LENGTH];
+   private final int[] X = new int[16];
 
  // Constructors.
    // -----------------------------------------------------------------
@@ -125,7 +123,7 @@ public class MD4 extends MessageDigestSpi implements Cloneable {
       this.c = that.c;
       this.d = that.d;
       this.count = that.count;
-      this.buffer = (byte[]) that.buffer.clone();
+      System.arraycopy(that.buffer, 0, this.buffer, 0, BLOCK_LENGTH);
    }
 
    // java.lang.Cloneable interface implementation --------------------
@@ -203,6 +201,7 @@ public class MD4 extends MessageDigestSpi implements Cloneable {
    protected void engineReset() {
       a = A; b = B;
       c = C; d = D;
+      count = 0;
    }
 
    /**

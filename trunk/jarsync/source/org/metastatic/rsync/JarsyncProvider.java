@@ -1,7 +1,7 @@
 // vim:set tw=72 expandtab softtabstop=3 shiftwidth=3 tabstop=3:
 // $Id$
 //
-// Copyright (C) 2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2002,2003  Casey Marshall <rsdio@metastatic.org>
 // 
 // This file is a part of Jarsync.
 //
@@ -50,7 +50,8 @@ package org.metastatic.rsync;
  */
 public final class JarsyncProvider extends java.security.Provider {
    public JarsyncProvider() {
-      super("JARSYNC", 0.04, "Jarsync provider; implementing MD4, BrokenMD4");
+      super("JARSYNC", version.VERSION_DOUBLE,
+            "Jarsync provider; implementing MD4, BrokenMD4");
 
       put("MessageDigest.MD4",       "org.metastatic.rsync.MD4");
       put("MessageDigest.BrokenMD4", "org.metastatic.rsync.BrokenMD4");

@@ -2,7 +2,7 @@
 // $Id$
 //
 // DataBlock: A new block of data to insert.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -56,8 +56,6 @@ public class DataBlock implements Delta, java.io.Serializable {
 
    // Constants and variables.
    // -----------------------------------------------------------------
-
-   public static final String RCSID = "$Id$";
 
    private static final long serialVersionUID = -3132452687703522201L;
 

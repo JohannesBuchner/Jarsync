@@ -52,7 +52,7 @@ package org.metastatic.rsync;
  */
 public interface RsyncConstants {
 
-   public static final String JARSYNC_VERSION = "0.0.4";
+   public static final String JARSYNC_VERSION = "0.2";
 
    /** The strong checksum length. */
    public static final int SUM_LENGTH = MD4.DIGEST_LENGTH;

@@ -2,7 +2,7 @@
 // $Id$
 // 
 // Checksum32: A simple, "rolling" checksum based on Adler32.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -61,14 +61,10 @@ public class Checksum32 implements RollingChecksum, Cloneable {
    // Constants and variables.
    // -----------------------------------------------------------------
 
-   public static final String RCSID = "$Id$";
-
    // XXX The char offset is (apparently) a variable quantity in this
    // type of checksum; this value (31) make it compatible with rsync
    // and librsync, but other values may be used depending on context.
    //
-   // Plus there ARE other checksums that have the "rolling" property,
-   // and we could generalize this to use any of them.
    private static final short CHAR_OFFSET = 31;
 
    /**

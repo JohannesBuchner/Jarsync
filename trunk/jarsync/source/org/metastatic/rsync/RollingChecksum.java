@@ -1,8 +1,8 @@
 // vim:set tw=72 expandtab softtabstop=3 shiftwidth=3 tabstop=3:
 // $Id$
 // 
-// RollingChecksum: A simple, "rolling" checksum based on Adler32.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// RollingChecksum: interface to a "rolling" checksum.
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -88,9 +88,9 @@ public interface RollingChecksum {
    /**
     * Replaces the current internal state with entirely new data.
     *
-    * @buf The bytes to checksum.
-    * @offset The offset into <code>buf</code> to start reading.
-    * @length The number of bytes to update.
+    * @param buf    The bytes to checksum.
+    * @param offset The offset into <code>buf</code> to start reading.
+    * @param length The number of bytes to update.
     */
    void check(byte[] buf, int offset, int length);
 

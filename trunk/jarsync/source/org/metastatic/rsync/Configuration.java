@@ -2,7 +2,7 @@
 // $Id$
 //
 // Configuration -- Wrapper around configuration data.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -53,10 +53,16 @@ import java.security.NoSuchAlgorithmException;
  * compose a particular configuration for the algorithm, for example the
  * message digest that computes the strong checksum.
  *
+ * <p>Usage of a Configuration involves setting the member fields of
+ * this object to thier appropriate values; thus, it is up to the
+ * programmer to specify the {@link #strongSum}, {@link #weakSum},
+ * {@link #blockLength} and {@link #strongSumLength} to be used. The
+ * other fields are optional.</p>
+ *
  * @author Casey Marshall
  * @version $Revision$
  */
-public class Configuration implements RsyncConstants {
+public class Configuration {
 
    // Constants and variables.
    // ------------------------------------------------------------------------
@@ -64,147 +70,37 @@ public class Configuration implements RsyncConstants {
    /**
     * The message digest that computes the stronger checksum.
     */
-   MessageDigest strongSum;
+   public MessageDigest strongSum;
 
    /**
     * The rolling checksum.
     */
-   RollingChecksum weakSum;
+   public RollingChecksum weakSum;
 
    /**
     * The length of blocks to checksum.
     */
-   int blockLength;
+   public int blockLength;
 
    /**
     * The effective length of the strong sum.
     */
-   int strongSumLength;
+   public int strongSumLength;
 
    /**
     * Whether or not to do run-length encoding when making Deltas.
     */
-   boolean doRunLength;
+   public boolean doRunLength;
 
    /**
     * The seed for the checksum, to perturb the strong checksum and help
     * avoid collisions in plain rsync (or in similar applicaitons).
     */
-   byte[] checksumSeed;
+   public byte[] checksumSeed;
 
    // Constructors.
    // ------------------------------------------------------------------------
 
-   /**
-    * Create a configuration using a block length of 700.
-    */
-   public Configuration() {
-      this(BLOCK_LENGTH);
-   }
+   // Default 0-arguments constructor.
 
-   /**
-    * Create a configuration with a particular block length and the MD4
-    * message digest algorithm.
-    *
-    * @param blockLength The size of blocks to checksum.
-    */
-   public Configuration(int blockLength) {
-      this.blockLength = blockLength;
-   }
-
-   public Configuration(MessageDigest strongSum, RollingChecksum weakSum) {
-      this(strongSum, weakSum, BLOCK_LENGTH);
-   }
-
-   public Configuration(MessageDigest strongSum, RollingChecksum weakSum,
-                        int blockLength)
-   {
-      this.strongSum = strongSum;
-      this.weakSum = weakSum;
-      this.blockLength = blockLength;
-      strongSumLength = strongSum.getDigestLength();
-   }
-
-   // Instance methods.
-   // -------------------------------------------------------------------------
-
-   public void setStrongSum(MessageDigest strongSum) {
-      this.strongSum = strongSum;
-      strongSumLength = strongSum.getDigestLength();
-   }
-
-   public void setWeakSum(RollingChecksum weakSum) {
-      this.weakSum = weakSum;
-   }
-
-   /**
-    * Set whether or not to do run-length encoding while generating
-    * deltas.
-    *
-    * @param doRunLength Whether or not to do RLE.
-    */
-   public void setDoRunLength(boolean doRunLength) {
-      this.doRunLength = doRunLength;
-   }
-
-   /**
-    * Return whether or not to do run-length encoding.
-    *
-    * @return Whether or not to do RLE.
-    */
-   public boolean getDoRunLength() {
-      return doRunLength;
-   }
-
-   /**
-    * Set the effective length of the strong sum (the first
-    * <code>strongSumLength</code> bytes of the strong sum).
-    *
-    * @param strongSumLength The sum length.
-    */
-   public void setStrongSumLength(int strongSumLength) {
-      this.strongSumLength = strongSumLength;
-   }
-
-   /**
-    * Get the effective length of the strong sum.
-    *
-    * @return The effective length of the strong sum.
-    */
-   public int getStrongSumLength() {
-      return strongSumLength;
-   }
-
-   /**
-    * Set the checksum seed. This can be <code>null</code> for the case
-    * of no checksum. The byte array is clone()d if non-null.
-    *
-    * @param seed The seed.
-    */
-   public void setChecksumSeed(byte[] seed) {
-      if (seed == null) {
-         checksumSeed = null;
-      } else {
-         checksumSeed = (byte[]) seed.clone();
-      }
-   }
-
-   /**
-    * Get the checksum seed.
-    *
-    * @return The checksum seed, or <code>null</code> if there is none.
-    */
-   public byte[] getChecksumSeed() {
-      return checksumSeed;
-   }
-
-   public void setBlockLength(int blockLength)
-   {
-      this.blockLength = blockLength;
-   }
-
-   public int getBlockLength()
-   {
-      return blockLength;
-   }
 }
