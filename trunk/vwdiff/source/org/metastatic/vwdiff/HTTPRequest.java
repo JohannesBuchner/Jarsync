@@ -27,13 +27,16 @@ with vwdiff; if not, write to the
 
 package org.metastatic.vwdiff;
 
-import java.io.InputStream;
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.Reader;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
 import java.util.HashMap;
+
+import org.apache.log4j.Logger;
 
 /**
  * An HTTP request coming from a client. This class provides basic
@@ -44,6 +47,8 @@ public class HTTPRequest {
 
    // Constants and fields.
    // -----------------------------------------------------------------------
+
+   private static final Logger logger = Logger.getLogger(HTTPRequest.class);
 
    private String method;
    private URI uri;
@@ -60,11 +65,13 @@ public class HTTPRequest {
    // Class methods.
    // -----------------------------------------------------------------------
 
-   public HTTPRequest parse(InputStream in) throws IOException {
+   public static HTTPRequest parse(Reader in) throws IOException {
       HTTPRequest req = new HTTPRequest();
       int c;
       StringBuffer buf = new StringBuffer();
       while ((c = in.read()) != ' ') {
+         if (c == -1)
+            throw new EOFException();
          if (Character.isLetter((char) c) && Character.isUpperCase((char) c))
             buf.append((char) c);
          else
@@ -72,8 +79,10 @@ public class HTTPRequest {
       }
       req.method = buf.toString();
       buf.setLength(0);
-      
+
       while ((c = in.read()) != ' ') {
+         if (c == -1)
+            throw new EOFException();
          buf.append((char) c);
       }
       try {
@@ -82,26 +91,33 @@ public class HTTPRequest {
          throw new HTTPException("Malformed URI");
       }
       buf.setLength(0);
-      
-      while ((c = in.read()) != ' ') {
+
+      while ((c = in.read()) != '\r') {
+         if (c == -1)
+            throw new EOFException();
          if (Character.isLetterOrDigit((char) c) || c == '/' || c == '.')
             buf.append((char) c);
          else
             throw new HTTPException("Malformed HTTP version");
       }
+      if (in.read() != '\n')
+         throw new HTTPException("Malformed HTTP version");
       req.version = buf.toString();
-      buf.setLength(0);
 
       do {
-         while ((c = in.read()) != '\r')
+         buf.setLength(0);
+         while ((c = in.read()) != '\r') {
+            if (c == -1)
+               throw new EOFException();
             buf.append((char) c);
+         }
          if (in.read() != '\n')
             throw new HTTPException("Malformed header");
          if (buf.length() > 0) {
             if (buf.indexOf(":") < 0)
                throw new HTTPException("Malformed header");
             String name = buf.substring(0, buf.indexOf(":"));
-            String value = buf.substring(buf.indexOf(":") + 1);
+            String value = buf.substring(buf.indexOf(":") + 1).trim();
             req.headers.put(name, value);
          }
       } while (buf.length() > 0);

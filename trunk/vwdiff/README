@@ -1,8 +1,21 @@
-This is the Visual Web Differ, or vwdiff.
+This is the Visual Web Differencer, or vwdiff.
 
-Vwdiff is a utility for tracking the incremental changes of files that
-exist on the internet. It periodically reads a list of URLs and compares
-the data presented there with the data fetched earlier, then produces a
-terse report of the apparent differences between these versions. The
-report can be viewed via a minimal builtin web server with an ordinary
-web browser.
+	Vwdiff is a utility for tracking the incremental changes of
+files that exist on the internet. It periodically reads a list of URLs
+and compares the data presented there with the data fetched earlier,
+then produces a terse report of the apparent differences between these
+versions. The report can be viewed via a minimal builtin web server with
+an ordinary web browser.
+
+	Why? Simply enough to provide a way to summarize how a
+collection of web pages change over time, so one can, with a glance, see
+if any favorite pages have any new content. And, since certain pages
+make use of dynamic content, we calculate a percentage of data blocks
+that are new, and get some idea of the newness of the page in question
+by this percentage.
+
+PREREQUISITES
+
+	The only prerequisite is the Jarsync delta compression library,
+available at http://jarsync.sourceforge.net/. Version 0.2 or later will
+do.

@@ -27,10 +27,26 @@ with vwdiff; if not, write to the
 
 package org.metastatic.vwdiff;
 
+import java.io.FileWriter;
+import java.io.IOException;
+
+import java.util.Iterator;
+
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
 
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.WriterAppender;
+
+import org.metastatic.rsync.ParameterException;
+import org.metastatic.rsync.Parameters;
+
 public final class Main {
+
+   private static final Logger logger =
+      Logger.getLogger("org.metastatic.vwdiff");
 
    // Class methods.
    // -----------------------------------------------------------------------
@@ -58,6 +74,77 @@ public final class Main {
          case '?':
             System.err.println("Try `vwdiff --help' for more info.");
             System.exit(1);
+      }
+
+      Config conf = new Config();
+      Parameters p = new Parameters(conf);
+      try {
+         p.begin(conffile);
+         while (true) {
+            try {
+               p.parse();
+               break;
+            } catch (ParameterException pe) {
+               System.err.println("WARNING: bad configuration file: " +
+                  pe.getMessage());
+            } catch (IllegalArgumentException iae) {
+               System.err.println("WARNING: bad configuration file: " +
+                  iae.getMessage());
+            }
+         }
+      } catch (IOException ioe) {
+         System.err.println("Could not load config file " + conffile
+            + ": " + ioe.getMessage());
+         System.exit(1);
+      }
+      p = null;
+
+      try {
+         PatternLayout layout = new PatternLayout("%d: %m%n");
+         if (conf.debug) {
+            logger.addAppender(new ConsoleAppender(layout));
+         } else if (conf.logfile != null) {
+            logger.addAppender(new WriterAppender(layout,
+               new FileWriter(conf.logfile)));
+         }
+      } catch (IOException ioe) {
+         System.err.println("Error creating logger: " + ioe.getMessage());
+         System.exit(1);
+      }
+
+      try {
+         Thread server = new Thread(new Server(conf));
+         server.start();
+      } catch (IOException ioe) {
+         System.err.println("Error binding server: " + ioe.getMessage());
+         System.exit(1);
+      }
+
+      try {
+         conf.mergeSaved();
+      } catch (IOException ioe) {
+         logger.warn("could not load stored data: " + ioe.getMessage());
+      }
+
+      while (true) {
+         logger.info("beginning run");
+         long now = System.currentTimeMillis();
+         for (Iterator i = conf.targets.values().iterator(); i.hasNext(); ) {
+            Target t = (Target) i.next();
+            t.update(false);
+         }
+         try {
+            conf.store();
+         } catch (Exception e) {
+            logger.warn("could not store data: " + e.getMessage());
+         }
+         try {
+            long elapsed = System.currentTimeMillis() - now;
+            logger.info("ended run; elapsed time=" + (elapsed / 1000) + " seconds");
+            if (elapsed < 3600000)
+               Thread.sleep(3600000 - elapsed);
+         } catch (InterruptedException ie) {
+         }
       }
    }
 

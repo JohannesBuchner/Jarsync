@@ -12,11 +12,13 @@ EXTRA_DIST = $(sources)
 sources = \
   $(srcdir)/com/keypoint/PngEncoder.java \
   $(srcdir)/com/keypoint/PngEncoderB.java \
+  $(srcdir)/org/metastatic/vwdiff/AuthFile.java \
   $(srcdir)/org/metastatic/vwdiff/Config.java \
   $(srcdir)/org/metastatic/vwdiff/HTTPException.java \
   $(srcdir)/org/metastatic/vwdiff/HTTPRequest.java \
   $(srcdir)/org/metastatic/vwdiff/HTTPResponse.java \
   $(srcdir)/org/metastatic/vwdiff/Target.java \
+  $(srcdir)/org/metastatic/vwdiff/Server.java \
   $(srcdir)/org/metastatic/vwdiff/Main.java \
   $(srcdir)/org/metastatic/vwdiff/version.java
 

@@ -81,19 +81,20 @@ public class HTTPResponse {
       this.body.write(body, 0, body.length);
    }
 
-   public void writeBody(String str) {
-      writeBody(str.getBytes());
+   public void writeBody(String str) throws IOException {
+      writeBody(str.getBytes("UTF-8"));
    }
 
    public void writeBody(Throwable t) {
       t.printStackTrace(new PrintStream(body));
    }
 
-   public void write(OutputStream out) throws IOException {
+   public synchronized void write(OutputStream out) throws IOException {
       String rp = reasonPhrase(status);
       if (rp == null)
          throw new HTTPException("Bad status code " + status);
       write(out, version + " " + status + " " + rp);
+      setHeader("Content-Length", Integer.toString(body.size()));
       for (Iterator i = headers.keySet().iterator(); i.hasNext(); ) {
          String name = (String) i.next();
          write(out, name + ": " + (String) headers.get(name));
@@ -105,7 +106,7 @@ public class HTTPResponse {
    // Own methods.
    // -----------------------------------------------------------------------
 
-   private static void write(OutputStream out, String value) throws IOException 
+   private static void write(OutputStream out, String value) throws IOException
    {
       if (value != null)
          out.write(value.getBytes());

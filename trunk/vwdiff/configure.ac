@@ -32,6 +32,9 @@ AC_CHECK_CLASS(org.metastatic.rsync.Configuration, [have_jarsync=yes],
 JARSYNC_JAR=$jarsync_jar
 AC_SUBST(JARSYNC_JAR)
 
+AC_CHECK_CLASS(org.apache.log4j.Logger, ,
+	AC_MSG_ERROR([Log4j is not available.]))
+
 mkdir classes
 
 AC_OUTPUT([
