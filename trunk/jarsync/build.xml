@@ -63,7 +63,8 @@
    <target name="compile" depends="configure">
       <javac destdir="${classes.dir}" debug="${debug}"
          optimize="${optimize}" srcdir="${src.dir}"
-         includes="org/metastatic/rsync/*.java" fork="yes"/>
+         includes="org/metastatic/rsync/*.java" fork="yes"
+	 classpath="lib/getopt.jar" />
    </target>
 
    <target name="test" depends="jar">
