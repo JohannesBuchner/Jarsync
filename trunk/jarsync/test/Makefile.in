@@ -18,6 +18,7 @@ mauve_classes = $(patsubst %.java,../classes/%.class,$(mauve_sources))
 
 test_sources = \
   gnu/testlet/org/metastatic/rsync/SimpleTest.java \
+  gnu/testlet/org/metastatic/rsync/TestOfChecksum32.java \
   gnu/testlet/org/metastatic/rsync/TestOfBrokenMD4.java \
   gnu/testlet/org/metastatic/rsync/TestOfMD4.java
 
