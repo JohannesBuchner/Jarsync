@@ -61,11 +61,7 @@ public class Checksum32 implements RollingChecksum, Cloneable {
    // Constants and variables.
    // -----------------------------------------------------------------
 
-   // XXX The char offset is (apparently) a variable quantity in this
-   // type of checksum; this value (31) make it compatible with rsync
-   // and librsync, but other values may be used depending on context.
-   //
-   private static final short CHAR_OFFSET = 31;
+   private final short char_offset;
 
    /**
     * The first half of the checksum.
@@ -120,9 +116,19 @@ public class Checksum32 implements RollingChecksum, Cloneable {
  // Constructors.
    // -----------------------------------------------------------------
 
-   public Checksum32() {
+   /**
+    * Creates a new rolling checksum. The <i>char_offset</i> argument
+    * affects the output of this checksum; rsync uses a char offset of
+    * 0, librsync 31.
+    */
+   public Checksum32(short char_offset) {
+      this.char_offset = char_offset;
       a = b = 0;
       k = 0;
+   }
+
+   public Checksum32() {
+      this((short) 0);
    }
 
  // Public instance methods.
@@ -165,9 +171,9 @@ public class Checksum32 implements RollingChecksum, Cloneable {
          new_block = new byte[block.length];
       }
       new_block[i] = bt;
-      a -= (block[i]&0xff) + CHAR_OFFSET;
-      a += (bt & 0xff) + CHAR_OFFSET;
-      b -= l * ((block[i]&0xff) + CHAR_OFFSET);
+      a -= (block[i]&0xff) + char_offset;
+      a += (bt & 0xff) + char_offset;
+      b -= l * ((block[i]&0xff) + char_offset);
       b += a;
       k++;
    }
@@ -177,8 +183,8 @@ public class Checksum32 implements RollingChecksum, Cloneable {
     * anything.
     */
    public void trim() {
-      a -= (block[k%block.length]&0xff) + CHAR_OFFSET;
-      b -= l * ((block[k%block.length]&0xff) + CHAR_OFFSET);
+      a -= (block[k%block.length]&0xff) + char_offset;
+      b -= l * ((block[k%block.length]&0xff) + char_offset);
       k++;
       l--;
    }
@@ -201,12 +207,12 @@ public class Checksum32 implements RollingChecksum, Cloneable {
 
       for (i = 0; i < block.length - 4; i += 4) {
          b += 4 * (a+(block[i]&0xff)) + 3 * (block[i+1]&0xff) +
-              2 * (block[i+2]&0xff) + (block[i+3]&0xff) + 10 * CHAR_OFFSET;
+              2 * (block[i+2]&0xff) + (block[i+3]&0xff) + 10 * char_offset;
          a += (block[i]&0xff) + (block[i+1]&0xff) + (block[i+2]&0xff)
-              + (block[i+3]&0xff) + 4 * CHAR_OFFSET;
+              + (block[i+3]&0xff) + 4 * char_offset;
       }
       for (; i < block.length; i++) {
-         a += (block[i]&0xff) + CHAR_OFFSET;
+         a += (block[i]&0xff) + char_offset;
          b += a;
       }
       new_block = new byte[block.length];
