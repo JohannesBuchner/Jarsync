@@ -609,9 +609,9 @@ public class TwoKeyMap implements java.io.Serializable, Map {
             entry = entry.next;
          }
       }
-      class c extends AbstractSet {
+      class EntrySet extends AbstractSet {
          protected final Object[] data = (Object[]) arr.clone();
-         public c() { super(); }
+         public EntrySet() { super(); }
          public int size() { return data.length; }
          public Iterator iterator() {
             return new Iterator() {
@@ -628,7 +628,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
             };
          }
       }
-      return new c();
+      return new EntrySet();
    }
 
    /**
@@ -686,9 +686,9 @@ public class TwoKeyMap implements java.io.Serializable, Map {
             if (i >= arr.length) break fillArr;
          }
       }
-      class c extends AbstractSet {
+      class KeySet extends AbstractSet {
          private final Object[] a = arr;
-         public c() { super(); }
+         public KeySet() { super(); }
          public int size() { return a.length; }
          public Iterator iterator() {
             return new Iterator() {
@@ -705,7 +705,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
             };
          }
       }
-      return new c();
+      return new KeySet();
    }
 
    /**
@@ -797,9 +797,9 @@ public class TwoKeyMap implements java.io.Serializable, Map {
       fill_arr:for (int i = 0; i < arr.length && keys.hasNext(); i++) {
          arr[i] = get(keys.next());
       }
-      class c extends AbstractCollection {
+      class Values extends AbstractCollection {
          final Object[] a = (Object[]) arr.clone();
-         public c() { super(); }
+         public Values() { super(); }
          public int size() { return a.length; }
          public Iterator iterator() {
             return new Iterator() {
@@ -816,7 +816,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
             };
          }
       }
-      return new c();
+      return new Values();
    }
 
  // Public instance methods overriding java.lang.Object. ------------
