@@ -8,11 +8,13 @@ cc = jikes
 ccopts = -g
 
 sources = org/metastatic/rsync/ChecksumPair.java \
+  org/metastatic/rsync/Configuration.java \
   org/metastatic/rsync/DataBlock.java \
   org/metastatic/rsync/Delta.java \
   org/metastatic/rsync/Generator.java \
-  org/metastatic/rsync/Matcher.java \
   org/metastatic/rsync/MD4.java \
+  org/metastatic/rsync/Matcher.java \
+  org/metastatic/rsync/MessageDigest.java \
   org/metastatic/rsync/Offsets.java \
   org/metastatic/rsync/RollingChecksum.java \
   org/metastatic/rsync/RsyncConstants.java \
