@@ -84,24 +84,28 @@ public class FileList implements Constants {
   // Instance methods.
   // -------------------------------------------------------------------------
 
-  public Statistics getStatistics() {
+  public Statistics getStatistics()
+  {
     return stats;
   }
 
-  public void setStatistics(Statistics newStats) {
+  public void setStatistics(Statistics newStats)
+  {
     if (newStats != null) stats = newStats;
   }
 
-  public List recieveFileList() throws IOException {
+  public List receiveFileList() throws IOException
+  {
     List flist = new LinkedList();
     byte flags;
 
-    for (flags = (byte)in.read(); flags != 0; flags = (byte)in.read()) {
-      FileInfo f = receiveFileEntry(flags);
-      if (f.S_ISREG())
-        stats.total_size += f.length;
-      flist.add(f);
-    }
+    for (flags = (byte)in.read(); flags != 0; flags = (byte)in.read())
+      {
+        FileInfo f = receiveFileEntry(flags);
+        if (f.S_ISREG())
+          stats.total_size += f.length;
+        flist.add(f);
+      }
 
     return flist;
   }
@@ -146,15 +150,23 @@ public class FileList implements Constants {
     /* sanitize_path ... */
 
     int p;
-    if ((p = thisname.lastIndexOf(File.separatorChar)) >= 0) {
-      if (thisname.startsWith(lastdir)) {
-        file.dirname = lastdir;
-      } else {
-        file.dirname = thisname.substring(0, p).intern();
-        lastdir = file.dirname;
+    if ((p = thisname.lastIndexOf(File.separatorChar)) >= 0)
+      {
+        if (thisname.startsWith(lastdir))
+          {
+            file.dirname = lastdir;
+          }
+        else
+          {
+            file.dirname = thisname.substring(0, p).intern();
+            lastdir = file.dirname;
+          }
+        file.basename = thisname.substring(p+1);
       }
-      file.basename = thisname.substring(p+1);
-    }
+    else
+      {
+        file.basename = thisname;
+      }
     file.flags = flags;
     file.length = in.readLong();
     file.modtime = (flags & SAME_TIME) != 0 ? last_time : in.readInt();
@@ -189,6 +201,8 @@ public class FileList implements Constants {
 
     if (!options.preserve_perms)
       file.mode &= ~options.orig_umask;
+
+    logger.debug("read fileinfo=" + file);
 
     return file;
   }
