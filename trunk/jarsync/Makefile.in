@@ -11,14 +11,15 @@ SUFFIX = @COMPRESS_SUFFIX@
 
 SOURCES = \
   source/org/metastatic/rsync/BrokenMD4.java \
+  source/org/metastatic/rsync/Checksum32.java \
   source/org/metastatic/rsync/ChecksumPair.java \
   source/org/metastatic/rsync/Configuration.java \
   source/org/metastatic/rsync/DataBlock.java \
   source/org/metastatic/rsync/Delta.java \
   source/org/metastatic/rsync/Generator.java \
+  source/org/metastatic/rsync/JarsyncProvider.java \
   source/org/metastatic/rsync/MD4.java \
   source/org/metastatic/rsync/Matcher.java \
-  source/org/metastatic/rsync/MessageDigest.java \
   source/org/metastatic/rsync/Offsets.java \
   source/org/metastatic/rsync/Rdiff.java \
   source/org/metastatic/rsync/Rebuilder.java \
@@ -32,6 +33,12 @@ SOURCES = \
   source/org/metastatic/rsync/v2/MultiplexedOutputStream.java \
   source/org/metastatic/rsync/v2/Rsync.java \
   source/org/metastatic/rsync/v2/SocketClient.java \
+  source/org/metastatic/vwdiff/Config.java \
+  source/org/metastatic/vwdiff/Daemon.java \
+  source/org/metastatic/vwdiff/Parser.y \
+  source/org/metastatic/vwdiff/Scanner.l \
+  source/org/metastatic/vwdiff/VWDiff.java \
+  source/org/metastatic/vwdiff/Version.java \
   jzlib/com/jcraft/jzlib/Adler32.java \
   jzlib/com/jcraft/jzlib/Deflate.java \
   jzlib/com/jcraft/jzlib/InfBlocks.java \
@@ -52,7 +59,11 @@ SOURCES = \
   getopt/gnu/getopt/MessagesBundle_de.properties \
   getopt/gnu/getopt/MessagesBundle_fr.properties \
   getopt/gnu/getopt/MessagesBundle_nl.properties \
-  getopt/gnu/getopt/MessagesBundle_no.properties
+  getopt/gnu/getopt/MessagesBundle_no.properties \
+  java_cup/java_cup/runtime/Scanner.java \
+  java_cup/java_cup/runtime/Symbol.java \
+  java_cup/java_cup/runtime/lr_parser.java \
+  java_cup/java_cup/runtime/virtual_parse_stack.java
 
 TEST_SRC = test.java test2.java test3.java
 TEST_PROG = test.class test2.class test3.class
@@ -61,19 +72,24 @@ distfiles = $(SOURCES) $(TEST_SRC) AUTHORS COPYING Makefile.in README TODO \
   configure configure.ac mutate.pl ChangeLog build.xml source/Makefile.in \
   rdiff rdiff.magic jzlib/Makefile.in jzlib/README jzlib/COPYING \
   jzlib/README.jarsync jzlib/jzlib.diff getopt/COPYING getopt/README \
-  getopt/Makefile.in getopt/ChangeLog
+  getopt/Makefile.in getopt/ChangeLog java_cup/Makefile.in
 
 version = @PACKAGE_VERSION@
 package = @PACKAGE_NAME@
 
 distdir = $(package)-$(version)
 
-all: lib/jarsync.jar test
+all: lib/jarsync.jar
+
+vwdiff:
+	$(MAKE) -C java_cup
+	$(MAKE) -C source vwdiff
 
 lib/jarsync.jar: $(SOURCES)
 	-mkdir classes
+	$(MAKE) -C getopt compile
 	$(MAKE) -C source compile
-	cd classes && $(JAR) cf ../lib/jarsync.jar org
+	cd classes && $(JAR) cf ../lib/jarsync.jar org gnu java_cup
 
 test: lib/jarsync.jar $(TEST_PROG)
 

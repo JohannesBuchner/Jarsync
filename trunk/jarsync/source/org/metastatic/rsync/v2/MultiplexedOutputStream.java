@@ -56,22 +56,26 @@ import org.metastatic.rsync.*;
  * @version $Revision$
  */
 public class
-MultiplexedOutputStream extends OutputStream implements RsyncConstants {
+MultiplexedOutputStream extends OutputStream
+implements RsyncConstants, MultiplexedIO {
 
    // Constants and variables.
    // -----------------------------------------------------------------------
 
+   private static final Logger logger =
+      Logger.getLogger(MultiplexedInputStream.class.getName());
+
    /** The underlying output stream. */
-   protected OutputStream out;
+   private OutputStream out;
 
    /** Our output buffer. */
-   protected byte[] outputBuffer;
+   private byte[] outputBuffer;
 
    /** The number of bytes written to the buffer. */
-   protected int bufferCount;
+   private int bufferCount;
 
    /** Whether or not to actually multiplex. */
-   protected boolean multiplex;
+   private boolean multiplex;
 
    // Constructors.
    // -----------------------------------------------------------------------
@@ -87,10 +91,13 @@ MultiplexedOutputStream extends OutputStream implements RsyncConstants {
    // -----------------------------------------------------------------------
 
    /**
-    * Write a message to the multiplexed error stream.
+    * Write a message to the multiplexed error stream. If this object
+    * was not configured with to multiplex messages, then this method
+    * does nothing.
     *
     * @param logcode The log code.
     * @param message The message.
+    * @throws IOException If an I/O error occurs.
     */
    public void writeMessage(int logcode, String message) throws IOException {
       if (!multiplex) return;
@@ -98,10 +105,15 @@ MultiplexedOutputStream extends OutputStream implements RsyncConstants {
       write(logcode, message.getBytes("US-ASCII"));
    }
 
+   /**
+    * Write any buffered bytes to the stream.
+    *
+    * @throws IOException If an I/O error occurs.
+    */
    public void flush() throws IOException {
       if (bufferCount == 0) return;
       if (multiplex) {
-         System.out.println("Writing " + bufferCount + " bytes.");
+         logger.debug("Writing " + bufferCount + " bytes.");
          write(FNONE, outputBuffer, 0, bufferCount);
       } else {
          out.write(outputBuffer, 0, bufferCount);
@@ -109,10 +121,24 @@ MultiplexedOutputStream extends OutputStream implements RsyncConstants {
       bufferCount = 0;
    }
 
+   /**
+    * Writes a byte array to the stream.
+    *
+    * @param buf The bytes to write.
+    * @throws IOException If an I/O error occurs.
+    */
    public void write(byte[] buf) throws IOException {
       write(buf, 0, buf.length);
    }
 
+   /**
+    * Writes a portion of a byte array to the stream.
+    *
+    * @param buf The bytes to write.
+    * @param off The offset from whence to begin.
+    * @param len The number of bytes to write.
+    * @throws IOException If an I/O error occurs.
+    */
    public void write(byte[] buf, int off, int len) throws IOException {
       while (bufferCount + len >= outputBuffer.length) {
          int count = Math.min(outputBuffer.length - bufferCount, len);
@@ -129,13 +155,26 @@ MultiplexedOutputStream extends OutputStream implements RsyncConstants {
       }
    }
 
+   /**
+    * Write a single byte to the stream.
+    *
+    * @param buf The byte to write.
+    * @throws IOException If an I/O error occurs.
+    */
    public void write(int b) throws IOException {
       byte[] buf = new byte[] { (byte) b };
       write(buf);
    }
 
+   /**
+    * Write a four-byte integer to the stream in little-endian byte
+    * order.
+    * 
+    * @param i The integer to write.
+    * @throws IOException If an I/O error occurs.
+    */
    public void writeInt(int i) throws IOException {
-      System.out.println("writing int= " + i);
+      logger.debug("writing int= " + i);
       byte[] b = new byte[4];
       b[0] = (byte) (i & 0xff);
       b[1] = (byte) (i >>>  8 & 0xff);
@@ -144,6 +183,14 @@ MultiplexedOutputStream extends OutputStream implements RsyncConstants {
       write(b);
    }
 
+   /**
+    * Write a long integer to the stream, in little-endian order,
+    * writing four bytes if the value fits into four bytes, otherwise
+    * writing eight bytes.
+    *
+    * @param l The long integer to write.
+    * @throws IOException If an I/O error occurs.
+    */
    public void writeLong(long l) throws IOException {
       if ((l & ~0x7fffffff) == 0) {
          writeInt((int) l);
@@ -180,8 +227,8 @@ MultiplexedOutputStream extends OutputStream implements RsyncConstants {
 
       out.write(code, 0, 4);
       out.write(buf, off, len);
-      System.out.println("Wrote " + (len+4) + " byte packet:");
-      System.out.println("\t" + Util.toHexString(code) +
+      logger.debug("Wrote " + (len+4) + " byte packet:");
+      logger.debug("\t" + Util.toHexString(code) +
          Util.toHexString(buf, 0, len));
    }
 }

@@ -3,61 +3,63 @@
 
 COMPILER = @COMPILER@
 CFLAGS = @CFLAGS@
+JFLEX = @JFLEX@
+CUP = @CUP@
+
+CUPOPT = -package org.metastatic.vwdiff -parser Parser -symbols Symbols
 
 sources = \
   org/metastatic/rsync/BrokenMD4.java \
+  org/metastatic/rsync/Checksum32.java \
   org/metastatic/rsync/ChecksumPair.java \
   org/metastatic/rsync/Configuration.java \
   org/metastatic/rsync/DataBlock.java \
   org/metastatic/rsync/Delta.java \
   org/metastatic/rsync/Generator.java \
+  org/metastatic/rsync/JarsyncProvider.java \
   org/metastatic/rsync/MD4.java \
   org/metastatic/rsync/Matcher.java \
-  org/metastatic/rsync/MessageDigest.java \
   org/metastatic/rsync/Offsets.java \
   org/metastatic/rsync/Rdiff.java \
   org/metastatic/rsync/Rebuilder.java \
   org/metastatic/rsync/RollingChecksum.java \
   org/metastatic/rsync/RsyncConstants.java \
   org/metastatic/rsync/TwoKeyMap.java \
-  org/metastatic/rsync/Util.java \
-  org/metastatic/rsync/v2/ConsoleClient.java \
-  org/metastatic/rsync/v2/Logger.java \
-  org/metastatic/rsync/v2/MultiplexedInputStream.java \
-  org/metastatic/rsync/v2/MultiplexedOutputStream.java \
-  org/metastatic/rsync/v2/Rsync.java \
-  org/metastatic/rsync/v2/SocketClient.java
+  org/metastatic/rsync/Util.java
+#  org/metastatic/rsync/v2/ConsoleClient.java \
+#  org/metastatic/rsync/v2/Logger.java \
+#  org/metastatic/rsync/v2/MultiplexedInputStream.java \
+#  org/metastatic/rsync/v2/MultiplexedOutputStream.java \
+#  org/metastatic/rsync/v2/Rsync.java \
+#  org/metastatic/rsync/v2/SocketClient.java
 
-classes = \
-  ../classes/org/metastatic/rsync/BrokenMD4.class \
-  ../classes/org/metastatic/rsync/ChecksumPair.class \
-  ../classes/org/metastatic/rsync/Configuration.class \
-  ../classes/org/metastatic/rsync/DataBlock.class \
-  ../classes/org/metastatic/rsync/Delta.class \
-  ../classes/org/metastatic/rsync/Generator.class \
-  ../classes/org/metastatic/rsync/MD4.class \
-  ../classes/org/metastatic/rsync/Matcher.class \
-  ../classes/org/metastatic/rsync/MessageDigest.class \
-  ../classes/org/metastatic/rsync/Offsets.class \
-  ../classes/org/metastatic/rsync/Rdiff.class \
-  ../classes/org/metastatic/rsync/Rebuilder.class \
-  ../classes/org/metastatic/rsync/RollingChecksum.class \
-  ../classes/org/metastatic/rsync/RsyncConstants.class \
-  ../classes/org/metastatic/rsync/TwoKeyMap.class \
-  ../classes/org/metastatic/rsync/Util.class \
-  ../classes/org/metastatic/rsync/v2/ConsoleClient.class \
-  ../classes/org/metastatic/rsync/v2/Logger.class \
-  ../classes/org/metastatic/rsync/v2/MultiplexedInputStream.class \
-  ../classes/org/metastatic/rsync/v2/MultiplexedOutputStream.class \
-  ../classes/org/metastatic/rsync/v2/Rsync.class \
-  ../classes/org/metastatic/rsync/v2/SocketClient.class
+vwdiff_sources = \
+ org/metastatic/vwdiff/Config.java \
+ org/metastatic/vwdiff/Daemon.java \
+ org/metastatic/vwdiff/Parser.java \
+ org/metastatic/vwdiff/Scanner.java \
+ org/metastatic/vwdiff/Version.java
+
+classes = $(patsubst %.java,../classes/%.class,$(sources))
+vwdiff_classes = $(patsubst %.java,../classes/%.class,$(vwdiff_sources))
 
 all: compile
 
 compile: $(classes)
 
+vwdiff: compile $(vwdiff_classes)
+
 $(classes): ../classes/%.class: %.java
 	$(COMPILER) $(CFLAGS) $<
 
+$(vwdiff_classes): ../classes/%.class: %.java
+	$(COMPILER) $(CFLAGS) $<
+
+org/metastatic/vwdiff/Scanner.java: org/metastatic/vwdiff/Scanner.l
+	$(JFLEX) $<
+
+org/metastatic/vwdiff/Parser.java: org/metastatic/vwdiff/Parser.y
+	cd org/metastatic/vwdiff; $(CUP) $(CUPOPT) < Parser.y
+
 clean:
-	rm -f $(classes)
+	rm -f $(classes) $(vwdiff_classes)

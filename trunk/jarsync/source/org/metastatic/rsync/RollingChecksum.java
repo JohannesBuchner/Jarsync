@@ -46,178 +46,71 @@
 package org.metastatic.rsync;
 
 /**
- * A simple 32-bit "rolling" checksum. This checksum algorithm is based
- * upon the algorithm outlined in the paper "The rsync algorithm" by
- * Andrew Tridgell and Paul Mackerras. The algorithm works in such a way
- * that if one knows the sum of a block
- * <em>X<sub>k</sub>...X<sub>l</sub></em>, then it is a simple matter to
- * compute the sum for <em>X<sub>k+1</sub>...X<sub>l+1</sub></em>.
+ * A general interface for 32-bit checksums that have the "rolling"
+ * property.
  * 
  * @author Casey Marshall
  * @version $Revision$
  */
-public class RollingChecksum {
+public interface RollingChecksum {
 
-   // Constants and variables.
-   // -----------------------------------------------------------------
-
-   public static final String RCSID = "$Id$";
-
-   // XXX The char offset is (apparently) a variable quantity in this
-   // type of checksum; this value (31) make it compatible with rsync
-   // and librsync, but other values may be used depending on context.
-   //
-   // Plus there ARE other checksums that have the "rolling" property,
-   // and we could generalize this to use any of them.
-   private static final short CHAR_OFFSET = 31;
+   // Methods.
+   // -----------------------------------------------------------------------
 
    /**
-    * The first half of the checksum.
+    * Returns the currently-computed 32-bit checksum.
     *
-    * @since 1.1
+    * @return The checksum.
     */
-   protected short a;
+   int getValue();
 
    /**
-    * The second half of the checksum.
-    *
-    * @since 1.1
+    * Resets the internal state of the checksum, so it may be re-used
+    * later.
     */
-   protected short b;
+   void reset();
 
    /**
-    * The place from whence the current checksum has been computed.
-    *
-    * @since 1.1
-    */
-   protected int k;
-
-   /**
-    * The place to where the current checksum has been computed.
-    *
-    * @since 1.1
-    */
-   protected int l;
-
-   /**
-    * The block from which the checksum is computed.
-    *
-    * @since 1.1
-    */
-   protected byte[] block;
-
-   /**
-    * The index in {@link #new_block} where the newest byte has
-    * been stored.
-    *
-    * @since 1.1
-    */
-   protected int new_index;
-
-   /**
-    * The block that is recieving new input.
-    *
-    * @since 1.1
-    */
-   protected byte[] new_block;
-
- // Constructors.
-   // -----------------------------------------------------------------
-
-   public RollingChecksum() {
-      a = b = 0;
-      k = 0;
-   }
-
- // Public instance methods.
-   // -----------------------------------------------------------------
-
-   /**
-    * Return the value of the currently computed checksum.
-    *
-    * @return The currently computed checksum.
-    * @since 1.1
-    */
-   public int getValue() {
-      return (a&0xffff) | (b << 16);
-   }
-
-   /**
-    * Reset the checksum.
-    *
-    * @since 1.1
-    */
-   public void reset() {
-      k = 0;
-      a = b = 0;
-      l = 0;
-   }
-
-   /**
-    * "Roll" the checksum. This method takes a single byte as byte
-    * <em>X<sub>l+1</sub></em>, and recomputes the checksum for
-    * <em>X<sub>k+1</sub>...X<sub>l+1</sub></em>. This is the
-    * preferred method for updating the checksum.
+    * Update the checksum with a single byte. This is where the
+    * "rolling" method is used.
     *
     * @param bt The next byte.
-    * @since 1.1
     */
-   public void roll(byte bt) {
-      int i = k % block.length;
-      if (k != 0 && i == 0) {
-         block = new_block;
-         new_block = new byte[block.length];
-      }
-      new_block[i] = bt;
-      a -= (block[i]&0xff) + CHAR_OFFSET;
-      a += (bt & 0xff) + CHAR_OFFSET;
-      b -= l * ((block[i]&0xff) + CHAR_OFFSET);
-      b += a;
-      k++;
-   }
+   void roll(byte bt);
 
    /**
-    * Update the checksum by trimming off a byte only, not adding
-    * anything.
+    * Update the checksum by simply "trimming" the
+    * least-recently-updated byte from the internal state. Most, but not
+    * all, checksums can support this.
     */
-   public void trim() {
-      a -= (block[k%block.length]&0xff) + CHAR_OFFSET;
-      b -= l * ((block[k%block.length]&0xff) + CHAR_OFFSET);
-      k++;
-      l--;
-   }
+   void trim();
 
    /**
-    * Update the checksum with an entirely different block, and
-    * potentially a different block length.
+    * Replaces the current internal state with entirely new data.
     *
-    * @param buf The byte array that holds the new block.
-    * @param off From whence to begin reading.
-    * @param len The length of the block to read.
-    * @since 1.1
+    * @buf The bytes to checksum.
+    * @offset The offset into <code>buf</code> to start reading.
+    * @length The number of bytes to update.
     */
-   public void check(byte[] buf, int off, int len) {
-      block = new byte[len];
-      System.arraycopy(buf, off, block, 0, len);
-      reset();
-      l = block.length;
-      int i;
+   void check(byte[] buf, int offset, int length);
 
-      for (i = 0; i < block.length - 4; i += 4) {
-         b += 4 * (a+(block[i]&0xff)) + 3 * (block[i+1]&0xff) +
-              2 * (block[i+2]&0xff) + (block[i+3]&0xff) + 10 * CHAR_OFFSET;
-         a += (block[i]&0xff) + (block[i+1]&0xff) + (block[i+2]&0xff)
-              + (block[i+3]&0xff) + 4 * CHAR_OFFSET;
-      }
-      for (; i < block.length; i++) {
-         a += (block[i]&0xff) + CHAR_OFFSET;
-         b += a;
-      }
-      new_block = new byte[block.length];
-      new_index = 0;
-   }
+   /**
+    * Copies this checksum instance into a new instance. This method
+    * should be optional, and only implemented if the class implements
+    * the {@link java.lang.Cloneable} interface.
+    *
+    * @return A clone of this instance.
+    */
+   Object clone();
 
-   public boolean equals(Object o) {
-      return ((RollingChecksum)o).a == a && ((RollingChecksum)o).b == b;
-   }
+   /**
+    * Tests if a particular checksum is equal to this checksum. This
+    * means that the other object is an instance of this class, and its
+    * internal state equals this checksum's internal state.
+    *
+    * @param o The object to test.
+    * @return <code>true</code> if this checksum equals the other
+    *         checksum.
+    */
+   boolean equals(Object o);
 }

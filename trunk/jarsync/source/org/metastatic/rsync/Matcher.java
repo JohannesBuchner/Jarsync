@@ -51,6 +51,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 
+import org.apache.log4j.*;
+
 /**
  * <p>Methods for performing the checksum search. The result of a search
  * is a {@link java.util.Collection} of {@link Delta} objects that, when
@@ -64,28 +66,25 @@ public final class Matcher implements RsyncConstants {
    // Constants and variables.
    // -----------------------------------------------------------------
 
+   private static final Logger logger = Logger.getLogger(
+      Matcher.class.getName());
+
+   static {
+      BasicConfigurator.configure();
+      logger.setLevel(Level.DEBUG);
+   }
+
    /** Our configuration. */
    protected Configuration config;
 
-   /** The rolling checksum. */
-   protected RollingChecksum weakSum;
-
    // Constructors.
    // -----------------------------------------------------------------
-
-   /**
-    * Create a matcher with the default configuration.
-    */
-   public Matcher() {
-      this(new Configuration());
-   }
 
    /**
     * Create a matcher with the specified configuration.
     */
    public Matcher(Configuration config) {
       this.config = config;
-      weakSum = new RollingChecksum();
    }
 
  // Instance methods.
@@ -155,7 +154,7 @@ public final class Matcher implements RsyncConstants {
       TwoKeyMap m = new TwoKeyMap();
       for (Iterator i = sums.iterator(); i.hasNext(); ) {
          ChecksumPair pair = (ChecksumPair) i.next();
-         m.put(pair, pair.getOffset());
+         m.put(pair, new Long(pair.getOffset()));
       }
       return m;
    }
@@ -206,14 +205,14 @@ public final class Matcher implements RsyncConstants {
       Long oldOffset;
       int i = off, j = off;
 
-      weakSum.reset();
-      weakSum.check(buf, off, n);
+      config.weakSum.reset();
+      config.weakSum.check(buf, off, n);
 
       while (i < len + off) {
-         weak = new Integer(weakSum.getValue());
+         weak = new Integer(config.weakSum.getValue());
          oldOffset = hashSearch(weak, buf, i, n, m);
          if (oldOffset != null) {
-            //System.err.println("third test succeeds; off=" + oldOffset);
+            logger.debug("third test succeeds; off=" + oldOffset);
             if (j == i && !deltas.isEmpty() && config.doRunLength) {
                Offsets o = (Offsets) deltas.getLast();
                o.setBlockLength(o.getBlockLength() + n);
@@ -228,12 +227,12 @@ public final class Matcher implements RsyncConstants {
             i += n;
             j = i;
             n = Math.min(len - (i - off), config.blockLength);
-            weakSum.check(buf, i, n);
+            config.weakSum.check(buf, i, n);
          } else {
             if (i+n < len + off)
-               weakSum.roll(buf[i+n]);
+               config.weakSum.roll(buf[i+n]);
             else
-               weakSum.trim();
+               config.weakSum.trim();
             i++;
             n = Math.min(len - (i - off), config.blockLength);
          }
@@ -286,17 +285,17 @@ public final class Matcher implements RsyncConstants {
    protected Long
    hashSearch(Integer weakSum, byte[] block, int off, int len, TwoKeyMap m) {
       if (m.containsKey(weakSum.intValue())) {
-         //System.err.println("first test succeeds; weak=" +
-         //   Integer.toHexString(weakSum.intValue() & 0xffff));
+         logger.debug("first test succeeds; weak=" +
+            Integer.toHexString(weakSum.intValue()));
          if (m.containsKey(weakSum)) {
             config.strongSum.reset();
             config.strongSum.update(block, off, len);
             byte[] digest = new byte[config.strongSumLength];
             System.arraycopy(config.strongSum.digest(), 0, digest, 0,
                digest.length);
-            ChecksumPair pair = new ChecksumPair(weakSum, digest);
-            //System.err.println("second test succeeds; sums=" + pair);
-            return (Long) m.get(new ChecksumPair(weakSum, digest));
+            ChecksumPair pair = new ChecksumPair(weakSum.intValue(), digest);
+            logger.debug("second test succeeds; sums=" + pair.toString());
+            return (Long) m.get(new ChecksumPair(weakSum.intValue(), digest));
          }
       }
       return null;
@@ -318,8 +317,8 @@ public final class Matcher implements RsyncConstants {
       int len, TwoKeyMap m) throws IOException
    {
       if (m.containsKey(weakSum.intValue())) {
-         //System.err.println("first test succeeds; weak=" +
-         //   Integer.toHexString(weakSum.intValue() & 0xffff));
+         logger.debug("first test succeeds; weak=" +
+            Integer.toHexString(weakSum.intValue()));
          if (m.containsKey(weakSum)) {
             byte[] buf = new byte[len];
             f.seek(off);
@@ -329,9 +328,9 @@ public final class Matcher implements RsyncConstants {
             byte[] digest = new byte[config.strongSumLength];
             System.arraycopy(config.strongSum.digest(), 0, digest, 0,
                digest.length);
-            ChecksumPair pair = new ChecksumPair(weakSum, digest);
-            //System.err.println("second test succeeds; sums=" + pair);
-            return (Long) m.get(new ChecksumPair(weakSum, digest));
+            ChecksumPair pair = new ChecksumPair(weakSum.intValue(), digest);
+            logger.debug("second test succeeds; sums=" + pair);
+            return (Long) m.get(new ChecksumPair(weakSum.intValue(), digest));
          }
       }
       return null;
@@ -355,15 +354,15 @@ public final class Matcher implements RsyncConstants {
       Long oldOffset;
       long i = 0, j = 0;
 
-      weakSum.reset();
+      config.weakSum.reset();
       f.read(buf, 0, n);
-      weakSum.check(buf, 0, n);
+      config.weakSum.check(buf, 0, n);
 
       while (i < len) {
-         weak = new Integer(weakSum.getValue());
+         weak = new Integer(config.weakSum.getValue());
          oldOffset = hashSearch(weak, f, i, n, m);
          if (oldOffset != null) {
-            //System.err.println("third test succeeds; off=" + oldOffset);
+            logger.debug("third test succeeds; off=" + oldOffset);
             if (j == i && !deltas.isEmpty() && config.doRunLength) {
                Offsets o = (Offsets) deltas.getLast();
                o.setBlockLength(o.getBlockLength() + n);
@@ -381,12 +380,12 @@ public final class Matcher implements RsyncConstants {
             j = i;
             n = (int) Math.min(len - i, config.blockLength);
             f.read(buf, 0, n);
-            weakSum.check(buf, 0, n);
+            config.weakSum.check(buf, 0, n);
          } else {
             if (i+n < len)
-               weakSum.roll((byte) f.read());
+               config.weakSum.roll((byte) f.read());
             else
-               weakSum.trim();
+               config.weakSum.trim();
             i++;
             n = (int) Math.min(len - i, config.blockLength);
          }

@@ -1,9 +1,8 @@
 // vim:set tw=72 expandtab softtabstop=3 shiftwidth=3 tabstop=3:
 // $Id$
 //
-// Delta: An update to a file.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
-//
+// Copyright (C) 2002  Casey Marshall <rsdio@metastatic.org>
+// 
 // This file is a part of Jarsync.
 //
 // Jarsync is free software; you can redistribute it and/or modify it
@@ -41,31 +40,19 @@
 // library, but you are not obligated to do so.  If you do not wish to
 // do so, delete this exception statement from your version.
 //
-// --------------------------------------------------------------------
+// --------------------------------------------------------------------------
 
 package org.metastatic.rsync;
 
 /**
- * A Delta is, in the Rsync algorithm, one of two things: (1) a block
- * of bytes and an offset, or (2) a pair of offsets, one old and one
- * new.
- *
- * @version $Revision$
+ * This provider implements the MD4 message digest, and is provided to
+ * ensure that MD4 is available.
  */
-public interface Delta {
-   /**
-    * The size of the block of data this class represents.
-    *
-    * @since 1.1
-    * @return The size of the block of data this class represents.
-    */
-   int getBlockLength();
+public final class JarsyncProvider extends java.security.Provider {
+   public JarsyncProvider() {
+      super("JARSYNC", 0.04, "Jarsync provider; implementing MD4, BrokenMD4");
 
-   /**
-    * Get the offset at which this Delta should be written.
-    *
-    * @since 1.2
-    * @return The write offset.
-    */
-   long getWriteOffset();
+      put("MessageDigest.MD4",       "org.metastatic.rsync.MD4");
+      put("MessageDigest.BrokenMD4", "org.metastatic.rsync.BrokenMD4");
+   }
 }

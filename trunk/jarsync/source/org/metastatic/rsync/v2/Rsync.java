@@ -61,10 +61,10 @@ public class Rsync implements RsyncConstants {
    // -----------------------------------------------------------------------
 
    /** Our multiplexed input stream. */
-   protected MultiplexedInputStream min;
+   protected MultiplexedInputStream in;
 
    /** Our multiplexed output stream. */
-   protected MultiplexedOutputStream mout;
+   protected MultiplexedOutputStream out;
 
    /** Our configuration. */
    protected Configuration config;
@@ -93,15 +93,15 @@ public class Rsync implements RsyncConstants {
    {
       if (remoteVersion >= 23) {
          if (amServer) {
-            min = new MultiplexedInputStream(in, false);
-            mout = new MultiplexedOutputStream(out, true);
+            this.in = new MultiplexedInputStream(in, false);
+            this.out = new MultiplexedOutputStream(out, true);
          } else {
-            min = new MultiplexedInputStream(in, true);
-            mout = new MultiplexedOutputStream(out, false);
+            this.in = new MultiplexedInputStream(in, true);
+            this.out = new MultiplexedOutputStream(out, false);
          }
       } else {
-         min = new MultiplexedInputStream(in, false);
-         mout = new MultiplexedOutputStream(out, false);
+         this.in = new MultiplexedInputStream(in, false);
+         this.out = new MultiplexedOutputStream(out, false);
       }
       this.config = config;
       this.remoteVersion = remoteVersion;
@@ -122,21 +122,21 @@ public class Rsync implements RsyncConstants {
             }
             System.out.println("exlcude pattern= " + pattern + " with length= "
                + pattern.length());
-            mout.writeInt(pattern.length());
-            mout.writeString(pattern);
+            out.writeInt(pattern.length());
+            out.writeString(pattern);
          }
       }
       System.out.print("Writing naught... ");
-      mout.writeInt(0);
+      out.writeInt(0);
       System.out.print("flushing... ");
-      mout.flush();
+      out.flush();
       System.out.println("done");
    }
 
    public void readStuff() throws IOException {
       byte[] buf = new byte[1024];
       int count = 0;
-      while ((count = min.read(buf, 0, 1024)) > 0) {
+      while ((count = in.read(buf, 0, 1024)) > 0) {
          for (int i = 0; i < count && i < 1024; i++) {
             switch (buf[i]) {
                case 0x07: System.out.print("\\a"); break;
@@ -166,7 +166,7 @@ public class Rsync implements RsyncConstants {
    public List receiveFileList() throws IOException {
       List files = new LinkedList();
 
-      for (int flags = min.read(); flags != 0; flags = min.read()) {
+      for (int flags = in.read(); flags != 0; flags = in.read()) {
          
       }
       return null;
@@ -182,20 +182,73 @@ public class Rsync implements RsyncConstants {
       while (true) {
          int offset = 0;
 
-         i = min.readInt();
+         i = in.readInt();
          if (i == -1) {
             if (phase == 0 && remoteVersion >= 13) {
                phase++;
                config.setStrongSumLength(SUM_LENGTH);
-               mout.writeInt(-1);
+               out.writeInt(-1);
                continue;
             }
             break;
          }
 
-         if (i < 0 || i > files.size()) {
-            //throw new 
+         if (i < 0 || i >= files.size()) {
+            throw new IOException("Invalid file index " + i);
          }
+
+         File f = (File) files.get(i);
+
+         List sums = receiveSums();
+         Matcher matcher = new Matcher(config);
+         Collection deltas = matcher.hashSearch(sums, f);
+
+         // This is equivalent to simple_send_token in rsync.
+         // Compression still needs to be implemented.
+         DataBlock last_block = null;
+         for (Iterator it = deltas.iterator(); it.hasNext(); ) {
+            Delta d = (Delta) it.next();
+            if (d instanceof DataBlock) {
+               last_block = (DataBlock) d;
+            } else if (d instanceof Offsets) {
+               if (last_block != null) {
+                  int l = 0;
+                  while (l < last_block.getBlockLength()) {
+                     int n = Math.min(CHUNK_SIZE,
+                        last_block.getBlockLength() - l);
+                     out.writeInt(n);
+                     out.write(last_block.getData(), l, n);
+                     l += n;
+                  }
+               }
+               out.writeInt(-(i + i));
+               last_block = null;
+            }
+         }
+         if (last_block != null) {
+            int l = 0;
+            while (l < last_block.getBlockLength()) {
+               int n = Math.min(CHUNK_SIZE, last_block.getBlockLength() - l);
+               out.writeInt(n);
+               out.write(last_block.getData(), l, n);
+            }
+         }
+      }
+   }
+
+   public void writeSums(List sums) {
+      out.writeInt(sums.size());
+      out.writeInt(config.getBlockSize());
+      if (sums.size() > 0) {
+         out.writeInt(((ChecksumPair) sums.get(sums.size()-1)).getLength());
+      } else {
+         out.writeInt(0);
+      }
+
+      for (Iterator it = sums.iterator(); it.hasNext(); ) {
+         ChecksumPair pair = (ChecksumPair) it.next();
+         out.writeInt(pair.getWeak().intValue());
+         out.writeInt(pair.getStrong());
       }
    }
 
@@ -207,7 +260,7 @@ public class Rsync implements RsyncConstants {
       int l1 = 0, l2 = 0;
 
       if ((flags & SAME_NAME) != 0) {
-         l1 = min.read();
+         l1 = in.read();
       }
 
       if ((flags & LONG_NAME) != 0) {

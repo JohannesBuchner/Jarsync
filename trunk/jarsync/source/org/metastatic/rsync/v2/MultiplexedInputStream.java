@@ -50,16 +50,22 @@ import java.io.InputStream;
 
 import org.metastatic.rsync.*;
 
+import org.apache.log4j.*;
+
 /**
  * Handle multiplexed I/O for the rsync protocol.
  *
  * @version $Revision$
  */
 public class
-MultiplexedInputStream extends InputStream implements RsyncConstants {
+MultiplexedInputStream extends InputStream
+implements RsyncConstants, MultiplexedIO {
 
    // Constants and variables.
    // -----------------------------------------------------------------------
+
+   private static Logger logger =
+      Logger.getLogger(MultiplexedInputStream.class.getName());
 
    /** The underlying input stream. */
    protected InputStream in;
@@ -180,20 +186,13 @@ MultiplexedInputStream extends InputStream implements RsyncConstants {
             remaining -= ret;
             continue;
          }
-         System.out.println("mio.read().ret=" + 0);
 
          in.read(line, 0, 4);
-         for (int i = 0; i < 4; i++)
-            System.out.print(Integer.toHexString(line[i]));
-         System.out.println();
-
          tag = line[3];
-         System.out.println("tag=" + tag);
 
          remaining  = line[0];
          remaining |= line[1] <<  8;
          remaining |= line[2] << 16;
-         System.out.println("remaining=" + remaining);
 
          if (tag == MPLEX_BASE) {
             continue;
@@ -202,15 +201,20 @@ MultiplexedInputStream extends InputStream implements RsyncConstants {
          tag -= MPLEX_BASE;
 
          if (tag != FERROR && tag != FINFO) {
-            throw new IOException("unexpected tag " + tag);
+            logger.fatal("illegal tag " + tag);
+            throw new IOException("illegal tag " + tag);
          }
 
          if (remaining > line.length - 1) {
+            logger.fatal("multiplexing overflow " + remaining);
             throw new IOException("multiplexing overflow " + remaining);
          }
 
          in.read(line, 0, remaining);
-         Logger.write(tag, line);
+         if (tag == FERROR)
+            logger.error(new String(line, 0, remaining));
+         else
+            logger.info(new String(line, 0, remaining));
          remaining = 0;
       }
       return ret;

@@ -45,6 +45,9 @@
 
 package org.metastatic.rsync;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 /**
  * A Configuration is a mere collection of objects and values that
  * compose a particular configuration for the algorithm, for example the
@@ -62,6 +65,11 @@ public class Configuration implements RsyncConstants {
     * The message digest that computes the stronger checksum.
     */
    MessageDigest strongSum;
+
+   /**
+    * The rolling checksum.
+    */
+   RollingChecksum weakSum;
 
    /**
     * The length of blocks to checksum.
@@ -88,20 +96,10 @@ public class Configuration implements RsyncConstants {
    // ------------------------------------------------------------------------
 
    /**
-    * Create a configuration using MD4 and a block length of 700.
+    * Create a configuration using a block length of 700.
     */
    public Configuration() {
-      this(new MD4(), BLOCK_LENGTH);
-   }
-
-   /**
-    * Create a configuration with a particular strong checksum and a
-    * block length of 700.
-    *
-    * @param strongSum The {@link MessageDigest} to use.
-    */
-   public Configuration(MessageDigest strongSum) {
-      this(strongSum, BLOCK_LENGTH);
+      this(BLOCK_LENGTH);
    }
 
    /**
@@ -111,25 +109,33 @@ public class Configuration implements RsyncConstants {
     * @param blockLength The size of blocks to checksum.
     */
    public Configuration(int blockLength) {
-      this(new MD4(), blockLength);
+      this.blockLength = blockLength;
    }
 
-   /**
-    * Create a configuration with a particular block length and message
-    * digest.
-    *
-    * @param strongSum The {@link MessageDigest} to use.
-    * @param blockLength The block length to use.
-    */
-   public Configuration(MessageDigest strongSum, int blockLength) {
+   public Configuration(MessageDigest strongSum, RollingChecksum weakSum) {
+      this(strongSum, weakSum, BLOCK_LENGTH);
+   }
+
+   public Configuration(MessageDigest strongSum, RollingChecksum weakSum,
+                        int blockLength)
+   {
       this.strongSum = strongSum;
+      this.weakSum = weakSum;
       this.blockLength = blockLength;
-      strongSumLength = SUM_LENGTH;
-      doRunLength = false;
+      strongSumLength = strongSum.getDigestLength();
    }
 
    // Instance methods.
    // -------------------------------------------------------------------------
+
+   public void setStrongSum(MessageDigest strongSum) {
+      this.strongSum = strongSum;
+      strongSumLength = strongSum.getDigestLength();
+   }
+
+   public void setWeakSum(RollingChecksum weakSum) {
+      this.weakSum = weakSum;
+   }
 
    /**
     * Set whether or not to do run-length encoding while generating
@@ -190,5 +196,15 @@ public class Configuration implements RsyncConstants {
     */
    public byte[] getChecksumSeed() {
       return checksumSeed;
+   }
+
+   public void setBlockLength(int blockLength)
+   {
+      this.blockLength = blockLength;
+   }
+
+   public int getBlockLength()
+   {
+      return blockLength;
    }
 }

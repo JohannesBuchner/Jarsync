@@ -48,6 +48,9 @@ package org.metastatic.rsync;
 import java.io.*;
 import java.util.*;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
 
@@ -487,7 +490,7 @@ public class Rdiff implements RsyncConstants {
       writeInt(strongSumLength, out);
       for (Iterator i = sigs.iterator(); i.hasNext(); ) {
          ChecksumPair pair = (ChecksumPair) i.next();
-         writeInt(pair.getWeak().intValue(), out);
+         writeInt(pair.getWeak(), out);
          out.write(pair.getStrong(), 0, strongSumLength);
       }
    }
@@ -499,8 +502,10 @@ public class Rdiff implements RsyncConstants {
     * @return A Collection of signatures.
     * @throws java.io.IOException If reading fails.
     */
-   public Collection makeSignatures(InputStream in) throws IOException {
-      Generator gen = new Generator(new Configuration(new MD4(), blockLength));
+   public Collection makeSignatures(InputStream in)
+   throws IOException, NoSuchAlgorithmException {
+      Generator gen = new Generator(new Configuration(
+         MessageDigest.getInstance("MD4"), new Checksum32(), blockLength));
       return gen.generateSums(in);
    }
 
@@ -572,8 +577,10 @@ public class Rdiff implements RsyncConstants {
     * @throws java.io.IOException If reading fails.
     */
    public Collection
-   makeDeltas(Collection sums, InputStream in) throws IOException {
-      Configuration config = new Configuration(blockLength);
+   makeDeltas(Collection sums, InputStream in)
+   throws IOException, NoSuchAlgorithmException {
+      Configuration config = new Configuration(
+         MessageDigest.getInstance("MD4"), new Checksum32(), blockLength);
       config.setStrongSumLength(strongSumLength);
       Matcher m = new Matcher(config);
       return m.hashSearch(sums, in);

@@ -63,19 +63,17 @@ public class Generator implements RsyncConstants {
    // Constants and variables.
    // ------------------------------------------------------------------------
 
+   /**
+    * Our configuration. Contains such things as our rolling checksum
+    * and message digest.
+    */
    protected Configuration config;
-   protected RollingChecksum weakSum;
 
    // Constructors.
    // ------------------------------------------------------------------------
 
-   public Generator() {
-      this(new Configuration());
-   }
-
    public Generator(Configuration config) {
       this.config = config;
-      weakSum = new RollingChecksum();      
    }
 
    // Instance methods.
@@ -240,17 +238,17 @@ public class Generator implements RsyncConstants {
    public ChecksumPair
    generateSum(byte[] buf, int off, int len, long fileOffset) {
       ChecksumPair p = new ChecksumPair();
-      weakSum.check(buf, off, len);
+      config.weakSum.check(buf, off, len);
       config.strongSum.update(buf, off, len);
       if (config.checksumSeed != null) {
          config.strongSum.update(config.checksumSeed, 0,
             config.checksumSeed.length);
       }
-      p.weak = new Integer(weakSum.getValue());
+      p.weak = config.weakSum.getValue();
       p.strong = new byte[config.strongSumLength];
       System.arraycopy(config.strongSum.digest(), 0, p.strong, 0,
          p.strong.length);
-      p.offset = new Long(fileOffset);
+      p.offset = fileOffset;
       p.length = len;
       return p;
    }

@@ -48,6 +48,9 @@
 
 package org.metastatic.rsync;
 
+import java.security.DigestException;
+import java.security.MessageDigestSpi;
+
 /**
  * <p>An implementation of Ron Rivest's MD4 message digest algorithm.
  * MD4 was the precursor to the stronger MD5
@@ -68,7 +71,7 @@ package org.metastatic.rsync;
  *
  * @version $Revision$
  */
-public final class MD4 extends MessageDigest implements Cloneable {
+public class MD4 extends MessageDigestSpi implements Cloneable {
 
    // Constants and variables.
    // -----------------------------------------------------------------
@@ -85,19 +88,20 @@ public final class MD4 extends MessageDigest implements Cloneable {
     */
    public static final int BLOCK_LENGTH = 64;
 
-   private static final int A = 0x67452301;
-   private static final int B = 0xefcdab89;
-   private static final int C = 0x98badcfe;
-   private static final int D = 0x10325476;
+   protected static final int A = 0x67452301;
+   protected static final int B = 0xefcdab89;
+   protected static final int C = 0x98badcfe;
+   protected static final int D = 0x10325476;
 
    /* The four chaining variables. */
-   private int a, b, c, d;
+   protected int a, b, c, d;
+
+   protected int count;
+
+   protected byte[] buffer;
 
    /** Word buffer for transforming. */
-   private final int[] X = new int[16];
-
-   /** The output of this message digest when no data has been input. */
-   private static final String DIGEST0 = "31d6cfe0d16ae931b73c59d7e0c089c0";
+   private final int[] X = new int[DIGEST_LENGTH];
 
  // Constructors.
    // -----------------------------------------------------------------
@@ -106,11 +110,8 @@ public final class MD4 extends MessageDigest implements Cloneable {
     * Trivial zero-argument constructor.
     */
    public MD4() {
-      name = "md4";
-      hashSize = DIGEST_LENGTH;
-      blockSize = BLOCK_LENGTH;
       buffer = new byte[BLOCK_LENGTH];
-      reset();
+      engineReset();
    }
 
    /**
@@ -133,33 +134,73 @@ public final class MD4 extends MessageDigest implements Cloneable {
       return new MD4(this);
    }
 
-   // Instance methods.
+   // SPI instance methods.
    // -----------------------------------------------------------------
 
-   /**
-    * Do a simple conformance test.
-    *
-    * @return true If the self-test suceeds.
-    */
-   public boolean selfTest() {
-      return DIGEST0.equals(Util.toHexString(new MD4().digest()));
+   protected int engineGetDigestLength() {
+      return DIGEST_LENGTH;
+   }
+
+   public void engineUpdate(byte b) {
+      // compute number of bytes still unhashed; ie. present in buffer
+      int i = (int)(count % BLOCK_LENGTH);
+      count++;
+      buffer[i] = b;
+      if (i == (BLOCK_LENGTH - 1)) {
+         transform(buffer, 0);
+      }
+   }
+
+   protected void engineUpdate(byte[] b, int offset, int len) {
+      int n = (int)(count % BLOCK_LENGTH);
+      count += len;
+      int partLen = BLOCK_LENGTH - n;
+      int i = 0;
+
+      if (len >= partLen) {
+         System.arraycopy(b, offset, buffer, n, partLen);
+         transform(buffer, 0);
+         for (i = partLen; i + BLOCK_LENGTH - 1 < len; i+= BLOCK_LENGTH) {
+            transform(b, offset + i);
+         }
+         n = 0;
+      }
+
+      if (i < len) {
+         System.arraycopy(b, offset + i, buffer, n, len - i);
+      }
    }
 
    /**
     * Pack the four chaining variables into a byte array.
     */
-   protected byte[] getResult() {
+   protected byte[] engineDigest() {
+      byte[] tail = padBuffer();
+      engineUpdate(tail, 0, tail.length);
       byte[] digest = {
          (byte) a, (byte) (a >>> 8), (byte) (a >>> 16), (byte) (a >>> 24),
          (byte) b, (byte) (b >>> 8), (byte) (b >>> 16), (byte) (b >>> 24),
          (byte) c, (byte) (c >>> 8), (byte) (c >>> 16), (byte) (c >>> 24),
          (byte) d, (byte) (d >>> 8), (byte) (d >>> 16), (byte) (d >>> 24)
       };
+
+      engineReset();
+
       return digest;
    }
 
+   protected
+   int engineDigest(byte[] out, int off, int len) throws DigestException {
+      if (off < 0 || off + len >= out.length) {
+         throw new DigestException();
+      }
+      System.arraycopy(engineDigest(), 0, out, off,
+         Math.min(len, DIGEST_LENGTH));
+      return Math.min(len, DIGEST_LENGTH);
+   }
+
    /** Reset the four chaining variables. */
-   protected void resetContext() {
+   protected void engineReset() {
       a = A; b = B;
       c = C; d = D;
    }

@@ -162,6 +162,10 @@ public class TwoKeyMap implements java.io.Serializable, Map {
          next = null;
       }
 
+      SubTable(int key) {
+         this(new Integer(key));
+      }
+
     // Public instance methods.
       // --------------------------------------------------------------
 
@@ -505,12 +509,12 @@ public class TwoKeyMap implements java.io.Serializable, Map {
       if (containsKey(pair)) {
          old = get(pair);
       }
-      if (tables[pair.weak.intValue() & 0xffff] == null) {
+      if (tables[pair.weak & 0xffff] == null) {
          entry = new SubTable(pair.weak);
-         tables[pair.weak.intValue() & 0xffff] = entry;
+         tables[pair.weak & 0xffff] = entry;
       } else {
-         entry = tables[pair.weak.intValue() & 0xffff];
-         while (!entry.getKey().equals(pair.weak)) {
+         entry = tables[pair.weak & 0xffff];
+         while (((Integer) entry.getKey()).intValue() != pair.weak) {
             SubTable temp = entry;
             entry = entry.next;
             if (entry == null) {
@@ -546,7 +550,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
          }
       } else if (key instanceof ChecksumPair) {
          ChecksumPair pair = (ChecksumPair) key;
-         t = tables[pair.weak.intValue() & 0xffff];
+         t = tables[pair.weak & 0xffff];
          while (t != null) {
             if (t.getKey().equals(key)) {
                return t.containsKey(new StrongKey(pair.strong));
@@ -569,9 +573,9 @@ public class TwoKeyMap implements java.io.Serializable, Map {
    public Object get(Object key) {
       if (key instanceof ChecksumPair) {
          ChecksumPair pair = (ChecksumPair) key;
-         SubTable table = tables[pair.weak.intValue() & 0xffff];
+         SubTable table = tables[pair.weak & 0xffff];
          while (table != null) {
-            if (table.getKey().equals(pair.weak)) {
+            if (((Integer) table.getKey()).intValue() == pair.weak) {
                return table.get(new StrongKey(pair.strong));
             }
             table = table.next;
@@ -696,7 +700,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
          for (Iterator keys = ((Map) t.getValue()).keySet().iterator();
               keys.hasNext(); )
          {
-            arr[i++] = new ChecksumPair((Integer) t.getKey(),
+            arr[i++] = new ChecksumPair(((Integer) t.getKey()).intValue(),
                ((StrongKey) keys.next()).getBytes());
             if (i >= arr.length) break fillArr;
          }
@@ -756,9 +760,9 @@ public class TwoKeyMap implements java.io.Serializable, Map {
    public Object remove(Object key) {
       if (key instanceof ChecksumPair) {
          ChecksumPair pair = (ChecksumPair) key;
-         SubTable t = tables[pair.weak.intValue() & 0xffff];
+         SubTable t = tables[pair.weak & 0xffff];
          while (t != null) {
-            if (t.getKey().equals(pair.weak)) {
+            if (((Integer) t.getKey()).intValue() == pair.weak) {
                return ((Map) t.getValue()).remove(new StrongKey(pair.strong));
             }
          }

@@ -1,8 +1,11 @@
 // vim:set tw=72 expandtab softtabstop=3 shiftwidth=3 tabstop=3:
 // $Id$
-// 
-// BrokenMD4 -- MD4 with a broken padding scheme.
-// Copyright (C) 2002  Casey Marshall <rsdio@metastatic.org>
+//
+// This version is derived from the version in GNU Crypto.
+//
+// MD4: The MD4 message digest algorithm.
+// Copyright (C) 2002 The Free Software Foundation, Inc.
+// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -41,53 +44,44 @@
 // library, but you are not obligated to do so.  If you do not wish to
 // do so, delete this exception statement from your version.
 //
-// --------------------------------------------------------------------------
+// --------------------------------------------------------------------
 
 package org.metastatic.rsync;
 
+import java.security.DigestException;
+import java.security.MessageDigestSpi;
+
 /**
- * <p>This message digest is almost MD4. The only difference is in how
- * the input data is padded; MD4 <b>always</b> pads the input, while
- * this class does <b>not</b> pad the input if its length is a multiple
- * of 64. Furthermore, only the lowest 32 bits of the count field is
- * used when padding, which means that files > 512MB in size will also
- * produce incompatible hashes.</p>
+ * <p>An implementation of Ron Rivest's MD4 message digest algorithm.
+ * MD4 was the precursor to the stronger MD5
+ * algorithm, and while not considered cryptograpically secure itself,
+ * MD4 is in use in various applications. It is slightly faster than
+ * MD5.</p>
  *
- * <p>This implementation is provided for compatibility with the rsync
- * utility. It should not be used anyplace else.</p>
+ * <p>This implementation is provided for compatibility with the "MD4"
+ * implementation in the C version of rsync -- which differs in that the
+ * input is NOT padded when the input is divisible by 64, and that only
+ * the lower 32 bits of the length is used in the padding (the real MD4 
+ *
+ * <p><strong>DO NOT USE THIS IMPLEMENTATION IN NEW
+ * PROGRAMS.</strong></p>
+ *
+ * <p>References:</p>
+ *
+ * <ol>
+ *    <li>The <a href="http://www.ietf.org/rfc/rfc1320.txt">MD4</a> Message-
+ *    Digest Algorithm.<br>
+ *    R. Rivest.</li>
+ * </ol>
  *
  * @version $Revision$
  */
-public final class BrokenMD4 extends MessageDigest implements Cloneable {
+public final class BrokenMD4 extends MD4 implements Cloneable {
 
    // Constants and variables.
-   // -----------------------------------------------------------------------
+   // -----------------------------------------------------------------
  
-   public static final String RCSID = "$Id$";
- 
-   /**
-    * An MD4 message digest is always 128-bits long, or 16 bytes.
-    */
-   public static final int DIGEST_LENGTH = 16;
-
-   /**
-    * The MD4 algorithm operates on 512-bit blocks, or 64 bytes.
-    */
-   public static final int BLOCK_LENGTH = 64;
-
-   private static final int A = 0x67452301;
-   private static final int B = 0xefcdab89;
-   private static final int C = 0x98badcfe;
-   private static final int D = 0x10325476;
-
-   /* The four chaining variables. */
-   private int a, b, c, d;
-
-   /** Word buffer for transforming. */
-   private final int[] X = new int[16];
-
-   /** The output of this message digest when no data has been input. */
-   private static final String DIGEST0 = "31d6cfe0d16ae931b73c59d7e0c089c0";
+   public static final String RCSID = "$Id";
 
  // Constructors.
    // -----------------------------------------------------------------
@@ -96,11 +90,7 @@ public final class BrokenMD4 extends MessageDigest implements Cloneable {
     * Trivial zero-argument constructor.
     */
    public BrokenMD4() {
-      name = "md4";
-      hashSize = DIGEST_LENGTH;
-      blockSize = BLOCK_LENGTH;
-      buffer = new byte[BLOCK_LENGTH];
-      reset();
+      super();
    }
 
    /**
@@ -123,35 +113,27 @@ public final class BrokenMD4 extends MessageDigest implements Cloneable {
       return new BrokenMD4(this);
    }
 
-   // Instance methods.
+   // SPI instance methods.
    // -----------------------------------------------------------------
-
-   /**
-    * Do a simple conformance test.
-    *
-    * @return true If the self-test suceeds.
-    */
-   public boolean selfTest() {
-      return DIGEST0.equals(Util.toHexString(new MD4().digest()));
-   }
 
    /**
     * Pack the four chaining variables into a byte array.
     */
-   protected byte[] getResult() {
+   protected byte[] engineDigest() {
+      if (count % BLOCK_LENGTH != 0) {
+         byte[] tail = padBuffer();
+         engineUpdate(tail, 0, tail.length);
+      }
       byte[] digest = {
          (byte) a, (byte) (a >>> 8), (byte) (a >>> 16), (byte) (a >>> 24),
          (byte) b, (byte) (b >>> 8), (byte) (b >>> 16), (byte) (b >>> 24),
          (byte) c, (byte) (c >>> 8), (byte) (c >>> 16), (byte) (c >>> 24),
          (byte) d, (byte) (d >>> 8), (byte) (d >>> 16), (byte) (d >>> 24)
       };
-      return digest;
-   }
 
-   /** Reset the four chaining variables. */
-   protected void resetContext() {
-      a = A; b = B;
-      c = C; d = D;
+      engineReset();
+
+      return digest;
    }
 
    /**
@@ -161,142 +143,20 @@ public final class BrokenMD4 extends MessageDigest implements Cloneable {
     */
    protected byte[] padBuffer() {
       int n = (int) (count % BLOCK_LENGTH);
-      // The next line makes this not MD4.
-      if (n == 0) return new byte[0];
       int padding = (n < 56) ? (56 - n) : (120 - n);
       byte[] pad = new byte[padding + 8];
 
       pad[0] = (byte) 0x80;
-      // This makes this not MD4 for files > 512MB.
-      long bits = (count & 0xffffffffL) << 3;
+      long bits = count << 3;
       pad[padding++] = (byte)  bits;
       pad[padding++] = (byte) (bits >>>  8);
       pad[padding++] = (byte) (bits >>> 16);
       pad[padding++] = (byte) (bits >>> 24);
-      pad[padding++] = (byte) (bits >>> 32);
-      pad[padding++] = (byte) (bits >>> 40);
-      pad[padding++] = (byte) (bits >>> 48);
-      pad[padding  ] = (byte) (bits >>> 56);
+      //pad[padding++] = (byte) (bits >>> 32);
+      //pad[padding++] = (byte) (bits >>> 40);
+      //pad[padding++] = (byte) (bits >>> 48);
+      //pad[padding  ] = (byte) (bits >>> 56);
 
       return pad;
    }
-
-   /** Transform a 64-byte block. */
-   protected void transform(byte[] in, int offset) {
-      int aa, bb, cc, dd;
-
-      for (int i = 0, n = 0; i < 16; i++) {
-         X[i] = (in[offset++] & 0xff)       |
-                (in[offset++] & 0xff) <<  8 |
-                (in[offset++] & 0xff) << 16 |
-                (in[offset++] & 0xff) << 24;
-      }
-
-      aa = a;  bb = b;  cc = c;  dd = d;
-
-      // Round 1
-      a += ((b & c) | ((~b) & d)) + X[ 0];
-      a = a <<  3 | a >>> (32 -  3);
-      d += ((a & b) | ((~a) & c)) + X[ 1];
-      d = d <<  7 | d >>> (32 -  7);
-      c += ((d & a) | ((~d) & b)) + X[ 2];
-      c = c << 11 | c >>> (32 - 11);
-      b += ((c & d) | ((~c) & a)) + X[ 3];
-      b = b << 19 | b >>> (32 - 19);
-      a += ((b & c) | ((~b) & d)) + X[ 4];
-      a = a <<  3 | a >>> (32 -  3);
-      d += ((a & b) | ((~a) & c)) + X[ 5];
-      d = d <<  7 | d >>> (32 -  7);
-      c += ((d & a) | ((~d) & b)) + X[ 6];
-      c = c << 11 | c >>> (32 - 11);
-      b += ((c & d) | ((~c) & a)) + X[ 7];
-      b = b << 19 | b >>> (32 - 19);
-      a += ((b & c) | ((~b) & d)) + X[ 8];
-      a = a <<  3 | a >>> (32 -  3);
-      d += ((a & b) | ((~a) & c)) + X[ 9];
-      d = d <<  7 | d >>> (32 -  7);
-      c += ((d & a) | ((~d) & b)) + X[10];
-      c = c << 11 | c >>> (32 - 11);
-      b += ((c & d) | ((~c) & a)) + X[11];
-      b = b << 19 | b >>> (32 - 19);
-      a += ((b & c) | ((~b) & d)) + X[12];
-      a = a <<  3 | a >>> (32 -  3);
-      d += ((a & b) | ((~a) & c)) + X[13];
-      d = d <<  7 | d >>> (32 -  7);
-      c += ((d & a) | ((~d) & b)) + X[14];
-      c = c << 11 | c >>> (32 - 11);
-      b += ((c & d) | ((~c) & a)) + X[15];
-      b = b << 19 | b >>> (32 - 19);
-
-      // Round 2.
-      a += ((b & (c | d)) | (c & d)) + X[ 0] + 0x5a827999;
-      a = a <<  3 | a >>> (32 -  3);
-      d += ((a & (b | c)) | (b & c)) + X[ 4] + 0x5a827999;
-      d = d <<  5 | d >>> (32 -  5);
-      c += ((d & (a | b)) | (a & b)) + X[ 8] + 0x5a827999;
-      c = c <<  9 | c >>> (32 -  9);
-      b += ((c & (d | a)) | (d & a)) + X[12] + 0x5a827999;
-      b = b << 13 | b >>> (32 - 13);
-      a += ((b & (c | d)) | (c & d)) + X[ 1] + 0x5a827999;
-      a = a <<  3 | a >>> (32 -  3);
-      d += ((a & (b | c)) | (b & c)) + X[ 5] + 0x5a827999;
-      d = d <<  5 | d >>> (32 -  5);
-      c += ((d & (a | b)) | (a & b)) + X[ 9] + 0x5a827999;
-      c = c <<  9 | c >>> (32 -  9);
-      b += ((c & (d | a)) | (d & a)) + X[13] + 0x5a827999;
-      b = b << 13 | b >>> (32 - 13);
-      a += ((b & (c | d)) | (c & d)) + X[ 2] + 0x5a827999;
-      a = a <<  3 | a >>> (32 -  3);
-      d += ((a & (b | c)) | (b & c)) + X[ 6] + 0x5a827999;
-      d = d <<  5 | d >>> (32 -  5);
-      c += ((d & (a | b)) | (a & b)) + X[10] + 0x5a827999;
-      c = c <<  9 | c >>> (32 -  9);
-      b += ((c & (d | a)) | (d & a)) + X[14] + 0x5a827999;
-      b = b << 13 | b >>> (32 - 13);
-      a += ((b & (c | d)) | (c & d)) + X[ 3] + 0x5a827999;
-      a = a <<  3 | a >>> (32 -  3);
-      d += ((a & (b | c)) | (b & c)) + X[ 7] + 0x5a827999;
-      d = d <<  5 | d >>> (32 -  5);
-      c += ((d & (a | b)) | (a & b)) + X[11] + 0x5a827999;
-      c = c <<  9 | c >>> (32 -  9);
-      b += ((c & (d | a)) | (d & a)) + X[15] + 0x5a827999;
-      b = b << 13 | b >>> (32 - 13);
-
-      // Round 3.
-      a += (b ^ c ^ d) + X[ 0] + 0x6ed9eba1;
-      a = a <<  3 | a >>> (32 -  3);
-      d += (a ^ b ^ c) + X[ 8] + 0x6ed9eba1;
-      d = d <<  9 | d >>> (32 -  9);
-      c += (d ^ a ^ b) + X[ 4] + 0x6ed9eba1;
-      c = c << 11 | c >>> (32 - 11);
-      b += (c ^ d ^ a) + X[12] + 0x6ed9eba1;
-      b = b << 15 | b >>> (32 - 15);
-      a += (b ^ c ^ d) + X[ 2] + 0x6ed9eba1;
-      a = a <<  3 | a >>> (32 -  3);
-      d += (a ^ b ^ c) + X[10] + 0x6ed9eba1;
-      d = d <<  9 | d >>> (32 -  9);
-      c += (d ^ a ^ b) + X[ 6] + 0x6ed9eba1;
-      c = c << 11 | c >>> (32 - 11);
-      b += (c ^ d ^ a) + X[14] + 0x6ed9eba1;
-      b = b << 15 | b >>> (32 - 15);
-      a += (b ^ c ^ d) + X[ 1] + 0x6ed9eba1;
-      a = a <<  3 | a >>> (32 -  3);
-      d += (a ^ b ^ c) + X[ 9] + 0x6ed9eba1;
-      d = d <<  9 | d >>> (32 -  9);
-      c += (d ^ a ^ b) + X[ 5] + 0x6ed9eba1;
-      c = c << 11 | c >>> (32 - 11);
-      b += (c ^ d ^ a) + X[13] + 0x6ed9eba1;
-      b = b << 15 | b >>> (32 - 15);
-      a += (b ^ c ^ d) + X[ 3] + 0x6ed9eba1;
-      a = a <<  3 | a >>> (32 -  3);
-      d += (a ^ b ^ c) + X[11] + 0x6ed9eba1;
-      d = d <<  9 | d >>> (32 -  9);
-      c += (d ^ a ^ b) + X[ 7] + 0x6ed9eba1;
-      c = c << 11 | c >>> (32 - 11);
-      b += (c ^ d ^ a) + X[15] + 0x6ed9eba1;
-      b = b << 15 | b >>> (32 - 15);
-
-      a += aa; b += bb; c += cc; d += dd;
-   }
-
 } 

@@ -2,7 +2,7 @@
 // $Id$
 //
 // ChecksumPair -- A pair of weak, strong checksums.
-// Copyright (C) 2001,2002  Casey Marshall <rsdio@metastatic.org>
+// Copyright (C) 2001,2002,2003  Casey Marshall <rsdio@metastatic.org>
 //
 // This file is a part of Jarsync.
 //
@@ -66,7 +66,7 @@ public class ChecksumPair implements java.io.Serializable {
     *
     * @since 1.1
     */
-   Integer weak;
+   int weak;
 
    /**
     * The strong checksum.
@@ -79,7 +79,7 @@ public class ChecksumPair implements java.io.Serializable {
     * The offset in the original data where this pair was
     * generated.
     */
-   Long offset;
+   long offset;
 
    /** The number of bytes these sums are over. */
    int length;
@@ -96,22 +96,28 @@ public class ChecksumPair implements java.io.Serializable {
     * @param weak The weak, rolling checksum.
     * @param strong The strong checksum.
     * @param offset The offset at which this checksum was computed.
+    * @param length The length of the data over which this sum was
+    *        computed.
+    * @param seq    The sequence number of this checksum pair.
     */
-   public ChecksumPair(int weak, byte[] strong, long offset) {
-      this(new Integer(weak), strong, new Long(offset));
-   }
-
-   /**
-    * Create a new checksum pair.
-    *
-    * @param weak The weak, rolling checksum.
-    * @param strong The strong checksum.
-    * @param offset The offset at which this checksum was computed.
-    */
-   public ChecksumPair(Integer weak, byte[] strong, Long offset) {
+   public ChecksumPair(int weak, byte[] strong, long offset,
+                       int length, int seq) {
       this.weak = weak;
       this.strong = (byte[]) strong.clone();
       this.offset = offset;
+      this.length = length;
+      this.seq = seq;
+   }
+
+   /**
+    * Create a new checksum pair with no length or sequence fields.
+    *
+    * @param weak The weak checksum.
+    * @param strong The strong checksum.
+    * @param offset The offset at which this checksum was computed.
+    */
+   public ChecksumPair(int weak, byte[] strong, long offset) {
+      this(weak, strong, offset, 0, 0);
    }
 
    /**
@@ -121,20 +127,13 @@ public class ChecksumPair implements java.io.Serializable {
     * @param strong The strong checksum.
     */
    public ChecksumPair(int weak, byte[] strong) {
-      this(weak, strong, -1L);
+      this(weak, strong, -1L, 0, 0);
    }
 
    /**
-    * Create a new checksum pair with no associated offset.
-    *
-    * @param weak The weak checksum.
-    * @param strong The strong checksum.
+    * Default 0-arguments constructor for package access.
     */
-   public ChecksumPair(Integer weak, byte[] strong) {
-      this(weak, strong, new Long(-1L));
-   }
-
-   public ChecksumPair() { }
+   ChecksumPair() { }
 
  // Instance methods.
    // -------------------------------------------------------------------------
@@ -145,7 +144,7 @@ public class ChecksumPair implements java.io.Serializable {
     * @return The weak checksum.
     * @since 1.1
     */
-   public Integer getWeak() {
+   public int getWeak() {
       return weak;
    }
 
@@ -159,8 +158,16 @@ public class ChecksumPair implements java.io.Serializable {
       return strong;
    }
 
-   public Long getOffset() {
+   public long getOffset() {
       return offset;
+   }
+
+   public int getLength() {
+      return length;
+   }
+
+   public int getSequence() {
+      return seq;
    }
 
  // Public instance methods overriding java.lang.Object.
@@ -179,10 +186,7 @@ public class ChecksumPair implements java.io.Serializable {
    }
 
    /**
-    * Returns a pair of hexadecimal strings of the form:
-    * <blockquote>
-    * <code>{ weak, strong }</code>
-    * </blockquote>
+    * Returns a String representation of this pair.
     *
     * @return The String representation of this pair.
     * @since 1.2
@@ -190,11 +194,12 @@ public class ChecksumPair implements java.io.Serializable {
    public String toString() {
       String weak = new String();
       String s;
-      s = Integer.toHexString(getWeak().intValue());
+      s = Integer.toHexString(getWeak());
       for (int i = 0; i < 8 - s.length(); i++) {
          weak = weak + "0";
       }
       weak = weak + s;
-      return "{ " + weak + ", " + Util.toHexString(strong) + " }";
+      return "len=" + length + " offset=" + offset + " weak=" + weak
+         + " strong=" + Util.toHexString(strong);
    }
 }

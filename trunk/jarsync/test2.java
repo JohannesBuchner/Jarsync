@@ -24,8 +24,10 @@ public class test2 {
       File newf = new File(argv[0]);
       File old = new File(argv[1]);
       File reconstructed = new File(argv[2]);
+      Configuration config = new Configuration(
+         java.security.MessageDigest.getInstance("MD4"), new Checksum32());
 
-      Generator gen = new Generator();
+      Generator gen = new Generator(config);
       Collection sums = gen.generateSums(old);
       System.out.println("Checksums=");
       for (Iterator i = sums.iterator(); i.hasNext(); ) {
@@ -34,13 +36,13 @@ public class test2 {
       System.out.println();
       gen = null;
 
-      Matcher m = new Matcher();
-      TwoKeyMap map = m.buildHashtable(sums);
-      System.out.println("Hashtable=");
-      map.DEBUG_printTo(System.out);
-      System.out.println();
+      Matcher m = new Matcher(config);
+//      TwoKeyMap map = m.buildHashtable(sums);
+//      System.out.println("Hashtable=");
+//      map.DEBUG_printTo(System.out);
+//      System.out.println();
       
-      Collection deltas = m.hashSearch(map, newf);
+      Collection deltas = m.hashSearch(sums, newf);
       System.out.println("Deltas=");
       for (Iterator i = deltas.iterator(); i.hasNext(); ) {
          System.out.println(i.next());
