@@ -16,7 +16,7 @@ test_src = test.java test2.java
 
 distfiles = $(sources) $(test_src) AUTHORS COPYING Makefile README TODO mutate.pl ChangeLog build.xml source/Makefile
 
-version = 0.0.7
+version = 0.0.0
 package = jarsync
 
 distdir = $(package)-$(version)
