@@ -21,7 +21,9 @@ sources = org/metastatic/rsync/ChecksumPair.java \
   org/metastatic/rsync/RsyncConstants.java \
   org/metastatic/rsync/TwoKeyMap.java
 classes = $(patsubst %.java,%.class,$(sources))
-inner = org/metastatic/rsync/TwoKeyMap\$$1\$$c.class \
+inner = org/metastatic/rsync/Rebuilder\$$OffsetComparator.class \
+  org/metastatic/rsync/Rebuilder\$$TopologicalSorter.class \
+  org/metastatic/rsync/TwoKeyMap\$$1\$$c.class \
   org/metastatic/rsync/TwoKeyMap\$$1.class \
   org/metastatic/rsync/TwoKeyMap\$$2\$$c.class \
   org/metastatic/rsync/TwoKeyMap\$$2.class \
