@@ -89,7 +89,15 @@ public class Rdiff implements RsyncConstants {
       while ((c = g.getopt()) != -1) {
          switch (c) {
             case 'b':
-               blockLength = Integer.parseInt(g.getOptarg());
+               try {
+                  blockLength = Integer.parseInt(g.getOptarg());
+                  if (blockLength < 1) {
+                     throw new NumberFormatException();
+                  }
+               } catch (NumberFormatException nfe) {
+                  System.err.println(PROGNAME + ": bad block size.");
+                  System.exit(1);
+               }
                break;
             case 'h':
                usage(System.out);
@@ -97,7 +105,16 @@ public class Rdiff implements RsyncConstants {
             case 'I': break;
             case 'i': break;
             case 'S':
-               sumLength = Integer.parseInt(g.getOptarg());
+               try {
+                  sumLength = Integer.parseInt(g.getOptarg());
+                  if (sumLength > SUM_LENGTH) {
+                     throw new NumberFormatException();
+                  }
+               } catch (NumberFormatException nfe) {
+                  System.err.println(PROGNAME +
+                     ": bad sum length; must be > 0 and < " + SUM_LENGTH + ".");
+                  System.exit(1);
+               }
                break;
             case 's':
                showStats = true;
@@ -110,8 +127,8 @@ public class Rdiff implements RsyncConstants {
                break;
             case 'z': break;
             case '?':
-               System.err.println("try `" + PROGNAME + " --help' for more info.");
-               break;
+               System.err.println("Try `" + PROGNAME + " --help' for more info.");
+               System.exit(1);
          }
       }
 
@@ -121,7 +138,7 @@ public class Rdiff implements RsyncConstants {
       } else {
          System.err.println(PROGNAME + ": you must specify an action: "
             + "`signature', `delta', or `patch'.");
-         System.err.println("try `" + PROGNAME + " --help' for more info.");
+         System.err.println("Try `" + PROGNAME + " --help' for more info.");
          System.exit(1);
       }
 
@@ -390,7 +407,7 @@ public class Rdiff implements RsyncConstants {
       } else {
          System.err.println(PROGNAME + ": you must specify an action: "
             + "`signature', `delta', or `patch'.");
-         System.err.println("try `" + PROGNAME + " --help' for more info.");
+         System.err.println("Try `" + PROGNAME + " --help' for more info.");
          System.exit(1);
       }
 
