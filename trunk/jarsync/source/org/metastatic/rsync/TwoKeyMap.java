@@ -59,7 +59,7 @@ import java.util.*;
  * a search of a red-black tree, meaning that the upper-bound time
  * complexity ranges from O(lg(n)) to O(n). This works under the
  * assumption that the strong key is some sort of {@link
- * java.security.MessageDigest}, and thus takes longer to compute.</li>
+ * MessageDigest}, and thus takes longer to compute.</li>
  * </ol>
  * With this method, we can determine if it is worth it to compute the
  * strong key if we have already computed the weak key.
@@ -147,7 +147,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
        *
        * @since 1.1
        * @param key The key to look for in this sub-table.
-       * @returns The object mapped to by the given key, or null if there
+       * @return The object mapped to by the given key, or null if there
        *    is no such mapping.
        */
       public Object get(StrongKey key) {
@@ -170,7 +170,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
        *
        * @since 1.1
        * @param key The key to look for.
-       * @returns <tt>true</tt> if there is a mapping from the given key.
+       * @return <tt>true</tt> if there is a mapping from the given key.
        */
       public boolean containsKey(StrongKey key) {
          return data.containsKey(key);
@@ -381,7 +381,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
        * @since 1.0
        * @throws java.lang.ClassCastException If o is not a StrongKey.
        * @param o The object to compare to.
-       * @returns <tt>true</tt> If this key is equivalent to the argument.
+       * @return <tt>true</tt> If this key is equivalent to the argument.
        */
       public boolean equals(Object o) {
          return Arrays.equals(key, ((StrongKey) o).key);
@@ -444,10 +444,10 @@ public class TwoKeyMap implements java.io.Serializable, Map {
    /**
     * Create a new Map with all the mappings of the given map.
     *
-    * @since 1.9
+    * @since 1.1
     * @param m The initial mappings this Map should contain.
     * @throws java.lang.ClassCastException If one of the keys in
-    *    <code>m</code> is not a KeyPair.
+    *    <code>m</code> is not a ChecksumPair.
     * @throws java.lang.NullPointerException If one of the keys in
     *    <code>m</code> is null.
     */
@@ -460,12 +460,28 @@ public class TwoKeyMap implements java.io.Serializable, Map {
    // -----------------------------------------------------------------
 
    /**
-    * Put the given object at the location specified by the two keys.
+    * Test if the map contains the lower two bytes of the weak key. This
+    * is the fastest, and least accurate <code>containsKey</code>
+    * method.
     *
-    * @since 1.6
-    * @param weak The weak key to map to <tt>value</tt>.
-    * @param strong The strong key to map to <tt>value</tt>.
+    * @since 1.1
+    * @param key The key to check.
+    * @return true If the index <code>key &amp; 0xffff</code> in {@link
+    *    #tables} is non-null.
+    */
+   public boolean containsKey(int key) {
+      return tables[key & 0xffff] != null;
+   }
+
+ // Public instance methods implementing java.util.Map. -------------
+
+   /**
+    * Put the given object at the location specified by a key pair.
+    *
+    * @since 1.1
+    * @param key   The {@link ChecksumPair} to use as the key.
     * @param value The value to map to.
+    * @return The old value mapped, if any.
     */
    public Object put(Object key, Object value) {
       Object old = null;
@@ -490,20 +506,6 @@ public class TwoKeyMap implements java.io.Serializable, Map {
       }
       entry.put(new StrongKey(pair.strong), value);
       return old;
-   }
-
-   /**
-    * Test if the map contains the lower two bytes of the weak key. This
-    * is the fastest, and least accurate <code>containsKey</code>
-    * method.
-    *
-    * @since 1.1
-    * @param key The key to check.
-    * @return true If the index <code>key &amp; 0xffff</code> in {@link
-    *    #tables} is non-null.
-    */
-   public boolean containsKey(int key) {
-      return tables[key & 0xffff] != null;
    }
 
    /**
@@ -563,8 +565,6 @@ public class TwoKeyMap implements java.io.Serializable, Map {
       return null;
    }
 
- // Public instance methods implementing java.util.Map. -------------
-
    /**
     * Clear this Map.
     *
@@ -596,7 +596,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
    /**
     * Return an unmodifiable set of the SubTable objects in this class.
     *
-    * @since 1.8
+    * @since 1.1
     * @return A set of all sub-tables from this class.
     */
    public Set entrySet() {
@@ -670,7 +670,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
     * mapping.
     *
     * @since 1.1
-    * @return A set of all the {@link KeyPairs} in this mapping.
+    * @return A set of all the {@link ChecksumPair}s in this mapping.
     */
    public Set keySet() {
       final ChecksumPair[] arr = new ChecksumPair[size()];
@@ -711,14 +711,14 @@ public class TwoKeyMap implements java.io.Serializable, Map {
    /**
     * Put every entry in <code>m</code> in this map. This method will
     * only work if the keys of <code>m</code> are of type {@link
-    * KeyPair}.
+    * ChecksumPair}.
     *
     * @since 1.1
     * @param m The mappings to put.
     * @throws java.lang.ClassCastException If every key in <code>m</code>
-    *   is not a KeyPair.
+    *   is not a ChecksumPair.
     * @throws java.lang.NullPointerException If a key in <code>m</code>
-    *   is not a KeyPair.
+    *   is null.
     * @see #put(Object,Object)
     */
    public void putAll(Map m) {
@@ -729,7 +729,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
    }
 
    /**
-    * Removes a single mapping if the argument is a {@link KeyPair}, or
+    * Removes a single mapping if the argument is a {@link ChecksumPair}, or
     * an entire {@link SubTable} if the argument is a {@link
     * java.lang.Integer}.
     *
@@ -825,7 +825,7 @@ public class TwoKeyMap implements java.io.Serializable, Map {
     * Create a printable version of this Map.
     *
     * @return A {@link java.lang.String} representing this object.
-    * @since 0.0.1
+    * @since 1.1
     */
    public String toString() {
       String str = "(";

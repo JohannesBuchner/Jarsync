@@ -152,7 +152,7 @@ public class ChecksumPair implements java.io.Serializable {
     * values are equal.
     *
     * @param obj The Object to test.
-    * @returns True if both checksum pairs are equal.
+    * @return True if both checksum pairs are equal.
     */
    public boolean equals(Object obj) {
       return (getWeak() == ((ChecksumPair) obj).getWeak()) &&
@@ -165,7 +165,7 @@ public class ChecksumPair implements java.io.Serializable {
     * <code>{ weak, strong }</code>
     * </blockquote>
     *
-    * @returns The String representation of this pair.
+    * @return The String representation of this pair.
     * @since 1.2
     */
    public String toString() {

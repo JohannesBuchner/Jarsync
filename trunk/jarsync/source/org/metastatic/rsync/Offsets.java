@@ -70,7 +70,7 @@ public class Offsets implements Delta, java.io.Serializable {
 
    /**
     * Create a new pair of offsets. The idea behind this object is
-    * that this sort of {@link Update} represents original data
+    * that this sort of {@link Delta} represents original data
     * that has simply moved in the new data.
     *
     * @since 1.1
@@ -175,7 +175,8 @@ public class Offsets implements Delta, java.io.Serializable {
    /**
     * Returns the hash code of this object, defined as:
     * <blockquote>
-    * <tt>{@link #oldOffset} + {@link #newOffset} + {@link #block_size}
+    * <tt>{@link #oldOffset} + {@link #newOffset} + {@link
+    * #blockLength}
     * % 2^32</tt>
     * </blockquote>
     *

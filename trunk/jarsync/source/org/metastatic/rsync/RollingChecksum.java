@@ -110,7 +110,7 @@ public class RollingChecksum {
    /**
     * Return the value of the currently computed checksum.
     *
-    * @returns The currently computed checksum.
+    * @return The currently computed checksum.
     * @since 1.1
     */
    public int getValue() {

@@ -308,7 +308,7 @@ public class Rebuilder {
        * <p>References:</p>
        * <ol>
        * <li>T. Cormen, C. Leiserson, and R. Rivest: <i>Introduction to
-       * Algorithms</i>, pp. 477-487 (1990 The Massachusetts Instiute of
+       * Algorithms</i>, pp. 477-487 (1990 The Massachusetts Institute of
        * Technology).</li>
        * </ol>
        */

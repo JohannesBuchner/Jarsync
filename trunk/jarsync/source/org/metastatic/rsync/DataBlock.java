@@ -27,7 +27,7 @@
 package org.metastatic.rsync;
 
 /**
- * This is the {@link Update} in the rsync algorithm that introduces new
+ * This is the {@link Delta} in the rsync algorithm that introduces new
  * data. It is an array of bytes and an offset, such that the updated
  * file should contain this block at the given offset.
  *
@@ -85,7 +85,7 @@ public class DataBlock implements Delta, java.io.Serializable {
       return data.length;
    }
 
-   // Property accessor methods.
+   // Property accessor methods. --------------------------------------
 
    /**
     * Get the offset at which this block should begin.
