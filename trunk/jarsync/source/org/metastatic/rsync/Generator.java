@@ -43,21 +43,19 @@ public class Generator implements RsyncConstants {
    // Constants and variables.
    // ------------------------------------------------------------------------
 
-   protected MD4 strongSum;
+   protected Configuration config;
    protected RollingChecksum weakSum;
-   protected int blockLength;
 
    // Constructors.
    // ------------------------------------------------------------------------
 
    public Generator() {
-      this(BLOCK_LENGTH);
+      this(new Configuration());
    }
 
-   public Generator(int blockLength) {
-      this.blockLength = blockLength;
-      strongSum = new MD4();
-      weakSum = new RollingChecksum();
+   public Generator(Configuration config) {
+      this.config = config;
+      weakSum = new RollingChecksum();      
    }
 
    // Instance methods.
@@ -85,13 +83,13 @@ public class Generator implements RsyncConstants {
     */
    public Collection
    generateSums(byte[] buf, int off, int len, long baseOffset) {
-      int count = (len+(blockLength-1)) / blockLength;
-      int remainder = len % blockLength;
+      int count = (len+(config.blockLength-1)) / config.blockLength;
+      int remainder = len % config.blockLength;
       int offset = off;
       Collection sums = new ArrayList(count);
 
       for (int i = 0; i < count; i++) {
-         int n = Math.min(len, blockLength);
+         int n = Math.min(len, config.blockLength);
          ChecksumPair pair = generateSum(buf, offset, n, offset+baseOffset);
          pair.seq = i;
 
@@ -127,9 +125,9 @@ public class Generator implements RsyncConstants {
    public ChecksumPair generateSum(byte[] buf, int off, int len, long fileOffset) {
       ChecksumPair p = new ChecksumPair();
       weakSum.check(buf, off, len);
-      strongSum.update(buf, off, len);
+      config.strongSum.update(buf, off, len);
       p.weak = new Integer(weakSum.getValue());
-      p.strong = strongSum.digest();
+      p.strong = config.strongSum.digest();
       p.offset = new Long(fileOffset);
       p.length = len;
       return p;

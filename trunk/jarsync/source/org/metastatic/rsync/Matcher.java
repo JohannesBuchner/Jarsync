@@ -37,20 +37,18 @@ public final class Matcher implements RsyncConstants {
    // Constants and variables.
    // -----------------------------------------------------------------
 
-   protected MD4 strongSum;
+   protected Configuration config;
    protected RollingChecksum weakSum;
-   protected int blockLength;
 
    // Constructors.
    // -----------------------------------------------------------------
 
    public Matcher() {
-      this(BLOCK_LENGTH);
+      this(new Configuration());
    }
 
-   public Matcher(int blockLength) {
-      this.blockLength = blockLength;
-      strongSum = new MD4();
+   public Matcher(Configuration config) {
+      this.config = config;
       weakSum = new RollingChecksum();
    }
 
@@ -59,7 +57,6 @@ public final class Matcher implements RsyncConstants {
 
    /**
     * Create a two-key map for the given collection of checksums.
-    *
     */
    public TwoKeyMap buildHashtable(Collection sums) {
       TwoKeyMap m = new TwoKeyMap();
@@ -94,7 +91,7 @@ public final class Matcher implements RsyncConstants {
    hashSearch(TwoKeyMap m, byte[] buf, int off, int len, long baseOffset) {
       LinkedList deltas = new LinkedList();
       ChecksumPair p = new ChecksumPair();
-      int n = Math.min(len, blockLength);
+      int n = Math.min(len, config.blockLength);
       Integer weak;
       Long oldOffset;
       int i = off, j = off;
@@ -120,7 +117,7 @@ public final class Matcher implements RsyncConstants {
             }
             i += n;
             j = i;
-            n = Math.min(len - (i - off), blockLength);
+            n = Math.min(len - (i - off), config.blockLength);
             weakSum.check(buf, i, n);
          } else {
             if (i+n < len + off)
@@ -128,7 +125,7 @@ public final class Matcher implements RsyncConstants {
             else
                weakSum.trim();
             i++;
-            n = Math.min(len - (i - off), blockLength);
+            n = Math.min(len - (i - off), config.blockLength);
          }
       }
       if (i != j) {
@@ -145,9 +142,9 @@ public final class Matcher implements RsyncConstants {
          System.err.println("first test succeeds; weak=" +
             Integer.toHexString(weakSum.intValue() & 0xffff));
          if (m.containsKey(weakSum)) {
-            strongSum.reset();
-            strongSum.update(block, off, len);
-            byte[] digest = strongSum.digest();
+            config.strongSum.reset();
+            config.strongSum.update(block, off, len);
+            byte[] digest = config.strongSum.digest();
             ChecksumPair pair = new ChecksumPair(weakSum, digest);
             System.err.println("second test succeeds; sums=" + pair);
             return (Long) m.get(new ChecksumPair(weakSum, digest));
