@@ -1,7 +1,7 @@
 /* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
    $Id$
 
-   SendFiles: create and send a list of files.
+   NonblockingFileList: send and receive a list of files.
    Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
 
    This file is a part of Jarsync.
@@ -45,7 +45,10 @@ import javaunix.io.UnixFile;
 
 import org.apache.log4j.Logger;
 
-public final class BufferFileList implements BufferTool, Constants {
+/**
+ * Class for sending and receiving file lists.
+ */
+final class NonblockingFileList implements NonblockingTool, Constants {
 
    // Constants and fields.
    // -----------------------------------------------------------------------
@@ -74,8 +77,8 @@ public final class BufferFileList implements BufferTool, Constants {
    // Constructors.
    // -----------------------------------------------------------------------
 
-   public BufferFileList(Options options, String path, List argv,
-                         int remoteVersion, Logger logger, int state)
+   NonblockingFileList(Options options, String path, List argv,
+                       int remoteVersion, Logger logger, int state)
    {
       this.options = options;
       this.path = path;
@@ -97,7 +100,7 @@ public final class BufferFileList implements BufferTool, Constants {
       lastfile.modtime = 0;
    }
 
-   // Instance methods.
+   // NonblockingTool implementation.
    // -----------------------------------------------------------------------
 
    public boolean updateInput() throws Exception {
@@ -140,23 +143,45 @@ public final class BufferFileList implements BufferTool, Constants {
       inBuffer = in;
    }
 
-   public List getFileList() {
+   // Instance methods.
+   // -----------------------------------------------------------------------
+
+   /**
+    * Get the list of files, either read over the wire, or built in
+    * memory.
+    */
+   List getFileList() {
       return files;
    }
 
-   public Map getUidList() {
+   /**
+    * Get the UID list, either read over the wire, or built in memory.
+    */
+   Map getUidList() {
       return uids;
    }
 
-   public Map getGidList() {
+   /**
+    * Get the GID list, either read over the wire, or built in memory.
+    */
+   Map getGidList() {
       return gids;
    }
 
    // Own methods.
    // -----------------------------------------------------------------------
 
+   /**
+    * Receives the next file entry from the buffer.
+    */
    private void getNextFile() {
       int flags = inBuffer.get() & 0xFF;
+
+      /*
+       * We might not have enough bytes in the buffer, and we cannot
+       * know how much this entry will need, so we take care reading the
+       * data, and rewind if an underflow occurs.
+       */
       int entryLen = 1;
       int l1 = 0, l2 = 0;
       FileInfo file = new FileInfo();
@@ -253,11 +278,15 @@ public final class BufferFileList implements BufferTool, Constants {
          files.add(file);
          logger.debug("got file=" + file);
       } catch (BufferUnderflowException bue) {
+         // rewind the buffer.
          inBuffer.position(inBuffer.position() - entryLen);
          throw bue;
       }
    }
 
+   /**
+    * Send the next file entry.
+    */
    private void sendNextFile() throws Exception {
       if (argv.size() == 0) {
          state = FLIST_SEND_DONE;
@@ -299,13 +328,7 @@ public final class BufferFileList implements BufferTool, Constants {
       if (options.always_checksum) {
          if (file.S_ISREG()) {
             try {
-               MessageDigest md4 = MessageDigest.getInstance("BrokenMD4");
-               FileInputStream fin = new FileInputStream(f);
-               byte[] buf = new byte[4096];
-               int len = 0;
-               while ((len = fin.read(buf)) != 0)
-                  md4.update(buf, 0, len);
-               file.sum = md4.digest();
+               file.sum = RsyncUtil.fileChecksum(f);
             } catch (Exception e) {
                io_error = 1;
                file.sum = new byte[SUM_LENGTH];
@@ -423,6 +446,9 @@ public final class BufferFileList implements BufferTool, Constants {
       }
    }
 
+   /**
+    * Sends the next UID in the list.
+    */
    private void sendUidList() throws Exception {
       if (!id_iterator.hasNext()) {
          outBuffer.putInt(0);
@@ -439,6 +465,9 @@ public final class BufferFileList implements BufferTool, Constants {
       outBuffer.putShortString((String) uids.get(uid));
    }
 
+   /**
+    * Sends the next GID in the list.
+    */
    private void sendGidList() throws Exception {
       if (!id_iterator.hasNext()) {
          outBuffer.putInt(0);
@@ -450,6 +479,10 @@ public final class BufferFileList implements BufferTool, Constants {
       outBuffer.putShortString((String) gids.get(gid));
    }
 
+   /**
+    * Expand the given directory, adding its entries (minus ones we
+    * ignore) to the list.
+    */
    private void expandDirectory(UnixFile dir) {
       String dirname = dir.getPath();
       logger.debug("dirname=" + dirname);

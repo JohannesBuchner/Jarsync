@@ -1,7 +1,7 @@
 /* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
    $Id$
 
-   BufferSender: NIO version of sender process.
+   NonblockingSender: NIO version of sender process.
    Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
 
    This file is a part of Jarsync.
@@ -52,7 +52,9 @@ import org.metastatic.rsync.MatcherStream;
 import org.metastatic.rsync.Offsets;
 import org.metastatic.rsync.Util;
 
-public class BufferSender implements BufferTool, Constants, MatcherListener {
+final class NonblockingSender implements NonblockingTool, Constants,
+   MatcherListener
+{
 
    // Constants and fields.
    // -----------------------------------------------------------------------
@@ -84,8 +86,8 @@ public class BufferSender implements BufferTool, Constants, MatcherListener {
    // Constructors.
    // -----------------------------------------------------------------------
 
-   public BufferSender(Options options, Configuration config, List files,
-                       String path, Logger logger, int remoteVersion)
+   NonblockingSender(Options options, Configuration config, List files,
+                     String path, Logger logger, int remoteVersion)
    {
       this.options = options;
       this.config = config;

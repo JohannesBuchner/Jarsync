@@ -1,7 +1,7 @@
 /* vim:set softtabstop=3 shiftwidth=3 tabstop=3 expandtab tw=72:
    $Id$
 
-   BufferTool: interface to generic nonblocking rsync operations.
+   NonblockingTool: interface to generic nonblocking rsync operations.
    Copyright (C) 2003  Casey Marshall <rsdio@metastatic.org>
 
    This file is a part of Jarsync.
@@ -28,7 +28,7 @@ package org.metastatic.rsync.v2;
 
 import java.nio.ByteBuffer;
 
-public interface BufferTool {
+interface NonblockingTool {
 
    /**
     * Update this tool with new input.
