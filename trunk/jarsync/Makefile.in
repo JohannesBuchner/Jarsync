@@ -10,6 +10,7 @@ COMPRESS = @COMPRESS@
 SUFFIX = @COMPRESS_SUFFIX@
 
 SOURCES = \
+  source/org/metastatic/rsync/BrokenMD4.java \
   source/org/metastatic/rsync/ChecksumPair.java \
   source/org/metastatic/rsync/Configuration.java \
   source/org/metastatic/rsync/DataBlock.java \
@@ -30,12 +31,37 @@ SOURCES = \
   source/org/metastatic/rsync/v2/MultiplexedInputStream.java \
   source/org/metastatic/rsync/v2/MultiplexedOutputStream.java \
   source/org/metastatic/rsync/v2/Rsync.java \
-  source/org/metastatic/rsync/v2/SocketClient.java
+  source/org/metastatic/rsync/v2/SocketClient.java \
+  jzlib/com/jcraft/jzlib/Adler32.java \
+  jzlib/com/jcraft/jzlib/Deflate.java \
+  jzlib/com/jcraft/jzlib/InfBlocks.java \
+  jzlib/com/jcraft/jzlib/InfCodes.java \
+  jzlib/com/jcraft/jzlib/InfTree.java \
+  jzlib/com/jcraft/jzlib/Inflate.java \
+  jzlib/com/jcraft/jzlib/JZlib.java \
+  jzlib/com/jcraft/jzlib/StaticTree.java \
+  jzlib/com/jcraft/jzlib/Tree.java \
+  jzlib/com/jcraft/jzlib/ZInputStream.java \
+  jzlib/com/jcraft/jzlib/ZOutputStream.java \
+  jzlib/com/jcraft/jzlib/ZStream.java \
+  jzlib/com/jcraft/jzlib/ZStreamException.java \
+  getopt/gnu/getopt/Getopt.java \
+  getopt/gnu/getopt/LongOpt.java \
+  getopt/gnu/getopt/MessagesBundle.properties \
+  getopt/gnu/getopt/MessagesBundle_cs.properties \
+  getopt/gnu/getopt/MessagesBundle_de.properties \
+  getopt/gnu/getopt/MessagesBundle_fr.properties \
+  getopt/gnu/getopt/MessagesBundle_nl.properties \
+  getopt/gnu/getopt/MessagesBundle_no.properties
 
 TEST_SRC = test.java test2.java test3.java
 TEST_PROG = test.class test2.class test3.class
 
-distfiles = $(SOURCES) $(TEST_SRC) AUTHORS COPYING Makefile.in README TODO configure configure.ac mutate.pl ChangeLog build.xml source/Makefile.in lib/getopt.jar rdiff rdiff.magic
+distfiles = $(SOURCES) $(TEST_SRC) AUTHORS COPYING Makefile.in README TODO \
+  configure configure.ac mutate.pl ChangeLog build.xml source/Makefile.in \
+  rdiff rdiff.magic jzlib/Makefile.in jzlib/README jzlib/COPYING \
+  jzlib/README.jarsync jzlib/jzlib.diff getopt/COPYING getopt/README \
+  getopt/Makefile.in getopt/ChangeLog
 
 version = @PACKAGE_VERSION@
 package = @PACKAGE_NAME@
