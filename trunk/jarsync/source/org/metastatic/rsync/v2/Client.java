@@ -28,11 +28,14 @@ package org.metastatic.rsync.v2;
 
 import java.awt.GridLayout;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import java.net.Socket;
@@ -40,6 +43,8 @@ import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Security;
+
+import java.text.DecimalFormat;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -116,7 +121,7 @@ public class Client implements Constants
       logger.setLevel(Level.WARN);
     else if (options.verbose == 1)
       logger.setLevel(Level.INFO);
-    else if (options.verbose == 2)
+    else if (options.verbose >= 2)
       logger.setLevel(Level.DEBUG);
     String path = null;
     int i = 0;
@@ -277,12 +282,19 @@ public class Client implements Constants
           {
             try
               {
+                // So we can compile on JSSE-less platforms...
                 Class clazz = Class.forName("org.metastatic.rsync.v2.SSLUtil");
                 Method m = clazz.getMethod("getSSLSocket",
                                            new Class[] { String.class,
                                                          Integer.TYPE });
                 socket = (Socket) m.invoke(null, new Object[] { remoteHost,
                                                                 new Integer(remotePort) });
+              }
+            catch (InvocationTargetException ite)
+              {
+                logger.error("can't create SSL socket.");
+                logger.error(ite.getCause().toString());
+                return 1;
               }
             catch (Exception ex)
               {
@@ -295,9 +307,12 @@ public class Client implements Constants
           socket = new Socket(remoteHost, remotePort);
         if (options.io_timeout > 0)
           socket.setSoTimeout(options.io_timeout);
+        socket.setKeepAlive(true);
         logger.debug("socket=" + socket);
         in = new MultiplexedInputStream(socket.getInputStream(), false);
         out = new MultiplexedOutputStream(socket.getOutputStream(), false);
+        in.setStats(stats);
+        out.setStats(stats);
       }
     catch (IOException ioe)
       {
@@ -320,6 +335,7 @@ public class Client implements Constants
   public static int startShellClient(String path, String[] argv, int optind)
   {
     logger.debug("starting shell client to " + remoteHost + ":" + remotePort);
+
     return 0;
   }
 
@@ -335,8 +351,11 @@ public class Client implements Constants
       {
         config.checksumSeed = new byte[4];
         in.read(config.checksumSeed);
+        logger.debug("checksum seed=" + Util.toHexString(config.checksumSeed));
         if (remoteVersion >= 23)
           in.setMultiplex(true);
+        stats.total_read = 0;
+        stats.total_written = 0;
         if (listOnly && !options.recurse)
           excludeList.add("/*/*");
         for (Iterator i = excludeList.iterator(); i.hasNext(); )
@@ -356,7 +375,8 @@ public class Client implements Constants
           }
         else
           {
-            List files = flist.receiveFileList();
+            final List files = flist.receiveFileList();
+            stats.flist_size = (int) stats.total_read;
             if (listOnly)
               {
                 Collections.sort(files,
@@ -369,13 +389,119 @@ public class Client implements Constants
                   });
                 for (Iterator i = files.iterator(); i.hasNext(); )
                   System.out.println(i.next());
+                out.writeInt(-1); // End generator phase 0.
+                in.readInt();     // End receiver phase 0.
+                out.writeInt(-1); // End generator phase 1.
+                in.readInt();     // End receiver phase 1.
+                out.writeInt(-1); // Final goodbye.
+                return readStats();
               }
+            final Receiver recv = new Receiver(in, out, config, remoteVersion, false);
+            recv.setStatistics(stats);
+            Thread generator = new Thread(
+              new Runnable()
+              {
+                public void run()
+                {
+                  try
+                    {
+                      recv.generateFiles(files);
+                    }
+                  catch (IOException ioe)
+                    {
+                      ioe.printStackTrace(new LoggerPrintStream(logger,
+                                                                Level.ERROR));
+                    }
+                }
+              }, "generator");
+            Thread receiver = new Thread(
+              new Runnable()
+              {
+                public void run()
+                {
+                  try
+                    {
+                      recv.receiveFiles(files);
+                    }
+                  catch (IOException ioe)
+                    {
+                      ioe.printStackTrace(new LoggerPrintStream(logger,
+                                                                Level.ERROR));
+                    }
+                }
+              }, "receiver");
+            generator.start();
+            receiver.start();
+            try
+              {
+                receiver.join();
+              }
+            catch (Exception e)
+              {
+                logger.error(e.toString());
+              }
+            out.write(-1);
+            return readStats();
           }
       }
     catch (IOException ioe)
       {
         logger.error(ioe.getMessage());
         return 1;
+      }
+    return 0;
+  }
+
+  public static int readStats()
+  {
+    long t = System.currentTimeMillis();
+    boolean send_stats = options.verbose > 0 || remoteVersion >= 20;
+    if (send_stats && !options.am_sender)
+      {
+        try
+          {
+            stats.total_written = in.readLong();
+            long l = in.readLong();
+            stats.total_size = in.readLong();
+            stats.total_read = l;
+          }
+        catch (IOException ioe)
+          {
+            logger.error("error reading stats: "+ioe.getMessage());
+            return 1;
+          }
+      }
+    if (options.do_stats)
+      {
+        if (!options.am_sender && !send_stats)
+          {
+            logger.error("Cannot show stats as receiver because remote protocol version is less than 20.");
+            logger.error("Use --stats -v to show stats.");
+            return 1;
+          }
+        System.out.println("Number of files: " + stats.num_files);
+        System.out.println("Number of files transferred: "
+                           + stats.num_transferred_files);
+        System.out.println("Total file size: " + stats.total_size + " bytes");
+        System.out.println("Total transferred file size: "
+                           + stats.total_transferred_size + " bytes");
+        System.out.println("Literal data: " + stats.literal_data + " bytes");
+        System.out.println("Matched data: " + stats.matched_data + " bytes");
+        System.out.println("File list size: " + stats.flist_size + " bytes");
+        System.out.println("Total bytes written: " + stats.total_written + " bytes");
+        System.out.println("Total bytes read: " + stats.total_read + " bytes");
+        System.out.println();
+      }
+    if (options.verbose > 0 || options.do_stats)
+      {
+        DecimalFormat df = new DecimalFormat("###0.00");
+        System.out.println("wrote " + stats.total_written + " bytes  read " +
+                           stats.total_read + " bytes  " +
+                           df.format(((double)(stats.total_written+stats.total_read) /
+                                      (0.5 + (double)((t-starttime) / 1000L))))
+                           + " bytes/sec");
+        System.out.println("total size is " + stats.total_size + " bytes  speedup is " +
+                           df.format((1.0*stats.total_size) / (double)(stats.total_written+stats.total_read)));
       }
     return 0;
   }
@@ -520,17 +646,29 @@ public class Client implements Constants
     try
       {
         MessageDigest md = MessageDigest.getInstance("BrokenMD4");
-        JPasswordField pass = new JPasswordField();
-        JPanel panel = new JPanel(new GridLayout(2, 1));
-        panel.add(new JLabel("Password:"));
-        panel.add(pass);
-        JOptionPane.showMessageDialog(null, panel,
-                                      remoteUser+'@'+remoteHost+"'s Password",
-                                      JOptionPane.QUESTION_MESSAGE);
-        String passwd = new String(pass.getPassword());
-        md.update(passwd.getBytes());
-        md.update(challenge.getBytes());
-        Util.writeASCII(out, remoteUser + " " + Util.base64(md.digest()) + '\n');
+        String passwd = null;
+        if (System.getProperty("jarsync.password.gui") != null)
+          {
+            JPasswordField pass = new JPasswordField();
+            JPanel panel = new JPanel(new GridLayout(2, 1));
+            panel.add(new JLabel("Password:"));
+            panel.add(pass);
+            JOptionPane.showMessageDialog(null, panel,
+                                          remoteUser+'@'+remoteHost+"'s Password",
+                                          JOptionPane.QUESTION_MESSAGE);
+            passwd = new String(pass.getPassword());
+          }
+        else
+          {
+            System.out.print(remoteUser + '@' + remoteHost + "'s password: ");
+            passwd = Util.readLine(System.in);
+            System.out.println();
+          }
+        md.update(new byte[4]); // dummy checksum seed
+        md.update(passwd.getBytes("US-ASCII"));
+        md.update(challenge.getBytes("US-ASCII"));
+        byte[] response = md.digest();
+        Util.writeASCII(out, remoteUser + " " + Util.base64(response) + '\n');
       }
     catch (NoSuchAlgorithmException nsae)
       {
