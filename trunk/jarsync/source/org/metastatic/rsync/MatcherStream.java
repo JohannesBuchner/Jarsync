@@ -109,7 +109,7 @@ public class MatcherStream {
     * @param config The current configuration.
     */
    public MatcherStream(Configuration config) {
-      this.config = (Configuration) config.clone();
+      this.config = config;
       this.listeners = new LinkedList();
       this.hashtable = new TwoKeyMap();
       buffer = new byte[config.chunkSize];
@@ -187,15 +187,15 @@ public class MatcherStream {
                count-config.blockLength, config.blockLength);
             for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
                MatcherListener l = (MatcherListener) it.next();
-               l.update(d);
-               l.update(o);
+               l.update(new MatcherEvent(d));
+               l.update(new MatcherEvent(o));
             }
          } else {
             Offsets o = new Offsets(oldOffset.longValue(),
                count-config.blockLength, config.blockLength);
             for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
                MatcherListener l = (MatcherListener) it.next();
-               l.update(o);
+               l.update(new MatcherEvent(o));
             }
          }
          ndx = 0;
@@ -204,7 +204,7 @@ public class MatcherStream {
             buffer.length - (config.blockLength-1));
          for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
             MatcherListener l = (MatcherListener) it.next();
-            l.update(d);
+            l.update(new MatcherEvent(d));
          }
          System.arraycopy(buffer, buffer.length - (config.blockLength-1),
             buffer, 0, config.blockLength-1);
@@ -244,15 +244,15 @@ public class MatcherStream {
                   count-config.blockLength, config.blockLength);
                for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
                   MatcherListener l = (MatcherListener) it.next();
-                  l.update(d);
-                  l.update(o);
+                  l.update(new MatcherEvent(d));
+                  l.update(new MatcherEvent(o));
                }
             } else {
                Offsets o = new Offsets(oldOffset.longValue(),
                   count-config.blockLength, config.blockLength);
                for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
                   MatcherListener l = (MatcherListener) it.next();
-                  l.update(o);
+                  l.update(new MatcherEvent(o));
                }
             }
             ndx = 0;
@@ -261,7 +261,7 @@ public class MatcherStream {
                buffer.length - (config.blockLength-1));
             for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
                MatcherListener l = (MatcherListener) it.next();
-               l.update(d);
+               l.update(new MatcherEvent(d));
             }
             System.arraycopy(buffer, buffer.length - (config.blockLength-1),
                buffer, 0, config.blockLength-1);
@@ -284,10 +284,29 @@ public class MatcherStream {
     */
    public void doFinal() {
       if (ndx > 0) {
-         DataBlock d = new DataBlock(count-ndx, buffer, 0, ndx);
-         for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
-            MatcherListener l = (MatcherListener) it.next();
-            l.update(d);
+         int off = Math.max(0, ndx-config.blockLength);
+         int len = Math.min(ndx, config.blockLength);
+         config.weakSum.check(buffer, off, len);
+         Long oldOff = hashSearch(buffer, off, len);
+         if (oldOff != null) {
+            if (off > 0) {
+               DataBlock d = new DataBlock(count-ndx, buffer, 0, off);
+               for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
+                  MatcherListener l = (MatcherListener) it.next();
+                  l.update(new MatcherEvent(d));
+               }
+            }
+            Offsets o = new Offsets(oldOff.longValue(), count-len, len);
+            for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
+               MatcherListener l = (MatcherListener) it.next();
+               l.update(new MatcherEvent(o));
+            }
+         } else {
+            DataBlock d = new DataBlock(count-ndx, buffer, 0, ndx);
+            for (Iterator it = listeners.listIterator(); it.hasNext(); ) {
+               MatcherListener l = (MatcherListener) it.next();
+               l.update(new MatcherEvent(d));
+            }
          }
       }
       reset();
@@ -313,6 +332,9 @@ public class MatcherStream {
          if (hashtable.containsKey(weakSum)) {
             config.strongSum.reset();
             config.strongSum.update(block, off, len);
+            if (config.checksumSeed != null) {
+               config.strongSum.update(config.checksumSeed);
+            }
             byte[] digest = new byte[config.strongSumLength];
             System.arraycopy(config.strongSum.digest(), 0, digest, 0,
                digest.length);

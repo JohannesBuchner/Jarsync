@@ -190,8 +190,8 @@ public final class Matcher {
       // Instance methods.
       // --------------------------------------------------------------------
 
-      public void update(Delta d) {
-         deltas.add(d);
+      public void update(MatcherEvent event) {
+         deltas.add(event.getDelta());
       }
    }
 }

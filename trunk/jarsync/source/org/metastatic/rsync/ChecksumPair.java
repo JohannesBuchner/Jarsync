@@ -101,7 +101,7 @@ public class ChecksumPair implements java.io.Serializable {
    public ChecksumPair(int weak, byte[] strong, long offset,
                        int length, int seq) {
       this.weak = weak;
-      this.strong = (byte[]) strong.clone();
+      this.strong = strong;
       this.offset = offset;
       this.length = length;
       this.seq = seq;
