@@ -45,6 +45,13 @@
 
 package org.metastatic.rsync;
 
+/**
+ * Signals that a parameter file being parsed is incorrect. This is not
+ * usually a fatal error, and parsing may continue, but the program
+ * catching this error should complain about this.
+ *
+ * @version $Revision $
+ */
 public class ParameterException extends java.io.IOException {
 
    // Trivial subclass.

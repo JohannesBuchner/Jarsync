@@ -49,18 +49,57 @@ import java.io.IOException;
 import java.io.FileReader;
 import java.io.LineNumberReader;
 
+/**
+ * <p>Simple parser for Samba-style config files. The parameters are
+ * passed back to the caller via a simple event listener callback
+ * interface, {@link ParameterListener}.</p>
+ *
+ * <p>A sample file looks like:</p>
+ *
+ * <pre>
+ * [section one]
+ * parameter one = value string
+ * parameter two = another value
+ * [section two]
+ * new parameter = some value or t'other
+ * </pre>
+ *
+ * <p>The syntax is roughly:</p>
+ *
+ * <pre>
+ * file      ::= parameter* section* EOF
+ * section   ::= header parameter*
+ * header    ::= '[' NAME ']'
+ * parameter ::= NAME '=' VALUE EOL
+ * </pre>
+ *
+ * <p>Blank lines, and lines that begin with either '#' or ';' are
+ * ignored. long lines may be continued by preceding the end-of-line
+ * character(s) with a backslash ('\').</p>
+ *
+ * @version $Revision $
+ */
 public final class Parameters {
 
    // Constants and fields.
    // -----------------------------------------------------------------------
 
+   /** The callback object. */
    private final ParameterListener listener;
 
+   /** The current file being read. */
    private LineNumberReader in;
 
    // Constructor.
    // -----------------------------------------------------------------------
 
+   /**
+    * Create a new parameter file parser. The argument is a concrete
+    * imlpmentation of {@link ParameterListener} which will take the
+    * parsed arguments.
+    *
+    * @param listener The parameter listener.
+    */
    public Parameters(ParameterListener listener) {
       this.listener = listener;
    }
@@ -79,7 +118,7 @@ public final class Parameters {
    }
 
    /**
-    * Parse, or continue parsing the file, if a parsing error occured
+    * Parse, or continue parsing the file if a parsing error occured
     * in a previous call to this method. A call to {@link
     * #begin(java.lang.String)} must have succeeded before this method
     * is called.
@@ -136,6 +175,12 @@ public final class Parameters {
    // Own methods.
    // -----------------------------------------------------------------------
 
+   /**
+    * Test if a line is a comment or empty.
+    *
+    * @param s The string to test.
+    * @return true if this string is a comment or empty.
+    */
    private static boolean isIgnorable(String s) {
       s = s.trim();
       if (s.length() == 0) return true;

@@ -46,7 +46,9 @@
 package org.metastatic.rsync;
 
 /**
- * A listener for parsing Samba-style config files.
+ * A listener for parsing Samba-style config files. There are two events
+ * that occur during parsing: starting named sections and setting
+ * parameters.
  *
  * @version $Revision $
  */
@@ -62,7 +64,10 @@ public interface ParameterListener extends java.util.EventListener {
 
    /**
     * Set a parameter. This method may be called prior to the first call
-    * to {@link #beginSection}, if there are global options.
+    * to {@link #beginSection}, if there are global options. If this
+    * method is called after a call to {@link
+    * #beginSection(java.lang.String)}, this parameter belongs to that
+    * section.
     *
     * @param name  The parameter's name.
     * @param value The parameter's value.
