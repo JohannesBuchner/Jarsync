@@ -1,0 +1,10 @@
+The version of jzlib inlcuded here has been modified for use with
+jarsync, in a similar fashion to how the zlib included with rsync has
+been modified. The example files and the MindTerm patch are also
+removed, since they have no use here.
+
+The only change is the addition of Z_INSERT_ONLY flush value, which
+allows for efficient history updating without emitting data.
+
+The file `jzlib.diff' in this directory contains the extent of the
+differences between the jzlib-0.0.8 source tree and this one.

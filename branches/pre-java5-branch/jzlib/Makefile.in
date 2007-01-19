@@ -1,0 +1,45 @@
+# Makefile for Jarsync.
+# $Id$
+
+COMPILER = @COMPILER@
+CFLAGS = @CFLAGS@
+
+sources = \
+  com/jcraft/jzlib/Adler32.java \
+  com/jcraft/jzlib/Deflate.java \
+  com/jcraft/jzlib/InfBlocks.java \
+  com/jcraft/jzlib/InfCodes.java \
+  com/jcraft/jzlib/InfTree.java \
+  com/jcraft/jzlib/Inflate.java \
+  com/jcraft/jzlib/JZlib.java \
+  com/jcraft/jzlib/StaticTree.java \
+  com/jcraft/jzlib/Tree.java \
+  com/jcraft/jzlib/ZInputStream.java \
+  com/jcraft/jzlib/ZOutputStream.java \
+  com/jcraft/jzlib/ZStream.java \
+  com/jcraft/jzlib/ZStreamException.java
+
+classes = \
+  ../classes/com/jcraft/jzlib/Adler32.class \
+  ../classes/com/jcraft/jzlib/Deflate.class \
+  ../classes/com/jcraft/jzlib/InfBlocks.class \
+  ../classes/com/jcraft/jzlib/InfCodes.class \
+  ../classes/com/jcraft/jzlib/InfTree.class \
+  ../classes/com/jcraft/jzlib/Inflate.class \
+  ../classes/com/jcraft/jzlib/JZlib.class \
+  ../classes/com/jcraft/jzlib/StaticTree.class \
+  ../classes/com/jcraft/jzlib/Tree.class \
+  ../classes/com/jcraft/jzlib/ZInputStream.class \
+  ../classes/com/jcraft/jzlib/ZOutputStream.class \
+  ../classes/com/jcraft/jzlib/ZStream.class \
+  ../classes/com/jcraft/jzlib/ZStreamException.class
+
+all: compile
+
+compile: $(classes)
+
+$(classes): ../classes/%.class: %.java
+	$(COMPILER) $(CFLAGS) $<
+
+clean:
+	rm -f $(classes)

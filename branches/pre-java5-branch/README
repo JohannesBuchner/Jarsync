@@ -1,0 +1,126 @@
+ ----------------------------------------------------------------------
+|                        JARSYNC - RSYNC IN JAVA                       |
+ ----------------------------------------------------------------------
+
+This is the source distribution of Jarsync, a library written in Java
+that implements the rsync algorithm---a method for syncing remote files
+by transmitting only the differences between the two files.
+
+Jarsync is beta software, and is not thoroughly tested.
+
+=======================================================================
+
+CONTENTS
+
+1. About this library.
+2. Compilation.
+3. The API.
+
+=======================================================================
+
+1. About this library.
+
+The Rsync algorithm is a method for syncing two files on two different
+computers connected via a low-bandwidth high-latency bidirectional
+communications link. Instead of simply copying the new file onto the
+old, it computes and sends checksums of the old file---which are,
+altogether, possibly much smaller than the file itself---and the other
+machine then uses to compute the differences between the old file and
+the new. This machine then sends these differences back---again with
+the hope that the differences are far smaller than the new file---and
+the new file is recreated from these differences.
+
+This library implements the rsync algorithm in Java, and provides a
+simple API for using the algorithm. A client and server compatible with
+the existing rsync program are in development.
+
+For a more complete description of the rsync algorithm, see the paper
+"The rsync algorithm", technical report TR-CS-96-05, by Andrew Tridgell
+and Paul Mackerras, available from the URL
+
+	http://rsync.samba.org/ftp/rsync/tech-report.ps
+
+=======================================================================
+
+2. Compilation.
+
+To configure and build the library, the `rdiff' example program, and the
+test programs, simply say
+
+	./configure
+	make
+
+Run `make check' to execute some regression tests. If all goes well,
+after a long while the script should print out `0 of XXX tests failed.'
+
+If this is a CVS checkout, first do the magic auto-dance:
+
+	aclocal; automake -ac; autoconf
+
+There is a preliminary version of an rsync-compatible client program
+available; to build it, you must configure with:
+
+	./configure --enable-client-server
+
+The shell script `jarsync' launches this client. Be aware that this code
+is rather buggy, and is NOT, by any means, complete.
+
+=======================================================================
+
+3. The API.
+
+The gist of the API (at this moment) is to provide the three most basic
+functions in the rsync algorithm -- checksum generation, delta
+generation, and file patching. A higher-level interface may be added
+later.
+
+  3.a. Checksum Generation.
+
+  Checksum generation is handled with the `Generator' class, and comes
+  in two basic flavors: generating over byte arrays and generating over
+  files. All generation methods are called `generateSums', which will
+  all return a java.util.List of ChecksumPair objects.
+
+  The constructor takes a `Configuration' argument, which stores
+  things such as the message digest algorithm, the block size, etc.
+
+
+  3.b. Delta Generation
+
+  Deltas are generated with the `Matcher' class, whose methods take
+  either a java.util.List of checksums and produce a java.util.List of
+  `Delta' objects, which are either of type `Offsets' or `DataBlock'.
+
+  The Matcher class takes a `Configuration', similar to Generator.
+
+
+  3.c. File Patching
+
+  Files are patched with the `Rebuilder' class, whose methods
+  `rebuildFile'  will either take a basis file and a java.util.List
+  of Deltas and return a new, temporary file containing the patched
+  file; or take two files and a java.util.Collection, patching into one
+  of them. The `rebuildFileInPlace' will patch the file in-place, not
+  creating any temporary files.
+
+  Since these methods are stateless, they are all static and do not
+  depend upon a `Configuration'.
+
+  There are no equivalent InputStream methods, as these methods
+  require random access.
+
+
+  3.d Streaming Implementations
+
+  In addition to the three classes mentioned above, the API provides
+  `streaming' analogues to each. This is implemented by a `Event -
+  Listener - Stream' triad for each operation, where you provide the
+  implementation of the Listener that the Stream will send Events to.
+
+
+  The API may be better explained through the JavaDocs, which can be
+  made by executing `make docs'. Also see the test files in the
+  directory `test/gnu/testlet/org/metastatic/rsync'.
+
+=======================================================================
+  $Id$

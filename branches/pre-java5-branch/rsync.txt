@@ -1,0 +1,427 @@
+
+                        The rsync Network Protocol
+                               rsync.txt
+
+Status of this Memo
+
+   This document is an Internet-Draft and is subject to all provisions
+   of Section 10 of RFC2026.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups.  Note that
+   other groups may also distribute working documents as
+   Internet-Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet- Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/1id-abstracts.html
+
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html
+
+Abstract
+
+   rsync is a program for fast file transfer over a network. It is an
+   application of the Rsync Algorithm [RSYNC] -- a cacheless delta
+   compression or remote differencing algorithm -- for the instance of
+   syncing similar files across a data link. This document describes the
+   connection and authentication methods employed in this program, and
+   describes the binary protocol which travels across the connection.
+
+Table of Contents
+
+   1.   Introduction . . . . . . . . . . . . . . . . . . . . .
+   2.   Terminology . . . . . . . . . . . . . . . . . . . . . .
+   3.   Protocol Versions  . . . . . . . . . . . . . . . . . .
+   4.   Connection Types  . . . . . . . . . . . . . . . . . . .
+   4.1  rsyncd Connections . . . . . . . . . . . . . . . . . .
+   4.2  Shell Connections . . . . . . . . . . . . . . . . . . .
+   5.   The Binary Protocol  . . . . . . . . . . . . . . . . .
+   5.1  Multiplexed I/O . . . . . . . . . . . . . . . . . . . .
+   5.2  The Sender's Protocol  . . . . . . . . . . . . . . . .
+   5.3  The Receiver's Protocol . . . . . . . . . . . . . . . .
+   5.4  Stream Compression . . . . . . . . . . . . . . . . . .
+   6.   Command-Line Options  . . . . . . . . . . . . . . . . .
+   7.   Additional Information . . . . . . . . . . . . . . . .
+        Security Considerations . . . . . . . . . . . . . . . .
+        References . . . . . . . . . . . . . . . . . . . . . .
+
+1. Introduction
+
+   The goal of the rsync program is to transmit only the differences
+   between two sets of files with the intention of syncing the two sets
+   so that one set becomes equivalent to the other. The two sets of
+   files seperate; there is no information about one set is available
+   where the other set exists. To accomplish this the program implements
+   the Rsync Algorithm, which is more completely explained in [RSYNC],
+   and follows the following pattern:
+
+   1. The computer on which the to-be-updated set of files exists
+      computes a collection of signatures across this set of files, then
+      sends this collection to the computer which has the "new" files.
+
+   2. The computer with the new file set uses the signatures recieved
+      from step (1) and executes a fast search algorithm that finds
+      identical blocks of data in the file set based upon these
+      signatures.
+
+   3. The file offsets of matched blocks in step (2) are recorded along
+      with literal blocks of data that were not matched. These are then
+      sent back to the computer with the old file set.
+
+   4. The data received in step (3) is used to rebuild the new file set,
+      either by copying blocks of data present in the old file set based
+      on the offset received, or by inserting the literal data blocks
+      received.
+
+   After execution, the two file sets should be identical. A final check
+   is performed by comparing the MD4 message digests of each file in the
+   two sets, and the process is repeated for any files whose message
+   digests disagree.
+
+2. Terminology
+
+   When speaking below of a "connection", we mean any generic route
+   through which binary data flows from one point to another, and
+   through which rsync processes communicate with one anohter.  This is
+   usually a network connection established and maintained through the
+   Transmission Control Protocol, or a piped data connection.
+
+   When speaking about the endpoints of this connection, the "client"
+   will be the user process that initiated the connection, and the
+   "server" will be the process that recieves this connection and
+   executes the commands the client requests.  We will see below that
+   this server is usually a process branched off a server daemon or a
+   process started remotely via a remote shell.
+
+   When speaking about the binary protocol, the "receiver" will refer to
+   the process (the "client" or "server") that sends the initial
+   signatures and receives the computed differences. The "sender" will
+   refer to the process that receives the sums and sends the computed
+   differences.  Although both parties "send" and "receive" data, the
+   receiver will receive the new version of the file, and the sender
+   sends the new version of the file.
+
+   This document shall use the keywords "MUST", "MUST NOT", "REQUIRED",
+   "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY",
+   and "OPTIONAL" to describe requirements. They are to be interpreted
+   as described in [RFC2119].
+
+3. Protocol Versions
+
+   The binary protocol described in section (5) uses a protocol version
+   number to describe the particular capabilities of the protocol. Every
+   client and server MUST declare the protocol version to which they
+   conform. Upon encountering a remote protocol version less than that
+   of the local version, a client or server SHOULD still accept the
+   connection and only perform operations compatible with the lowest of
+   the two versions. Likewise if the remote version is higher than the
+   local version the client or server SHOULD still accept the
+   connection. The connection MUST be abandoned only if the remote
+   protocol version is unreasonably different than the local version.
+
+   The current protocol version described herein is 26.  However
+   specific features new or obsoleted as of a particular version number
+   will be described.
+
+4. Connection Types
+
+   rsync clients connect to servers through one of two connection
+   methods: (1) through a negotiated TCP socket to an internet daemon
+   over port 873, or (2) the standard input, output, and error streams
+   transmitted over a remote shell program. After the connection has
+   been established by one of these methods, all transmissions through
+   this connection follow the binary protocol described in section 5
+   below.
+
+4.1 rsyncd Connections
+
+   Unless specified otherwise, all messages transmitted in this initial
+   phase are encoded as sequences single-byte US-ASCII characters.
+   Commands in this phase SHALL end with the ASCII line feed character,
+   hexadecimal 0x0A, represented here as '\n'.
+
+   The rsyncd connection is established over TCP port 873, after which
+   both the client and the server MUST send the message
+
+      @RSYNCD: <protocol-version>\n
+
+   Where <protocol-version> is the client's or the server's current
+   protocol version in decimal as an ASCII string.
+
+   The server MAY then send zero or more bytes meant for display, ending
+   with a final linefeed character. This "message of the day" MAY be
+   displayed by the client or ignored.
+
+   The client then sends the name of a module with which it will
+   connect, encoded as ASCII bytes and terminating in a single line feed,
+   or either the ASCII string "#list\n" or a single linefeed. If the
+   server recieves the latter, it will then send a listing of all
+   available modules as arbitrary ASCII text then end the session.
+
+   A "module" is one of any number of directory roots that the server
+   daemon keeps, which map to directories on the server's local
+   filesystem. Modules may allow anonymous access or require
+   authentication. If the module allows anonymous access, then the
+   server MUST reply to a module name with the string
+
+      @RSYNCD: OK\n
+
+   If the module requires authentication, the server will send the as
+
+      @RSYNCD: AUTHREQD <challenge>\n
+
+   where <challenge> is a Base64 [RFC1521] encoded string of 32 random
+   bytes. The client then MUST reply with
+
+      <user> <response>\n
+
+   where <user> is the username to authenticate for and <response> is
+
+      MD4(0000 | PASSWORD | CHALLENGE)
+
+   encoded in Base64, where "0000" represents four zero bytes,
+   "PASSWORD" represents the ascii bytes of the user's password, and
+   "CHALLENGE" represents the ASCII bytes of the undecoded challenge
+   sent by the server.  MD4 is the MD4 message digest algorithm
+   [RFC1320], and "|" is concatenation.
+
+   If the server determines that the combination of username and
+   password is acceptable, it MUST reply with
+
+      @RSYNCD: OK\n
+
+   Once the above message is recieved, the client sends a list of
+   command-line-style options (see section 6) followed by a single
+   period ('.', ASCII 0x2E), with each option terminated by a single
+   linefeed character.  The option "--server" MUST be one of these
+   options.  The server appends these options to any others that the
+   daemon was invoked with and sets up its state according to those
+   options.  After this transmission both parties begin using the binary
+   protocol, described in section 5. All file names sent to the server
+   MUST begin with the module's name, and path elements MUST be
+   seperated as they are in UNIX ('/', ASCII 0x2F).
+
+   If an error occurs in this phase, whether through a failed
+   authentication, a nonexistent module, or a malformed initial
+   "@RSYNCD:" greeting, the server MUST reply with
+
+      @ERROR: <description of error>\n
+
+   After receiving this message, the connection is terminated.
+
+   If the lesser of the two protocol versions is greater than or equal
+   to 25, a successful session is terminated by sending
+
+      @RSYNCD: EXIT
+
+   then the connection is closed. Otherwise the session ends by closing
+   the connection.
+
+4.2 Shell Connections
+
+   Instead of connecting to a remote server via TCP traffic, a client
+   may invoke a remote server by using a remote shell program, such as
+   rsh or ssh. The standard input and output streams attatched to this
+   subprocess are used in place of the input and output streams of the
+   socket created in rsyncd connections.
+
+   The client invokes the rsync program on the remote machine when it
+   invokes the remote shell, passing some number of command-line
+   options, which MUST include the option "--server", terminated by a
+   single period ('.', ASCII 0x2E).  Invokations over a shell do not
+   have modules; all file names SHALL be relative to the directory
+   structure of the remote machine.
+
+   After the shell has been started, both the client and the server MUST
+   send their version numbers as a four-byte unsigned integer in
+   little-endian byte order. No other authentication other than that
+   which was done by the remote shell program is used.
+
+   After this the connection follows the protocol described in section
+   5.
+
+5. The Binary Protocol
+
+5.1 Data Types
+
+   Data sent over the connection is written in one of the following
+   data types:
+
+      byte      A single byte.
+      int32     A four-byte integer, in little-endian byte order.
+      int64     An eight-byte integer, written as:
+                1. An int32 if the value is less than 0x7FFFFFFF.
+		2. The value 0xFFFFFFFF, then the eight-byte value in
+		   little-endian byte order.
+      string
+
+5.2 Multiplexed I/O
+
+   For protocol versions 22 and later the data streams described below
+   are multiplexed with error and informational streams meant for
+   display or for logging. Generically all data in these streams are
+   sequences of bytes, even though the client or server SHALL interpret
+   them as appropriate.
+
+   If both protocol versions are 23 or later, then the server MUST send
+   all its data with the following header, and the client MUST receive
+   and understand these headers. Data sent from the client to the server
+   MSUT be sent with no header information.
+
+   The header MUST begin with the length of the message to follow minus
+   the size of the length field itself minus one, in a three byte
+   little-endian representation. There SHALL then follow a single byte,
+   called the "tag", which MUST be the byte:
+
+      #define MPLEX_BASE 7
+
+   Added to one of three stream codes:
+
+      #define FNONE  0
+      #define FERROR 1
+      #define FINFO  2
+
+   FNONE SHALL define plain data that SHOULD be interpreted as described
+   in the following subsections.  FERROR SHALL define error messages,
+   which MUST be sent as a sequence of ASCII bytes, and SHOULD be
+   displayed or logged by the client. FINFO SHALL define informational
+   messages, which MUST be sent as a sequence of ASCII bytes, and MAY be
+   displayed or logged by the client. A fourth stream code has been
+   defined:
+
+      #define FLOG   3
+
+   but in current protocol versions it MUST NOT be sent across the
+   connection.
+
+   After this four-byte header, there MUST follow the number of bytes as
+   specified in the length field.
+
+   Visually, this sequence will look like this:
+
+ byte 0             3     4                        data length + 4
+      +-------------+-----+------------------     ---------+
+      | data length | tag |  packet bytes     ...          |
+      +-------------+-----+------------------     ---------+
+
+   If the lesser of the two version numbers is 22 or less, then the
+   server MUST communicate without these header bytes, and send no FINFO
+   or FERROR messages.
+
+   If the version number is greater than 22, then multplexing begins
+   just after the checksum seed is sent.
+
+5.2 The Checksum Seed
+
+   The first data sent in all connections is the checksum seed, a
+   four-byte integer sent by the server to the client.  The server
+   SHOULD ensure that this value is unique to each connection.
+
+   For every computation of MD4, the checksum seed is prepended to the
+   input, except when generating a hash of an entire file.
+
+5.3 The Exclude List
+
+   After the seed bytes, the client sends the "exclude list" -- a list
+   of globbing patters that specify files that MUST NOT be sent.  The
+   form of the exclude list is zero or more strings 
+
+5.2 The Sender's Protocol
+
+5.3 The Receiver's Protocol
+
+6. Command-Line Options
+
+   These are options that are only meaningful when starting a server as
+   described above, and while implementations MAY implement more
+   options, all servers MUST understand the following options as they
+   are described here. The options presented below follow the pattern of 
+
+      <long-form> <short-form> <argument>
+
+   <short-form> or <argument> may be omitted, if there is no short form
+   or no argument, respectfully.
+
+      --backup -b
+
+   Backup files before writing new ones, using '~' as the suffix for
+   backed-up files unless overridden. Only applies when the server is
+   the receiver.
+
+      --block-size -B INT
+
+   This sets the block size to a fixed size; the argument is a positive
+   integer. If this option is omitted the block size is computed as
+   described in section 5.
+
+      --hard-links -H
+
+   Preserve hard links, if they are supported. This option only applies
+   if the server is the receiver.
+
+      --recursive -r
+
+   Recurse into directories.
+
+      --sender
+
+   This tells the server that it is the sender. If omitted the server
+   assumes the role of the receiver.
+
+      --server
+
+   This option MUST be present in all server invocations. It has no
+   other function than to tell the server process that it is the server.
+
+      --suffix SUFFIX
+
+   Use the argument SUFFIX instead of '~' when backing up files. Only
+   applies if the --backup option is also specified.
+
+XX. Additional Information
+
+Security Considerations
+
+   Unless tunneled at the transport layer, no encryption is done during
+   invokations over port 873, and all literal data is sent as cleartext.
+   The challenge-response authentication scheme is simplistic and may be
+   vulnerable to a wide array of exploits. There is no way to verify the
+   identity of hosts.
+
+   Similarly data is not encrypted if invoked over a simple remote shell
+   program. If confidentiality and integrity of the data being
+   transferred is desired, then it is RECOMMENDED that transactions be
+   invoked over a secure shell, such as ssh.
+
+   Given these considerations, it is RECOMMENDED that new software not
+   implement this protocol as described in this document UNLESS the
+   software is being developed for compatibility with current
+   implementations. Furthermore it is RECOMMENDED that rsyncd servers be
+   implemented for anonymous read-only access only, and that another,
+   more secure mechanism be used for verfying the integrity of data
+   downloaded.
+
+References
+
+   [RFC1320]      Rivest, R., "The MD4 Message-Digest Algorithm",
+                  RFC 1320, April 1992.
+
+   [RFC1521]      Borenstein, N. and Freed, N., "MIME (Multipurpose
+                  Internet Mail Extensions) Part One: Mechanisms for
+                  Specifying and Describing the Format of Internet
+                  Message Bodies", RFC 1521, September 1992.
+
+   [RFC2119]      Bradner, S., "Key words for use in RFCs to Indicate
+                  Requirement Levels", BCP 14, RFC 2119, March 1997.
+
+   [RSYNC]        Tridgell, A. and P. Mackerras, "The rsync algorithm",
+                  Australian National University technical report,
+                  August 2002.
+
+   [TRIDGE]       Tridgell, A. "Efficient Algorithms for Sorting and
+                  Synchronization", PhD Thesis, April 2000.
