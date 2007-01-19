@@ -64,8 +64,7 @@ package org.metastatic.rsync;
 public class RebuilderEvent extends java.util.EventObject
 {
 
-  // Fields.
-  // -------------------------------------------------------------------------
+  private static final long serialVersionUID = 2737952549045585051L;
 
   /** The destination offset. */
   protected transient long offset;

@@ -67,6 +67,11 @@ public class Checksum32 implements RollingChecksum, Cloneable, java.io.Serializa
   // Constants and variables.
   // -----------------------------------------------------------------
 
+  /**
+   * 
+   */
+  private static final long serialVersionUID = 4639882862245980946L;
+
   protected final int char_offset;
 
   /**
@@ -139,20 +144,7 @@ public class Checksum32 implements RollingChecksum, Cloneable, java.io.Serializa
     this(0);
   }
 
-  private Checksum32(Checksum32 that)
-  {
-    this.char_offset = that.char_offset;
-    this.a = that.a;
-    this.b = that.b;
-    this.l = that.l;
-    this.k = that.k;
-    this.block = (that.block != null) ? (byte[]) ((byte[]) that.block).clone() : null;
-    this.new_index = that.new_index;
-    this.new_block = (that.new_block != null)
-      ? (byte[]) ((byte[]) that.new_block).clone() : null;
-  }
-
-// Public instance methods.
+ // Public instance methods.
   // -----------------------------------------------------------------
 
   /**

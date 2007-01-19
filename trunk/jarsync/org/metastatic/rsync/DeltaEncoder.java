@@ -59,7 +59,6 @@ import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -160,16 +159,12 @@ public abstract class DeltaEncoder {
    *   a {@link Delta}.
    * @throws NullPointerException If any element is null.
    */
-  public void write(List deltas) throws IOException {
-    for (Iterator i = deltas.iterator(); i.hasNext(); ) {
-      Object o = i.next();
-      if (o == null)
-        throw new NullPointerException();
-      if (!(o instanceof Delta))
-        throw new IllegalArgumentException();
-    }
-    for (Iterator i = deltas.iterator(); i.hasNext(); )
-      write((Delta) i.next());
+  public void write(List<Delta> deltas) throws IOException
+  {
+    for (Delta delta : deltas)
+      {
+        write(delta);
+      }
   }
 
   // Abstract methods.

@@ -53,19 +53,27 @@ NOT licensed under.  */
 
 package org.metastatic.rsync;
 
-public class MatcherEvent extends java.util.EventObject {
+public class MatcherEvent extends java.util.EventObject
+{
 
-   // Constructor.
-   // -----------------------------------------------------------------------
+  /**
+   * 
+   */
+  private static final long serialVersionUID = 682935127943712148L;
 
-   public MatcherEvent(Delta delta) {
-      super(delta);
-   }
+  // Constructor.
+  // -----------------------------------------------------------------------
 
-   // Instance methods.
-   // -----------------------------------------------------------------------
+  public MatcherEvent(Delta delta)
+  {
+    super(delta);
+  }
 
-   public Delta getDelta() {
-      return (Delta) source;
-   }
+  // Instance methods.
+  // -----------------------------------------------------------------------
+
+  public Delta getDelta()
+  {
+    return (Delta) source;
+  }
 }

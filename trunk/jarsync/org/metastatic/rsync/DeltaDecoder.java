@@ -153,7 +153,7 @@ public abstract class DeltaDecoder {
    *   a {@link Delta}.
    * @throws NullPointerException If any element is null.
    */
-  public int read(List deltas) throws IOException {
+  public int read(List<Delta> deltas) throws IOException {
     int count = 0;
     Delta d = null;
     while ((d = read()) != null)

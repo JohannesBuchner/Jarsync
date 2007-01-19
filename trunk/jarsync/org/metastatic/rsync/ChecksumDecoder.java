@@ -67,7 +67,8 @@ import java.util.List;
  *
  * @version $Revision$
  */
-public abstract class ChecksumDecoder {
+public abstract class ChecksumDecoder
+{
 
   // Constants and fields.
   // -------------------------------------------------------------------------
@@ -90,7 +91,8 @@ public abstract class ChecksumDecoder {
   // Constructor.
   // -------------------------------------------------------------------------
 
-  public ChecksumDecoder(Configuration config, InputStream in) {
+  public ChecksumDecoder(Configuration config, InputStream in)
+  {
     this.config = (Configuration) config.clone();
     this.in = in;
   }
@@ -152,7 +154,7 @@ public abstract class ChecksumDecoder {
    * @throws NullPointerException If any element of the list is null.
    * @return The number of checksums read.
    */
-  public int read(List sums) throws IOException
+  public int read(List<ChecksumPair> sums) throws IOException
   {
     if (sums == null)
       throw new NullPointerException();

@@ -43,7 +43,6 @@ package org.metastatic.rsync;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Iterator;
 
 /**
  * A streaming version of {@link Matcher}. The idea here is that the
@@ -77,12 +76,12 @@ public class MatcherStream
   /**
    * The list of {@link MatcherListener}s.
    */
-  protected final List listeners;
+  protected final List<MatcherListener> listeners;
 
   /**
    * The current hashtable.
    */
-  protected final TwoKeyMap hashtable;
+  protected final TwoKeyMap<Long> hashtable;
 
   /**
    * The intermediate byte buffer.
@@ -110,8 +109,8 @@ public class MatcherStream
   public MatcherStream(Configuration config)
   {
     this.config = config;
-    this.listeners = new LinkedList();
-    this.hashtable = new TwoKeyMap();
+    this.listeners = new LinkedList<MatcherListener>();
+    this.hashtable = new TwoKeyMap<Long>();
     buffer = new byte[config.chunkSize];
     reset();
   }
@@ -147,16 +146,13 @@ public class MatcherStream
    *
    * @param sums The checksums.
    */
-  public void setChecksums(List sums)
+  public void setChecksums(List<ChecksumPair> sums)
   {
     hashtable.clear();
     if (sums != null)
       {
-        for (Iterator it = sums.listIterator(); it.hasNext(); )
-          {
-            ChecksumPair p = (ChecksumPair) it.next();
-            hashtable.put(p, new Long(p.getOffset()));
-          }
+        for (ChecksumPair p : sums)
+          hashtable.put(p, p.getOffset());
       }
    }
 
@@ -203,11 +199,10 @@ public class MatcherStream
                                         ndx - config.blockLength);
             Offsets o = new Offsets(oldOffset.longValue(),
                                     count-config.blockLength, config.blockLength);
-            for (Iterator it = listeners.listIterator(); it.hasNext(); )
+            for (MatcherListener l : listeners)
               {
                 try
                   {
-                    MatcherListener l = (MatcherListener) it.next();
                     l.update(new MatcherEvent(d));
                     l.update(new MatcherEvent(o));
                   }
@@ -232,11 +227,10 @@ public class MatcherStream
           {
             Offsets o = new Offsets(oldOffset.longValue(),
                                     count-config.blockLength, config.blockLength);
-            for (Iterator it = listeners.listIterator(); it.hasNext(); )
+            for (MatcherListener l : listeners)
               {
                 try
                   {
-                    MatcherListener l = (MatcherListener) it.next();
                     l.update(new MatcherEvent(o));
                   }
                 catch (ListenerException le)
@@ -262,11 +256,10 @@ public class MatcherStream
       {
         DataBlock d = new DataBlock(count - ndx, buffer, 0,
                                     buffer.length - (config.blockLength-1));
-        for (Iterator it = listeners.listIterator(); it.hasNext(); )
+        for (MatcherListener l : listeners)
           {
             try
               {
-                MatcherListener l = (MatcherListener) it.next();
                 l.update(new MatcherEvent(d));
               }
             catch (ListenerException le)
@@ -301,7 +294,6 @@ public class MatcherStream
   public void update(byte[] buf, int off, int len) throws ListenerException
   {
     ListenerException exception = null, current = null;
-    int n = Math.min(len, config.blockLength);
     Long oldOffset;
     int i = off;
 
@@ -331,11 +323,10 @@ public class MatcherStream
                                             ndx - config.blockLength);
                 Offsets o = new Offsets(oldOffset.longValue(),
                                         count-config.blockLength, config.blockLength);
-                for (Iterator it = listeners.listIterator(); it.hasNext(); )
+                for (MatcherListener l : listeners)
                   {
                     try
                       {
-                        MatcherListener l = (MatcherListener) it.next();
                         l.update(new MatcherEvent(d));
                         l.update(new MatcherEvent(o));
                       }
@@ -360,11 +351,10 @@ public class MatcherStream
               {
                 Offsets o = new Offsets(oldOffset.longValue(),
                                         count-config.blockLength, config.blockLength);
-                for (Iterator it = listeners.listIterator(); it.hasNext(); )
+                for (MatcherListener l : listeners)
                   {
                     try
                       {
-                        MatcherListener l = (MatcherListener) it.next();
                         l.update(new MatcherEvent(o));
                       }
                     catch (ListenerException le)
@@ -390,11 +380,10 @@ public class MatcherStream
           {
             DataBlock d = new DataBlock(count - ndx, buffer, 0,
                                         buffer.length - (config.blockLength-1));
-            for (Iterator it = listeners.listIterator(); it.hasNext(); )
+            for (MatcherListener l : listeners)
               {
                 try
                   {
-                    MatcherListener l = (MatcherListener) it.next();
                     l.update(new MatcherEvent(d));
                   }
                 catch (ListenerException le)
@@ -447,11 +436,10 @@ public class MatcherStream
             if (off > 0)
               {
                 DataBlock d = new DataBlock(count-ndx, buffer, 0, off);
-                for (Iterator it = listeners.listIterator(); it.hasNext(); )
+                for (MatcherListener l : listeners)
                   {
                     try
                       {
-                        MatcherListener l = (MatcherListener) it.next();
                         l.update(new MatcherEvent(d));
                       }
                     catch (ListenerException le)
@@ -472,11 +460,10 @@ public class MatcherStream
                   throw exception;
               }
             Offsets o = new Offsets(oldOff.longValue(), count-len, len);
-            for (Iterator it = listeners.listIterator(); it.hasNext(); )
+            for (MatcherListener l : listeners)
               {
                 try
                   {
-                    MatcherListener l = (MatcherListener) it.next();
                     l.update(new MatcherEvent(o));
                   }
                 catch (ListenerException le)
@@ -499,11 +486,10 @@ public class MatcherStream
         else
           {
             DataBlock d = new DataBlock(count-ndx, buffer, 0, ndx);
-            for (Iterator it = listeners.listIterator(); it.hasNext(); )
+            for (MatcherListener l : listeners)
               {
                 try
                   {
-                    MatcherListener l = (MatcherListener) it.next();
                     l.update(new MatcherEvent(d));
                   }
                 catch (ListenerException le)

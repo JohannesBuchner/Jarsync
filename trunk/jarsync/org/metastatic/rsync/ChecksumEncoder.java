@@ -59,7 +59,6 @@ import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -68,7 +67,8 @@ import java.util.List;
  *
  * @version $Revision$
  */
-public abstract class ChecksumEncoder {
+public abstract class ChecksumEncoder
+{
 
   // Constants and fields.
   // -------------------------------------------------------------------------
@@ -153,17 +153,12 @@ public abstract class ChecksumEncoder {
    * @throws IllegalArgumentException If any element of the list is
    *   not a {@link ChecksumPair}.
    */
-  public void write(List sums) throws IOException {
-    for (Iterator i = sums.iterator(); i.hasNext(); ) {
-      Object o = i.next();
-      if (o == null)
-        throw new NullPointerException();
-      if (!(o instanceof ChecksumPair))
-        throw new IllegalArgumentException();
-    }
-    for (Iterator i = sums.iterator(); i.hasNext(); ) {
-      write((ChecksumPair) i.next());
-    }
+  public void write(List<ChecksumPair> sums) throws IOException
+  {
+    for (ChecksumPair sum : sums)
+      {
+        write(sum);
+      }
   }
 
   // Abstract methods.

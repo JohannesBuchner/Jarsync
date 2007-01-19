@@ -64,27 +64,32 @@ import java.util.EventObject;
  */
 public class GeneratorEvent extends EventObject {
 
-   // Constructors.
-   // -----------------------------------------------------------------------
+  // Constructors.
+  // -----------------------------------------------------------------------
 
-   /**
-    * Create a new generator event.
-    *
-    * @param pair The checksum pair.
-    */
-   public GeneratorEvent(ChecksumPair pair) {
-      super(pair);
-   }
+  /**
+   * 
+   */
+  private static final long serialVersionUID = - 2849967392119325811L;
 
-   // Instance methods.
-   // -----------------------------------------------------------------------
+  /**
+   * Create a new generator event.
+   *
+   * @param pair The checksum pair.
+   */
+  public GeneratorEvent(ChecksumPair pair) {
+    super(pair);
+  }
 
-   /**
-    * Returns the source of this event, already cast to a ChecksumPair.
-    *
-    * @return The checksum pair.
-    */
-   public ChecksumPair getChecksumPair() {
-      return (ChecksumPair) source;
-   }
+  // Instance methods.
+  // -----------------------------------------------------------------------
+
+  /**
+   * Returns the source of this event, already cast to a ChecksumPair.
+   *
+   * @return The checksum pair.
+   */
+  public ChecksumPair getChecksumPair() {
+    return (ChecksumPair) source;
+  }
 }

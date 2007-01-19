@@ -53,6 +53,8 @@ NOT licensed under.  */
 
 package org.metastatic.rsync;
 
+import java.io.IOException;
+
 /**
  * Signals that a parameter file being parsed is incorrect. This is not
  * usually a fatal error, and parsing may continue, but the program
@@ -60,14 +62,18 @@ package org.metastatic.rsync;
  *
  * @version $Revision$
  */
-public class ParameterException extends java.io.IOException {
+public class ParameterException extends IOException
+{
+  private static final long serialVersionUID = - 5586148042514263230L;
 
-   // Trivial subclass.
-   public ParameterException() {
-      super();
-   }
+  // Trivial subclass.
+  public ParameterException()
+  {
+    super();
+  }
    
-   public ParameterException(String msg) {
-      super(msg);
-   }
+  public ParameterException(String msg)
+  {
+    super(msg);
+  }
 }
