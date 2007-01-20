@@ -128,12 +128,18 @@ public class Configuration implements Cloneable, Serializable
    */
   public int chunkSize;
 
+  /**
+   * Whether or not to turn on library debugging.
+   */
+  public boolean debug;
+  
   // Constructors.
   // ------------------------------------------------------------------------
 
   public Configuration() {
     blockLength = BLOCK_LENGTH;
     chunkSize = CHUNK_SIZE;
+    debug = false;
   }
 
   /**

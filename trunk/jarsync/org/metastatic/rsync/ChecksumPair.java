@@ -115,12 +115,13 @@ public class ChecksumPair implements java.io.Serializable
    * @param seq    The sequence number of this checksum pair.
    */
   public ChecksumPair(int weak, byte[] strong, long offset,
-                      int length, int seq) {
-                        this.weak = weak;
-                        this.strong = strong;
-                        this.offset = offset;
-                        this.length = length;
-                        this.seq = seq;
+                      int length, int seq)
+  {
+    this.weak = weak;
+    this.strong = (byte[]) strong.clone();
+    this.offset = offset;
+    this.length = length;
+    this.seq = seq;
   }
 
   /**
@@ -130,7 +131,8 @@ public class ChecksumPair implements java.io.Serializable
    * @param strong The strong checksum.
    * @param offset The offset at which this checksum was computed.
    */
-  public ChecksumPair(int weak, byte[] strong, long offset) {
+  public ChecksumPair(int weak, byte[] strong, long offset)
+  {
     this(weak, strong, offset, 0, 0);
   }
 
@@ -140,7 +142,8 @@ public class ChecksumPair implements java.io.Serializable
    * @param weak The weak checksum.
    * @param strong The strong checksum.
    */
-  public ChecksumPair(int weak, byte[] strong) {
+  public ChecksumPair(int weak, byte[] strong)
+  {
     this(weak, strong, -1L, 0, 0);
   }
 
@@ -169,7 +172,7 @@ public class ChecksumPair implements java.io.Serializable
    * @since 1.1
    */
   public byte[] getStrong() {
-    return strong;
+    return (byte[]) strong.clone();
   }
 
   /**

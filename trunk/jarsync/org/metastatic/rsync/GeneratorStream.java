@@ -137,6 +137,10 @@ public class GeneratorStream
    * @param b The next byte
    */
   public void update(byte b) throws ListenerException {
+    if (config.debug)
+      {
+        System.out.printf("[GENERATOR] update %b", b & 0xff);
+      }
     ListenerException exception = null, current = null;
     buffer[ndx++] = b;
     if (ndx == buffer.length) {
@@ -168,6 +172,10 @@ public class GeneratorStream
    * @param len The number of bytes to update.
    */
   public void update(byte[] buf, int off, int len) throws ListenerException {
+    if (config.debug)
+      {
+        System.out.printf("[GENERATOR] update %s %d %d%n", buf, off, len);
+      }
     ListenerException exception = null, current = null;
     int i = off;
     do {
@@ -211,6 +219,10 @@ public class GeneratorStream
    * resetting this instance.
    */
   public void doFinal() throws ListenerException {
+    if (config.debug)
+      {
+        System.out.printf("[GENERATOR] doFinal%n");
+      }
     ListenerException exception = null, current = null;
     if (ndx > 0)
       {
@@ -268,6 +280,10 @@ public class GeneratorStream
     p.offset = count;
     p.length = len;
     count += len;
+    if (config.debug)
+      {
+        System.out.printf("[GENERATOR] generated sum %s%n", p);
+      }
     return p;
   }
 }

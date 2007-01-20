@@ -150,7 +150,7 @@ public class DataBlock implements Delta, java.io.Serializable {
     * @since 1.1
     */
    public byte[] getData() {
-      return data;
+      return (byte[]) data.clone();
    }
 
  // Instance methods overriding java.lang.Object. -------------------

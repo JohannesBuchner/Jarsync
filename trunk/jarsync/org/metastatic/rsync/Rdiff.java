@@ -76,7 +76,7 @@ public class Rdiff {
    // -----------------------------------------------------------------
 
    /** The short options. */
-   protected static final String OPTSTRING = "b:I:i::pS:sO:vVz::h";
+   protected static final String OPTSTRING = "b:I:i::pS:sO:vVz::hd";
 
    /** The long options. */
    protected static final LongOpt[] LONGOPTS = new LongOpt[] {
@@ -91,7 +91,8 @@ public class Rdiff {
       new LongOpt("statistics",  LongOpt.NO_ARGUMENT, null, 's'),
       new LongOpt("sum-size",    LongOpt.REQUIRED_ARGUMENT, null, 'S'),
       new LongOpt("verbose",     LongOpt.NO_ARGUMENT, null, 'v'),
-      new LongOpt("version",     LongOpt.NO_ARGUMENT, null, 'V')
+      new LongOpt("version",     LongOpt.NO_ARGUMENT, null, 'V'),
+      new LongOpt("debug",       LongOpt.NO_ARGUMENT, null, 'd')
    };
 
    /** The strong checksum length. */
@@ -137,6 +138,8 @@ public class Rdiff {
    /** Whether or not to trace to System.err. */
    protected static boolean verbose = false;
 
+   protected static boolean debug = false;
+   
    /**
     * The length of blocks to checksum.
     */
@@ -220,6 +223,10 @@ public class Rdiff {
                verbose = true;
                break;
             case 'z': break;
+            case 'd':
+              debug = true;
+              System.out.printf("[RDIFF] debugging enabled%n");
+              break;
             case '?':
                System.err.println("Try `" + PROGNAME + " --help' for more info.");
                System.exit(1);
@@ -335,7 +342,7 @@ public class Rdiff {
                " --help' for more information.");
             System.exit(1);
          }
-         List sigs = rdiff.readSignatures(sigsIn);
+         List<ChecksumPair> sigs = rdiff.readSignatures(sigsIn);
          sigsIn.close();
          if (showStats) {
             System.err.println(PROGNAME + ": loadsig statistics: " +
@@ -379,7 +386,7 @@ public class Rdiff {
          if (pipe) {
             rdiff.makeDeltas(sigs, newIn, out);
          } else {
-            List deltas = rdiff.makeDeltas(sigs, newIn);
+            List<Delta> deltas = rdiff.makeDeltas(sigs, newIn);
             if (showStats) {
                int lit = 0;
                long litBytes = 0;
@@ -547,6 +554,7 @@ public class Rdiff {
       throws IOException, NoSuchAlgorithmException
    {
       Configuration c = new Configuration();
+      c.debug = Rdiff.debug;
       c.strongSum = MessageDigest.getInstance("MD4");
       c.weakSum = new Checksum32(CHAR_OFFSET);
       c.blockLength = blockLength;
@@ -555,9 +563,13 @@ public class Rdiff {
       gen.addListener(new GeneratorListener() {
          public void update(GeneratorEvent ev) throws ListenerException {
             ChecksumPair pair = ev.getChecksumPair();
+            if (Rdiff.debug)
+              {
+                System.out.printf("[RDIFF] generator event %s%n", pair);
+              }
             try {
                Rdiff.writeInt(pair.getWeak(), out);
-               out.write(pair.getStrong(), 0, strongSumLength);
+               out.write(pair.strong, 0, strongSumLength);
             } catch (IOException ioe) {
                throw new ListenerException(ioe);
             }
@@ -625,8 +637,9 @@ public class Rdiff {
     * @return A collection of {@link ChecksumPair}s read.
     * @throws java.io.IOException If the input stream is malformed.
     */
-   public List readSignatures(InputStream in) throws IOException {
-      List sigs = new LinkedList();
+   public List<ChecksumPair> readSignatures(InputStream in) throws IOException
+   {
+      List<ChecksumPair> sigs = new LinkedList<ChecksumPair>();
       int header = readInt(in);
       if (header != SIG_MAGIC) {
          throw new IOException("Bad signature header: 0x"
@@ -650,13 +663,19 @@ public class Rdiff {
             break;
          }
       } while(true);
+      if (Rdiff.debug)
+        {
+          System.out.printf("[RDIFF] sigs: %s%n", sigs);
+        }
       return sigs;
    }
 
-   public void makeDeltas(List sums, InputStream in, final OutputStream out)
+   public void makeDeltas(List<ChecksumPair> sums, InputStream in,
+                          final OutputStream out)
       throws IOException, NoSuchAlgorithmException
    {
       Configuration c = new Configuration();
+      c.debug = Rdiff.debug;
       c.strongSum = MessageDigest.getInstance("MD4");
       c.weakSum = new Checksum32(CHAR_OFFSET);
       c.blockLength = blockLength;
@@ -667,6 +686,10 @@ public class Rdiff {
       match.addListener(new MatcherListener() {
          public void update(MatcherEvent me) throws ListenerException {
             Delta d = me.getDelta();
+            if (Rdiff.debug)
+              {
+                System.out.printf("[RDIFF] matcher event %s%n", d);
+              }
             try {
                if (d instanceof Offsets) {
                   Rdiff.writeCopy((Offsets) d, out);
@@ -722,8 +745,8 @@ public class Rdiff {
     *    file to the new.
     * @throws java.io.IOException If reading fails.
     */
-   public List
-   makeDeltas(List sums, InputStream in)
+   public List<Delta>
+   makeDeltas(List<ChecksumPair> sums, InputStream in)
    throws IOException, NoSuchAlgorithmException {
       Configuration c = new Configuration();
       c.strongSum = MessageDigest.getInstance("MD4");
@@ -740,9 +763,14 @@ public class Rdiff {
     * @return A collection of {@link Delta}s read.
     * @throws java.io.IOException If the input stream is malformed.
     */
-   public List readDeltas(InputStream in) throws IOException {
-      List deltas = new LinkedList();
+   public List<Delta> readDeltas(InputStream input) throws IOException {
+     DataInputStream in = new DataInputStream(input);
+      List<Delta> deltas = new LinkedList<Delta>();
       int header = readInt(in);
+      if (debug)
+        {
+          System.out.printf("[RDIFF] read header %x%n", header);
+        }
       if (header != DELTA_MAGIC) {
          throw new IOException("Bad delta header: 0x" +
             Integer.toHexString(header));
@@ -751,33 +779,74 @@ public class Rdiff {
       long offset = 0;
       byte[] buf;
       while ((command = in.read()) != -1) {
+        if (debug)
+          {
+            System.out.printf("[RDIFF] read command %x%n", command);
+          }
          switch (command) {
             case OP_END:
+              if (debug)
+                {
+                  System.out.printf("[RDIFF] OP_END\n");
+                }
                return deltas;
+
             case OP_LITERAL_N1:
+            {
                buf = new byte[(int) readInt(1, in)];
-               in.read(buf);
-               deltas.add(new DataBlock(offset, buf));
+               in.readFully(buf);
+               DataBlock db = new DataBlock(offset, buf);
+               if (debug)
+                 {
+                   System.out.printf("[RDIFF] OP_LITERAL_N1 %s%n", db);
+                 }
+               deltas.add(db);
                offset += buf.length;
                break;
+            }
+
             case OP_LITERAL_N2:
+            {
                buf = new byte[(int) readInt(2, in)];
-               in.read(buf);
-               deltas.add(new DataBlock(offset, buf));
+               in.readFully(buf);
+               DataBlock db = new DataBlock(offset, buf);
+               if (debug)
+                 {
+                   System.out.printf("[RDIFF] OP_LITERAL_N2 %s%n", db);
+                 }
+               deltas.add(db);
                offset += buf.length;
                break;
+            }
+
             case OP_LITERAL_N4:
+            {
                buf = new byte[(int) readInt(4, in)];
-               in.read(buf);
-               deltas.add(new DataBlock(offset, buf));
+               in.readFully(buf);
+               DataBlock db = new DataBlock(offset, buf);
+               if (debug)
+                 {
+                   System.out.printf("[RDIFF] OP_LITERAL_N4 %s%n", db);
+                 }
+               deltas.add(db);
                offset += buf.length;
                break;
+            }
+            
             case OP_COPY_N4_N4:
+            {
                int oldOff = (int) readInt(4, in);
                int bs = (int) readInt(4, in);
-               deltas.add(new Offsets(oldOff, offset, bs));
+               Offsets o = new Offsets(oldOff, offset, bs);
+               if (debug)
+                 {
+                   System.out.printf("[RDIFF] OP_COPY_N4_N4 %s%n", o);
+                 }
+               deltas.add(o);
                offset += bs;
                break;
+            }
+
             default:
                throw new IOException("Bad delta command: 0x" +
                   Integer.toHexString(command));
@@ -791,7 +860,7 @@ public class Rdiff {
    {
       File temp = File.createTempFile(".rdiff", null);
       temp.deleteOnExit();
-      final RandomAccessFile f = new RandomAccessFile(temp, "w");
+      final RandomAccessFile f = new RandomAccessFile(temp, "rw");
       RebuilderStream rs = new RebuilderStream();
       rs.setBasisFile(basis);
       rs.addListener(new RebuilderListener() {
@@ -804,6 +873,17 @@ public class Rdiff {
             }
          }
       });
+      
+      int header = readInt(deltas);
+      if (debug)
+        {
+          System.out.printf("[RDIFF] read header %x%n", header);
+        }
+      if (header != DELTA_MAGIC) {
+         throw new IOException("Bad delta header: 0x" +
+            Integer.toHexString(header));
+      }
+
       int command;
       long offset = 0;
       byte[] buf;
@@ -893,6 +973,7 @@ public class Rdiff {
       out.println();
       out.println("Options: * == option currently unimplemented");
       out.println("  -v, --verbose             Trace internal processing");
+      out.println("  -d, --debug               Trace detailed processing");
       out.println("  -V, --version             Show program version");
       out.println("  -h, --help                Show this help message");
       out.println("  -p, --pipe                Keep less intermediate data in memory");
@@ -915,7 +996,7 @@ public class Rdiff {
     */
    private static void version(PrintStream out) {
       out.println(PROGNAME + " (Jarsync " + version.VERSION + ")");
-      out.println("Copyright (C) 2002 Casey Marshall.");
+      out.println("Copyright (C) 2002, 2007 Casey Marshall.");
       out.println();
       out.println("Jarsync comes with NO WARRANTY, to the extent permitted by law.");
       out.println("You may redistribute copies of Jarsync under the terms of the GNU");

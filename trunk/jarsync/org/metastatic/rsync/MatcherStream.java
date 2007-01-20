@@ -154,6 +154,11 @@ public class MatcherStream
         for (ChecksumPair p : sums)
           hashtable.put(p, p.getOffset());
       }
+    
+    if (config.debug)
+      {
+        System.out.printf("[MATCHER] setChecksums hashtable: %s%n", hashtable);
+      }
    }
 
   /**
@@ -173,6 +178,10 @@ public class MatcherStream
    */
   public void update(byte b) throws ListenerException
   {
+    if (config.debug)
+      {
+        System.out.printf("[MATCHER] update %x%n", b & 0xFF);
+      }
     ListenerException exception = null, current = null;
     buffer[ndx++] = b;
     count++;
@@ -293,6 +302,10 @@ public class MatcherStream
    */
   public void update(byte[] buf, int off, int len) throws ListenerException
   {
+    if (config.debug)
+      {
+        System.out.printf("[MATCHER] update %s %d %d%n", buf, off, len);
+      }
     ListenerException exception = null, current = null;
     Long oldOffset;
     int i = off;
@@ -531,8 +544,16 @@ public class MatcherStream
     Integer weakSum = new Integer(config.weakSum.getValue());
     if (hashtable.containsKey(weakSum.intValue()))
       {
+        if (config.debug)
+          {
+            System.out.printf("[MATCHER] hashSearch weakSum 2: %x%n", weakSum);
+          }
         if (hashtable.containsKey(weakSum))
           {
+            if (config.debug)
+              {
+                System.out.printf("[MATCHER] hashSearch strongSum%n");
+              }
             config.strongSum.reset();
             config.strongSum.update(block, off, len);
             if (config.checksumSeed != null)
@@ -542,8 +563,20 @@ public class MatcherStream
             byte[] digest = new byte[config.strongSumLength];
             System.arraycopy(config.strongSum.digest(), 0, digest, 0,
                              digest.length);
-            return (Long) hashtable.get(
-                   new ChecksumPair(weakSum.intValue(), digest));
+            ChecksumPair pair = new ChecksumPair(weakSum, digest);
+            if (config.debug)
+              {
+                System.out.printf("[MATCHER] looking up %s%n", pair);
+              }
+            Long offset = hashtable.get(pair);
+            if (config.debug)
+              {
+                if (offset != null)
+                  System.out.printf("[MATCHER] found offset %d%n", offset);
+                else
+                  System.out.printf("[MATCHER] not found%n");
+              }
+            return offset;
           }
       }
     return null;
