@@ -437,6 +437,10 @@ public class MatcherStream
    */
   public void doFinal() throws ListenerException
   {
+    if (config.debug)
+      {
+        System.out.printf("[MATCHER] doFinal%n");
+      }
     ListenerException exception = null, current = null;
     if (ndx > 0)
       {

@@ -710,6 +710,14 @@ public class Rdiff {
             throw (IOException) le.getCause();
          }
       }
+      try
+      {
+        match.doFinal();
+      }
+      catch (ListenerException le)
+      {
+        throw (IOException) le.getCause();
+      }
       out.write(0);
    }
 
