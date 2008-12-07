@@ -649,11 +649,10 @@ public class Rdiff {
       blockLength = readInt(in);
       strongSumLength = readInt(in);
 
-      int weak;
-      byte[] strong = new byte[strongSumLength];
       do {
          try {
-            weak = readInt(in);
+            int weak = readInt(in);
+            byte[] strong = new byte[strongSumLength];
             int len = in.read(strong);
             if (len < strongSumLength)
                break;

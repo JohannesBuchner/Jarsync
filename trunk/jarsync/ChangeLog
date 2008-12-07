@@ -2,6 +2,12 @@ ChangeLog for JARSYNC.
 
 $Id$
 
+2008-12-06  Casey Marshall  <casey.s.marshall@gmail.com>
+
+	Fix suggested by Greg Steele.
+	* org/metastatic/rsync/Rdiff.java (readSignatures): use a new byte
+	array for each strong sum.
+
 2003-07-27   Casey Marshall  <rsdio@metastatic.org>
 
 	* Significant work done on the client/server programs. The
