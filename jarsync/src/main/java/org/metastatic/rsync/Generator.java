@@ -96,7 +96,7 @@ public class Generator {
    *    generated from the array.
    * @see #generateSums(byte[],int,int,long)
    */
-  public List generateSums(byte[] buf) {
+  public List<ChecksumPair> generateSums(byte[] buf) {
     return generateSums(buf, 0, buf.length, 0);
   }
 
@@ -111,7 +111,7 @@ public class Generator {
    *    generated from the array.
    * @see #generateSums(byte[],int,int,long)
    */
-  public List generateSums(byte[] buf, int off, int len) {
+  public List<ChecksumPair> generateSums(byte[] buf, int off, int len) {
     return generateSums(buf, off, len, 0);
   }
 
@@ -126,7 +126,7 @@ public class Generator {
    *    generated from the array.
    * @see #generateSums(byte[],int,int,long)
    */
-  public List generateSums(byte[] buf, long baseOffset) {
+  public List<ChecksumPair> generateSums(byte[] buf, long baseOffset) {
     return generateSums(buf, 0, buf.length, baseOffset);
   }
 

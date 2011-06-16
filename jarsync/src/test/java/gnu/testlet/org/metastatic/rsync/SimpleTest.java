@@ -60,6 +60,7 @@ import junit.framework.Assert;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 import org.metastatic.rsync.Checksum32;
+import org.metastatic.rsync.ChecksumPair;
 import org.metastatic.rsync.Configuration;
 import org.metastatic.rsync.DataBlock;
 import org.metastatic.rsync.Delta;
@@ -141,7 +142,7 @@ public class SimpleTest
             + conf.blockLength + " bytes, digest="
             + conf.strongSum.getAlgorithm());
         Generator gen = new Generator(conf);
-        List sums = gen.generateSums(old);
+        List<ChecksumPair> sums = gen.generateSums(old);
         log.debug("\tGenerated " + sums.size() + " checksums.");
         deltas = new LinkedList<Delta>();
         MatcherStream mat = new MatcherStream(conf);
@@ -153,6 +154,7 @@ public class SimpleTest
             mat.doFinal();
           } catch (ListenerException wontHappen)
           {
+            //
           }
         int copies = 0, inserts = 0;
         for (Iterator<Delta> it = deltas.iterator(); it.hasNext();)
@@ -260,6 +262,7 @@ public class SimpleTest
             algs.add(tries[i]);
           } catch (Exception x)
           {
+            //
           }
       }
     return algs.toArray(new String[algs.size()]);

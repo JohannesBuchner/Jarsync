@@ -7,7 +7,7 @@ my $svnrev = `/opt/local/bin/svnversion -n .`;
 
 ($svnrev =~ m/(\d+)[MS]*$/) && ($svnrev = $1);
 
-open(FH, "org/metastatic/rsync/version.java.in") or die "$0: opening version.java.in: $!";
+open(FH, "src/main/java/org/metastatic/rsync/version.java.in") or die "$0: opening version.java.in: $!";
 my $in = join("", <FH>);
 close(FH);
 
@@ -18,6 +18,6 @@ $in =~ s/DOUBLE_VERSION/$vdouble/;
 
 print STDOUT $in;
 
-open(FH, ">org/metastatic/rsync/version.java") or die "$0: opening version.java: $!";
+open(FH, ">src/main/java/org/metastatic/rsync/version.java") or die "$0: opening version.java: $!";
 print FH $in;
 close(FH);

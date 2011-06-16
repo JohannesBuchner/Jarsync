@@ -376,8 +376,7 @@ public class Daemon implements Constants, Runnable
 
   private static void version()
   {
-    System.out.println(PROGNAME + " (Jarsync " +
-                       org.metastatic.rsync.version.VERSION + ")");
+    System.out.println(PROGNAME + "  (Jarsync " + org.metastatic.rsync.version.VERSION + ")");
     System.out.println("Copyright (C) 2003 Casey Marshall.");
     System.out.println();
     System.out.println("Jarsync comes with NO WARRANTY, to the extent permitted by law.");
