@@ -90,141 +90,106 @@ package gnu.testlet.org.metastatic.rsync;
 
 // Tags: JARSYNC
 
-import gnu.testlet.Testlet;
-import gnu.testlet.TestHarness;
 import java.security.MessageDigest;
 import java.security.Security;
+
+import junit.framework.Assert;
+
+import org.apache.log4j.Logger;
+import org.junit.Test;
 import org.metastatic.rsync.JarsyncProvider;
 import org.metastatic.rsync.Util;
 
 /**
- * <p>Conformance tests for the 'broken' MD4 implementation.</p>
- *
+ * <p>
+ * Conformance tests for the 'broken' MD4 implementation.
+ * </p>
+ * 
  * @version $Revision$
  */
-public class TestOfBrokenMD4 implements Testlet {
+public class TestOfBrokenMD4
+{
+  private static final Logger log = Logger.getLogger(TestOfBrokenMD4.class);
 
-   // Constants and variables
-   // -------------------------------------------------------------------------
+  // Constants and variables
+  // -------------------------------------------------------------------------
 
-   private MessageDigest algorithm, clone;
+  private MessageDigest algorithm, clone;
 
-   // Constructor(s)
-   // -------------------------------------------------------------------------
+  // Constructor(s)
+  // -------------------------------------------------------------------------
 
-   // default 0-arguments constructor
+  // default 0-arguments constructor
 
-   // Class methods
-   // -------------------------------------------------------------------------
+  // Class methods
+  // -------------------------------------------------------------------------
 
-   // Instance methods
-   // -------------------------------------------------------------------------
+  // Instance methods
+  // -------------------------------------------------------------------------
 
-   public void test(TestHarness harness) {
-      harness.checkPoint("TestOfMD4");
+  @Test
+  public void test() throws Exception
+  {
+    log.debug("TestOfMD4");
+    byte[] md;
+    String exp;
 
-      try {
-         Security.addProvider(new JarsyncProvider());
-         algorithm = MessageDigest.getInstance("BrokenMD4", "JARSYNC");
-      } catch (Exception x) {
-         harness.debug(x);
-         harness.fail("TestOfMD4.provider");
-         throw new Error(x);
-      }
+    Security.addProvider(new JarsyncProvider());
+    algorithm = MessageDigest.getInstance("BrokenMD4", "JARSYNC");
 
-      // Test vectors generated from rsync 2.5.5's mdfour.
+    // Test vectors generated from rsync 2.5.5's mdfour.
 
-      // Input a multiple of the block size is not padded.
-      try {
-         for (int i = 0; i < 64; i++) algorithm.update((byte) 'a');
-         byte[] md = algorithm.digest();
-         String exp = "755cd64425f260e356f5303ee82a2d5f";
-         harness.check(exp.equals(Util.toHexString(md)), "testSixtyFourA");
-      } catch (Exception x) {
-         harness.debug(x);
-         harness.fail("TestOfMD4.provider");
-      } 
+    // Input a multiple of the block size is not padded.
+    for (int i = 0; i < 64; i++)
+      algorithm.update((byte) 'a');
+    md = algorithm.digest();
+    exp = "755cd64425f260e356f5303ee82a2d5f";
+    Assert.assertEquals("testSixtyFourA", exp, Util.toHexString(md));
 
-      // Input >= 2^32 bits has bad padding.
-      try {
-         harness.verbose("NOTE: This test may take a while.");
-         for (int i = 0; i < 536870913; i++) algorithm.update((byte) 'a');
-         byte[] md = algorithm.digest();
-         String exp = "b6cea9f528a85963f7529a9e3a2153db";
-         harness.check(exp.equals(Util.toHexString(md)), "test536870913A");
-      } catch (Exception x) {
-         harness.debug(x);
-         harness.fail("TestOfMD4.provider");
-      } 
+    // Input >= 2^32 bits has bad padding.
+    log.debug("NOTE: This test may take a while.");
+    for (int i = 0; i < 536870913; i++)
+      algorithm.update((byte) 'a');
+    md = algorithm.digest();
+    exp = "b6cea9f528a85963f7529a9e3a2153db";
+    Assert.assertEquals("test536870913A", exp, Util.toHexString(md));
 
-      try {
-         byte[] md = algorithm.digest("a".getBytes());
-         String exp = "bde52cb31de33e46245e05fbdbd6fb24";
-         harness.check(exp.equals(Util.toHexString(md)), "testA");
-      } catch (Exception x) {
-         harness.debug(x);
-         harness.fail("TestOfMD4.testA");
-      }
+    md = algorithm.digest("a".getBytes());
+    exp = "bde52cb31de33e46245e05fbdbd6fb24";
+    Assert.assertEquals("testA", exp, Util.toHexString(md));
 
-      try {
-         byte[] md = algorithm.digest("abc".getBytes());
-         String exp = "a448017aaf21d8525fc10ae87aa6729d";
-         harness.check(exp.equals(Util.toHexString(md)), "testABC");
-      } catch (Exception x) {
-         harness.debug(x);
-         harness.fail("TestOfMD4.testABC");
-      }
+    md = algorithm.digest("abc".getBytes());
+    exp = "a448017aaf21d8525fc10ae87aa6729d";
+    Assert.assertEquals("testABC", exp, Util.toHexString(md));
 
-      try {
-         byte[] md = algorithm.digest("message digest".getBytes());
-         String exp = "d9130a8164549fe818874806e1c7014b";
-         harness.check(exp.equals(Util.toHexString(md)), "testMessageDigest");
-      } catch (Exception x) {
-         harness.debug(x);
-         harness.fail("TestOfMD4.testMessageDigest");
-      }
+    md = algorithm.digest("message digest".getBytes());
+    exp = "d9130a8164549fe818874806e1c7014b";
+    Assert.assertEquals("testMessageDigest", exp, Util.toHexString(md));
 
-      try {
-         byte[] md = algorithm.digest("abcdefghijklmnopqrstuvwxyz".getBytes());
-         String exp = "d79e1c308aa5bbcdeea8ed63df412da9";
-         harness.check(exp.equals(Util.toHexString(md)), "testAlphabet");
-      } catch (Exception x) {
-         harness.debug(x);
-         harness.fail("TestOfMD4.testAlphabet");
-      }
+    md = algorithm.digest("abcdefghijklmnopqrstuvwxyz".getBytes());
+    exp = "d79e1c308aa5bbcdeea8ed63df412da9";
+    Assert.assertEquals("testAlphabet", exp, Util.toHexString(md));
+    md = algorithm
+        .digest("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+            .getBytes());
+    exp = "043f8582f241db351ce627e153e7f0e4";
+    Assert.assertEquals("testAsciiSubset", exp, Util.toHexString(md));
 
-      try {
-         byte[] md = algorithm.digest("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".getBytes());
-         String exp = "043f8582f241db351ce627e153e7f0e4";
-         harness.check(exp.equals(Util.toHexString(md)), "testAsciiSubset");
-      } catch (Exception x) {
-         harness.debug(x);
-         harness.fail("TestOfMD4.testAsciiSubset");
-      }
+    md = algorithm
+        .digest("12345678901234567890123456789012345678901234567890123456789012345678901234567890"
+            .getBytes());
+    exp = "e33b4ddc9c38f2199c3e7b164fcc0536";
+    Assert.assertEquals("testEightyNumerics", exp, Util.toHexString(md));
 
-      try {
-         byte[] md = algorithm.digest("12345678901234567890123456789012345678901234567890123456789012345678901234567890".getBytes());
-         String exp = "e33b4ddc9c38f2199c3e7b164fcc0536";
-         harness.check(exp.equals(Util.toHexString(md)), "testEightyNumerics");
-      } catch (Exception x) {
-         harness.debug(x);
-         harness.fail("TestOfMD4.testEightyNumerics");
-      }
+    algorithm.update("a".getBytes(), 0, 1);
+    clone = (MessageDigest) algorithm.clone();
+    md = algorithm.digest();
+    exp = "bde52cb31de33e46245e05fbdbd6fb24";
+    Assert.assertEquals("testCloning #1", exp, Util.toHexString(md));
 
-      try {
-         algorithm.update("a".getBytes(), 0, 1);
-         clone = (MessageDigest) algorithm.clone();
-         byte[] md = algorithm.digest();
-         String exp = "bde52cb31de33e46245e05fbdbd6fb24";
-         harness.check(exp.equals(Util.toHexString(md)), "testCloning #1");
-
-         clone.update("bc".getBytes(), 0, 2);
-         md = clone.digest();
-         exp = "a448017aaf21d8525fc10ae87aa6729d";
-         harness.check(exp.equals(Util.toHexString(md)), "testCloning #2");
-      } catch (Exception x) {
-         harness.debug(x);
-         harness.fail("TestOfMD4.testCloning");
-      }
-   }
+    clone.update("bc".getBytes(), 0, 2);
+    md = clone.digest();
+    exp = "a448017aaf21d8525fc10ae87aa6729d";
+    Assert.assertEquals("testCloning #2", exp, Util.toHexString(md));
+  }
 }
