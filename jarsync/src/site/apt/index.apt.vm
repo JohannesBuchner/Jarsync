@@ -1,0 +1,27 @@
+	--------------------------
+	About Jarsync
+
+About Jarsync
+  
+  ${project.description}
+
+About this fork
+
+  This is a fork of the Jarsync project at {{http://jarsync.sourceforge.net}}. This project provides a rsync implementation in Java.
+
+  This fork makes the following modifications:
+  
+  * Maven build system
+  
+  * Junit4 and log4j instead of custom test harness
+  
+  * added dependency to jzlib and java-getopt instead of including them.
+  
+  * modification so it compiles under sun java, and removal of gnu classpath dependencies.
+  
+  * removal of ssh2 implementation, as it didn't compile.
+  
+
+  This fork aims to provide a rsync library for java programs.
+
+

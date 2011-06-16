@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+	<version position="bottom" />
+	<publishDate position="bottom" />
+	<bannerLeft>
+		<name>${project.name}</name>
+		<href>index.html</href>
+	</bannerLeft>
+
+	<body>
+		<links>
+			<item name="Jake Home" href="http://jakeapp.sourceforge.net/" />
+		</links>
+		<menu name="General">
+			<item name="About" href="index.html" />
+			<item name="Team" href="team-list.html" />
+			<item name="Code Repository" href="source-repository.html" />
+			<item name="Javadoc" href="apidocs/index.html" />
+			<item name="License" href="license.html" />
+		</menu>
+		<menu name="Generated Reports">
+			<item name="Project Dependencies" href="dependencies.html" />
+			<item name="Project Summary" href="project-summary.html" />
+		</menu>
+	</body>
+</project>
+
