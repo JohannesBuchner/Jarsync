@@ -29,19 +29,14 @@ package org.metastatic.rsync.v2;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-
 import java.security.MessageDigest;
-
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
-
+import org.metastatic.HASH_ALGORITHM;
 import org.metastatic.rsync.ChecksumPair;
 import org.metastatic.rsync.Configuration;
 import org.metastatic.rsync.DataBlock;
@@ -51,7 +46,6 @@ import org.metastatic.rsync.MatcherEvent;
 import org.metastatic.rsync.MatcherListener;
 import org.metastatic.rsync.MatcherStream;
 import org.metastatic.rsync.Offsets;
-import org.metastatic.rsync.Util;
 
 final class NonblockingSender implements NonblockingTool, Constants,
    MatcherListener
@@ -103,7 +97,7 @@ final class NonblockingSender implements NonblockingTool, Constants,
     stats = new Statistics();
     try
       {
-        file_sum = MessageDigest.getInstance("BrokenMD4");
+        file_sum = MessageDigest.getInstance(HASH_ALGORITHM.DIGEST_NAME);
       }
     catch (Exception x)
       {

@@ -28,12 +28,12 @@ package org.metastatic.rsync.v2;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-
 import java.security.MessageDigest;
-
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.StringTokenizer;
+
+import org.metastatic.HASH_ALGORITHM;
 
 class RsyncUtil implements Constants
 {
@@ -61,7 +61,7 @@ class RsyncUtil implements Constants
     MessageDigest mdfour = null;
     try
       {
-        mdfour = MessageDigest.getInstance("BrokenMD4");
+        mdfour = MessageDigest.getInstance(HASH_ALGORITHM.DIGEST_NAME);
       }
     catch (java.security.NoSuchAlgorithmException nse)
       {
@@ -89,7 +89,7 @@ class RsyncUtil implements Constants
     MessageDigest mdfour = null;
     try
       {
-        mdfour = MessageDigest.getInstance("BrokenMD4");
+        mdfour = MessageDigest.getInstance(HASH_ALGORITHM.DIGEST_NAME);
       }
     catch (java.security.NoSuchAlgorithmException nse)
       {

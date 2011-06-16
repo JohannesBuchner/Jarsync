@@ -45,17 +45,16 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 import org.apache.log4j.Logger;
-
-import org.metastatic.rsync.*;
+import org.metastatic.HASH_ALGORITHM;
+import org.metastatic.rsync.Configuration;
+import org.metastatic.rsync.Util;
 
 class BlockingDaemon implements Runnable, Constants {
 
@@ -278,7 +277,7 @@ class BlockingDaemon implements Runnable, Constants {
 
       LineNumberReader secrets = new LineNumberReader(
          new FileReader(module.secretsFile));
-      MessageDigest md4 = MessageDigest.getInstance("BrokenMD4");
+      MessageDigest md4 = MessageDigest.getInstance(HASH_ALGORITHM.DIGEST_NAME);
       String line;
       while ((line = secrets.readLine()) != null) {
          if (line.startsWith(user + ":")) {

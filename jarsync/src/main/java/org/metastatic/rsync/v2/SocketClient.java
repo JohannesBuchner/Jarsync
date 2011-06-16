@@ -32,17 +32,14 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
 import java.net.Socket;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 
-import org.metastatic.rsync.*;
+import org.metastatic.HASH_ALGORITHM;
+import org.metastatic.rsync.Util;
 
 /**
  * A SocketClient connects to rsync servers over TCP port 873. This
@@ -271,7 +268,7 @@ public class SocketClient implements Constants {
    public boolean authenticate(String user, String pass) throws IOException {
       MessageDigest hash = null;
       try {
-         MessageDigest.getInstance("BrokenMD4");
+         MessageDigest.getInstance(HASH_ALGORITHM.DIGEST_NAME);
       } catch (NoSuchAlgorithmException x) {
          throw new Error(x);
       }

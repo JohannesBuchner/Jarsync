@@ -26,7 +26,7 @@ along with Jarsync; see the file COPYING.  If not, write to the
 
 package org.metastatic.rsync.v2;
 
-import org.metastatic.rsync.MD4;
+import org.metastatic.HASH_ALGORITHM;
 
 /**
  * A number of useful constants in rsync.
@@ -43,7 +43,7 @@ public interface Constants
   public static final int CHUNK_SIZE = 32768;
 
   /** The size of MD4 checksums. */
-  public static final int SUM_LENGTH = MD4.DIGEST_LENGTH;
+  public static final int SUM_LENGTH = HASH_ALGORITHM.DIGEST_LENGTH;
 
   /** The default port for rsyncd connections. */
   public static final int RSYNCD_PORT = 873;

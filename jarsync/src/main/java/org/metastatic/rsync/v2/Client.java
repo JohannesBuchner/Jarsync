@@ -50,6 +50,7 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
+import org.metastatic.HASH_ALGORITHM;
 import org.metastatic.rsync.Checksum32;
 import org.metastatic.rsync.Configuration;
 import org.metastatic.rsync.JarsyncProvider;
@@ -566,7 +567,7 @@ public class Client
     config.weakSum = new Checksum32();
     try
       {
-        config.strongSum = MessageDigest.getInstance("BrokenMD4");
+        config.strongSum = MessageDigest.getInstance(HASH_ALGORITHM.DIGEST_NAME);
       } catch (NoSuchAlgorithmException nsae)
       {
         System.err.println(PROGNAME + ": could not create MD4 instance.");
@@ -743,7 +744,7 @@ public class Client
   {
     try
       {
-        MessageDigest md = MessageDigest.getInstance("BrokenMD4");
+        MessageDigest md = MessageDigest.getInstance(HASH_ALGORITHM.DIGEST_NAME);
         String passwd = null;
         System.out.print(remoteUser + '@' + remoteHost + "'s password: ");
         passwd = Util.readLine(System.in);

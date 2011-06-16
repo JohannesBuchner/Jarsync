@@ -29,31 +29,25 @@ package org.metastatic.rsync.v2;
 import java.io.File;
 import java.io.FileReader;
 import java.io.LineNumberReader;
-
 import java.net.InetAddress;
-import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 import org.apache.log4j.Logger;
-
-import org.metastatic.rsync.Configuration;
+import org.metastatic.HASH_ALGORITHM;
 import org.metastatic.rsync.Checksum32;
-import org.metastatic.rsync.BrokenMD4;
+import org.metastatic.rsync.Configuration;
 import org.metastatic.rsync.Util;
 
 public class Protocol implements Constants
@@ -634,7 +628,7 @@ public class Protocol implements Constants
         config = new Configuration();
         try
           {
-            config.strongSum = MessageDigest.getInstance("BrokenMD4");
+            config.strongSum = MessageDigest.getInstance(HASH_ALGORITHM.DIGEST_NAME);
           }
         catch (NoSuchAlgorithmException nsae)
           {
@@ -752,7 +746,7 @@ public class Protocol implements Constants
           {
             if (line.startsWith(user + ":"))
               {
-                MessageDigest md4 = MessageDigest.getInstance("BrokenMD4");
+                MessageDigest md4 = MessageDigest.getInstance(HASH_ALGORITHM.DIGEST_NAME);
                 md4.update(new byte[4]);
                 md4.update(
                   line.substring(line.indexOf(":")+1).getBytes("US-ASCII"));

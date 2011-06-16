@@ -34,23 +34,18 @@ along with Jarsync; if not, write to the
 
 package org.metastatic.rsync.v2;
 
-import org.apache.log4j.Logger;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+import org.metastatic.HASH_ALGORITHM;
 import org.metastatic.rsync.Configuration;
 import org.metastatic.rsync.Delta;
 import org.metastatic.rsync.DeltaDecoder;
@@ -449,7 +444,7 @@ public class Receiver implements Constants, GeneratorListener, RebuilderListener
         MessageDigest md = null;
         try
           {
-            md = MessageDigest.getInstance("BrokenMD4");
+            md = MessageDigest.getInstance(HASH_ALGORITHM.DIGEST_NAME);
           }
         catch (NoSuchAlgorithmException nsae)
           {

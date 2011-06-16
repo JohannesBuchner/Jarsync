@@ -34,19 +34,6 @@ your library, but you are not obligated to do so. If you do not offer
 the same license terms, delete the license terms that your library is
 NOT licensed under.
 
-Note that this choice of license DOES NOT apply to files in Jarsync
-that are copyrighted by the Free Software Foundation. These files
-include:
-
-  org/metastatic/rsync/BrokenMD4.java
-  org/metastatic/rsync/MD4.java
-  org/metastatic/rsync/Util.java
-
-These files are only licensed under the GNU General Public License
-with the exception text above. Other parts of Jarsync do not directly
-depend on these files, and are licensed under the choice of license
-explained above.
-
 --
 
 The (currently incomplete) rsync-compatible client and server is covered
