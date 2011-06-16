@@ -27,19 +27,20 @@
 	</licenses>
 	<developers>
 		<developer>
-			<id>johannes</id>
-			<name>Johannes Buchner</name>
-			<email>buchner.johannes@gmx.at</email>
-			<roles>
-				<role>Active patcher</role>
-			</roles>
-		</developer>
-		<developer>
+			<id>rsdio</id>
 			<name>Casey Marshall</name>
 			<email>rsdio@metastatic.org</email>
 			<roles>
 				<role>Primary author</role>
 				<role>previous maintainer</role>
+			</roles>
+		</developer>
+		<developer>
+			<id>johannes</id>
+			<name>Johannes Buchner</name>
+			<email>buchner.johannes@gmx.at</email>
+			<roles>
+				<role>Active patcher</role>
 			</roles>
 		</developer>
 	</developers>
