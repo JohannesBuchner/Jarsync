@@ -54,6 +54,7 @@ import java.security.Security;
 import junit.framework.Assert;
 
 import org.apache.log4j.Logger;
+import org.junit.Test;
 import org.metastatic.rsync.JarsyncProvider;
 import org.metastatic.rsync.Util;
 
@@ -84,6 +85,7 @@ public class TestOfMD4
   // Instance methods
   // -------------------------------------------------------------------------
 
+  @Test
   public void test()
   {
     checkPoint("TestOfMD4");

@@ -62,6 +62,7 @@ import org.junit.Test;
 import org.metastatic.rsync.Checksum32;
 import org.metastatic.rsync.Configuration;
 import org.metastatic.rsync.DataBlock;
+import org.metastatic.rsync.Delta;
 import org.metastatic.rsync.Generator;
 import org.metastatic.rsync.JarsyncProvider;
 import org.metastatic.rsync.ListenerException;
@@ -87,7 +88,7 @@ public class SimpleTest
 
   Random rand;
 
-  List deltas;
+  List<Delta> deltas;
 
   // Constructor.
   // -----------------------------------------------------------------------
@@ -142,7 +143,7 @@ public class SimpleTest
         Generator gen = new Generator(conf);
         List sums = gen.generateSums(old);
         log.debug("\tGenerated " + sums.size() + " checksums.");
-        deltas = new LinkedList();
+        deltas = new LinkedList<Delta>();
         MatcherStream mat = new MatcherStream(conf);
         mat.addListener(this);
         mat.setChecksums(sums);
@@ -154,7 +155,7 @@ public class SimpleTest
           {
           }
         int copies = 0, inserts = 0;
-        for (Iterator it = deltas.iterator(); it.hasNext();)
+        for (Iterator<Delta> it = deltas.iterator(); it.hasNext();)
           {
             if (it.next() instanceof DataBlock)
               inserts++;

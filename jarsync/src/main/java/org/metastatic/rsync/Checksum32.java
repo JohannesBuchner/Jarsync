@@ -61,7 +61,7 @@ package org.metastatic.rsync;
  * @author Casey Marshall
  * @version $Revision$
  */
-public class Checksum32 implements RollingChecksum, Cloneable, java.io.Serializable
+public class Checksum32 implements RollingChecksum
 {
 
   // Constants and variables.
