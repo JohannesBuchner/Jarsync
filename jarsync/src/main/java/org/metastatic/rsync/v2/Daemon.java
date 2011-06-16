@@ -88,7 +88,6 @@ public class Daemon implements Constants, Runnable
       }
     catch (Throwable x) { }
     HAVE_SSL = ok;
-    java.security.Security.addProvider(new JarsyncProvider());
   }
 
   protected Logger logger;

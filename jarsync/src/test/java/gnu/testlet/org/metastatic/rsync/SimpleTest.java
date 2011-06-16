@@ -46,7 +46,6 @@
 package gnu.testlet.org.metastatic.rsync;
 
 import java.security.MessageDigest;
-import java.security.Security;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -59,13 +58,13 @@ import junit.framework.Assert;
 
 import org.apache.log4j.Logger;
 import org.junit.Test;
+import org.metastatic.HASH_ALGORITHM;
 import org.metastatic.rsync.Checksum32;
 import org.metastatic.rsync.ChecksumPair;
 import org.metastatic.rsync.Configuration;
 import org.metastatic.rsync.DataBlock;
 import org.metastatic.rsync.Delta;
 import org.metastatic.rsync.Generator;
-import org.metastatic.rsync.JarsyncProvider;
 import org.metastatic.rsync.ListenerException;
 import org.metastatic.rsync.MatcherEvent;
 import org.metastatic.rsync.MatcherListener;
@@ -110,21 +109,21 @@ public class SimpleTest
   public void test()
   {
     String[] mds = getMessageDigests();
-    Security.addProvider(new JarsyncProvider());
     Configuration conf = new Configuration();
-
-    // Make sure we use our MD4 at least once!
-    try
-      {
-        conf.strongSum = MessageDigest.getInstance("MD4", "JARSYNC");
-      } catch (Exception x)
-      {
-        throw new Error(x);
-      }
-    conf.strongSumLength = conf.strongSum.getDigestLength();
 
     for (int i = 0; i < 50; i++)
       {
+        try
+        {
+          conf.strongSum = MessageDigest.getInstance(mds[rand
+              .nextInt(mds.length)]);
+          conf.strongSumLength = conf.strongSum.getDigestLength();
+        } catch (Exception x)
+        {
+          throw new Error(x);
+        }
+
+        
         conf.blockLength = rand.nextInt(1400) + 250;
         conf.weakSum = new Checksum32();
         byte[] n3w = new byte[rand.nextInt(1000000) + 500];
@@ -193,15 +192,6 @@ public class SimpleTest
                       }
                   }
               }
-          }
-        try
-          {
-            conf.strongSum = MessageDigest.getInstance(mds[rand
-                .nextInt(mds.length)]);
-            conf.strongSumLength = conf.strongSum.getDigestLength();
-          } catch (Exception x)
-          {
-            throw new Error(x);
           }
       }
   }

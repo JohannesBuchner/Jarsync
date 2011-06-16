@@ -180,8 +180,6 @@ public class Rdiff
    */
   public static void main(String[] argv) throws Throwable
   {
-    Security.addProvider(new JarsyncProvider());
-
     Getopt g = new Getopt(PROGNAME, argv, OPTSTRING, LONGOPTS);
     int c;
     Rdiff rdiff = new Rdiff();

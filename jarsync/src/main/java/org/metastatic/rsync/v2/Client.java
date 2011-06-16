@@ -34,7 +34,6 @@ import java.net.Socket;
 import java.security.KeyManagementException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.Security;
 import java.text.DecimalFormat;
 import java.util.Collections;
 import java.util.Comparator;
@@ -53,7 +52,6 @@ import org.apache.log4j.PatternLayout;
 import org.metastatic.HASH_ALGORITHM;
 import org.metastatic.rsync.Checksum32;
 import org.metastatic.rsync.Configuration;
-import org.metastatic.rsync.JarsyncProvider;
 import org.metastatic.rsync.Util;
 
 public class Client
@@ -540,7 +538,6 @@ public class Client
 
   public static void main(String[] argv)
   {
-    Security.addProvider(new JarsyncProvider());
     int optind = 0;
     Options options = new Options();
     try
