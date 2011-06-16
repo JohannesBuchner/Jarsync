@@ -30,4 +30,4 @@ for OPT in "$@"; do
   esac
 done
 
-exec java $JAVAOPTS -cp $CLASSPATH:lib/jarsync.jar org.metastatic.rsync.v2.Client $APPOPTS
+exec java $JAVAOPTS -cp $CLASSPATH:target/jarsync.jar org.metastatic.rsync.v2.Client $APPOPTS

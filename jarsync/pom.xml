@@ -89,6 +89,36 @@
 			<version>${log4j.version}</version>
 		</dependency>
 	</dependencies>
+	
+	
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>package-jar-with-dependencies</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+					<!--<archive>
+						<manifest>
+							<mainClass>local.radioschedulers.run.EvaluateWF</mainClass>
+						</manifest>
+					</archive>-->
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	
 	<properties>
 		<log4j.version>1.2.14</log4j.version>
 		<junit.version>4.4</junit.version>
