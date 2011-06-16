@@ -22,30 +22,37 @@ public class RdiffTest
   private File folder = new File("target/test-classes/rdifftest");
 
   @Test
-  public void testRdiff() throws NoSuchAlgorithmException, FileNotFoundException, IOException
+  public void testRdiff() throws NoSuchAlgorithmException,
+      FileNotFoundException, IOException
   {
-    for (int i = 1; i < 10; i++)
+    for (int i = 0; i < 10; i++)
       {
         String prefix = "mut." + i;
         File mutated = new File(folder, prefix);
         log.debug("Testing " + mutated.getAbsolutePath());
         File output = new File(folder, prefix + ".output");
-        File signature= new File(folder, prefix + ".signature");
+        File signature = new File(folder, prefix + ".signature");
         File newdelta = new File(folder, prefix + ".newdelta");
         File basis = new File(folder, "basis");
-        
+
         // client does this first
         Rdiff clientRdiff = new Rdiff();
-        clientRdiff.makeSignatures(new FileInputStream(mutated), new FileOutputStream(signature));
-        
+        clientRdiff.makeSignatures(new FileInputStream(mutated),
+            new FileOutputStream(signature));
+        Assert.assertTrue(signature.length() < mutated.length() / 10);
+
         // server gets signature file, and does this now
         Rdiff serverRdiff = new Rdiff();
-        List<ChecksumPair> sigs = serverRdiff.readSignatures(new FileInputStream(signature));
-        serverRdiff.makeDeltas(sigs, new FileInputStream(basis), new FileOutputStream(newdelta));
+        List<ChecksumPair> sigs = serverRdiff
+            .readSignatures(new FileInputStream(signature));
+        serverRdiff.makeDeltas(sigs, new FileInputStream(basis),
+            new FileOutputStream(newdelta));
+        Assert.assertTrue(newdelta.length() < basis.length() / 10);
 
         // finally, client patches his file
-        clientRdiff.rebuildFile(mutated, new FileInputStream(newdelta), new FileOutputStream(output));
-        
+        clientRdiff.rebuildFile(mutated, new FileInputStream(newdelta),
+            new FileOutputStream(output));
+
         checkSame(output, basis);
       }
   }
@@ -54,12 +61,13 @@ public class RdiffTest
   {
     FileInputStream as = new FileInputStream(a);
     FileInputStream bs = new FileInputStream(b);
-    while(true) {
-      int ai = as.read();
-      int bi = bs.read();
-      Assert.assertEquals(ai, bi);
-      if (ai == -1)
-        return;
-    }
+    while (true)
+      {
+        int ai = as.read();
+        int bi = bs.read();
+        Assert.assertEquals(ai, bi);
+        if (ai == -1)
+          return;
+      }
   }
 }
