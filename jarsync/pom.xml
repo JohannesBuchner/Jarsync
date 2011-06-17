@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>org.sourceforge.jarsync</groupId>
+	<groupId>net.sourceforge.jarsync</groupId>
 	<artifactId>jarsync</artifactId>
 	<name>jarsync</name>
 	<version>0.3</version>
@@ -53,8 +53,7 @@
 		<repository>
 			<id>sourceforge</id>
 			<name>SourceForge</name>
-			<url>sftp://frs.sourceforge.net:/home/frs/project/j/ja/jakeapp/releases
-			</url>
+			<url>sftp://frs.sourceforge.net:/home/frs/project/j/ja/jakeapp/releases</url>
 		</repository>
 	</distributionManagement>
 	<scm>
@@ -89,36 +88,6 @@
 			<version>${log4j.version}</version>
 		</dependency>
 	</dependencies>
-	
-	
-	<build>
-		<plugins>
-			<plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>package-jar-with-dependencies</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<descriptorRefs>
-						<descriptorRef>jar-with-dependencies</descriptorRef>
-					</descriptorRefs>
-					<!--<archive>
-						<manifest>
-							<mainClass>local.radioschedulers.run.EvaluateWF</mainClass>
-						</manifest>
-					</archive>-->
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
-
-	
 	<properties>
 		<log4j.version>1.2.14</log4j.version>
 		<junit.version>4.4</junit.version>

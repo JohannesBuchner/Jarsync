@@ -7,7 +7,9 @@ About Jarsync
 
 About this fork
 
-  This is a fork of the Jarsync project at {{http://jarsync.sourceforge.net}}. This project provides a rsync implementation in Java.
+  This is a fork of the Jarsync project at {{http://jarsync.sourceforge.net}}. 
+  
+  This project provides a *rdiff* and *rsync* implementation in Java.
 
   This fork makes the following modifications:
   
