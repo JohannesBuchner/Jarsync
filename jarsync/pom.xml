@@ -53,7 +53,7 @@
 		<repository>
 			<id>sourceforge</id>
 			<name>SourceForge</name>
-			<url>sftp://frs.sourceforge.net:/home/frs/project/j/ja/jakeapp/releases</url>
+			<url>sftp://frs.sourceforge.net:/home/frs/project/j/ja/jakeapp/maven/releases</url>
 		</repository>
 	</distributionManagement>
 	<scm>
